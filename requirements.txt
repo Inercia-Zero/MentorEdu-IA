@@ -1,6 +1,10 @@
 streamlit
 pypdf
 faiss-cpu
-sentence-transformers
-groq
 numpy
+groq
+sentence-transformers
+torch
+sympy
+matplotlib
+pillow
