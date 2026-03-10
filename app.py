@@ -416,6 +416,36 @@ def obter_prompt_sistema(perfil_escolhido: str) -> str:
         )
     return "Você é um assistente educacional útil, claro e objetivo."
 
+def obter_instrucao_modo(modo_atual: str) -> str:
+    if modo_atual == "Matemática":
+        return """
+Você está no modo Matemática.
+- Priorize resolução, explicação, demonstração, teoria, fórmulas, gráficos e interpretação de material matemático.
+- Se houver PDF ou imagem matemática anexados, use-os como base principal.
+- Sempre que houver matemática, utilize LaTeX.
+"""
+    elif modo_atual == "Análise de Conteúdo":
+        return """
+Você está no modo Análise de Conteúdo.
+- Priorize a interpretação de PDFs, imagens e materiais enviados pelo usuário.
+- Se houver imagem, descreva, transcreva e explique.
+- Se houver PDF, resuma, explique páginas, relacione conceitos e responda com base no material.
+- Se houver PDF e imagem ao mesmo tempo, integre as duas fontes quando fizer sentido.
+"""
+    elif modo_atual == "Chat Criativo":
+        return """
+Você está no modo Chat Criativo.
+- Ajude a gerar ideias, estruturar trabalhos, planejar aulas, propor metodologias, pensar apresentações e desenvolver projetos.
+- Seja colaborativo, criativo, estratégico e útil.
+- Ajude professores e alunos a amadurecer ideias.
+- Sugira caminhos, exemplos, tópicos e estruturas práticas.
+"""
+    return """
+Você está no modo Chat Geral.
+- Responda de forma útil, clara e objetiva.
+- Adapte-se ao perfil selecionado.
+"""
+
 def processar_pdf_from_fileobj(pdf_file):
     leitor = PdfReader(pdf_file)
     txts, pgs = [], []
@@ -481,16 +511,19 @@ def imagem_path_para_data_url(path):
     b64 = base64.b64encode(dados).decode("utf-8")
     return f"data:{mime};base64,{b64}"
 
-def analisar_imagem_com_vision(prompt_usuario: str, perfil: str, image_path: str):
+def analisar_imagem_com_vision(prompt_usuario: str, perfil: str, modo_atual: str, image_path: str):
     if client is None:
         return "Cliente Groq não disponível."
 
     data_url = imagem_path_para_data_url(image_path)
     sys_prompt = obter_prompt_sistema(perfil)
+    instrucao_modo = obter_instrucao_modo(modo_atual)
+
     instrucao = (
         f"{sys_prompt}\n\n"
+        f"{instrucao_modo}\n\n"
         "A imagem enviada pode conter conteúdo matemático, gráfico, anotação, exercício, página de caderno, "
-        "quadro ou material impresso. Identifique o que aparece, transcreva o que for legível, "
+        "quadro, esquema, slide ou material impresso. Identifique o que aparece, transcreva o que for legível, "
         "explique o conteúdo e ajude o usuário com base na imagem."
     )
 
@@ -514,21 +547,13 @@ def analisar_imagem_com_vision(prompt_usuario: str, perfil: str, image_path: str
 
 def responder_texto(prompt_usuario: str, perfil: str, contexto: str, modo_atual: str):
     sys_prompt = obter_prompt_sistema(perfil)
-
-    regra_extra_pdf_math = ""
-    if modo_atual == "PDF de Matemática":
-        regra_extra_pdf_math = """
-Você está em modo PDF de Matemática.
-- Priorize fortemente o conteúdo do PDF.
-- Se o PDF trouxer fórmulas, definições, teoremas ou exercícios, use isso como base principal.
-- Explique de forma didática e organizada.
-- Se o usuário pedir resolução, resolva com base no material quando possível.
-- Se o usuário pedir teoria, conecte a explicação ao conteúdo do PDF.
-"""
+    instrucao_modo = obter_instrucao_modo(modo_atual)
 
     mensagem_usuario = f"""
 Responda à pergunta do usuário com base no contexto abaixo quando ele for útil.
 Se o contexto não for suficiente, responda com honestidade e use conhecimento geral de forma prudente.
+
+{instrucao_modo}
 
 REGRAS IMPORTANTES DE FORMATAÇÃO:
 - Sempre que houver matemática, escreva expressões, equações, fórmulas e identidades em LaTeX.
@@ -538,8 +563,6 @@ REGRAS IMPORTANTES DE FORMATAÇÃO:
 - Sempre prefira notação matemática bem formatada.
 - Em demonstrações, organize em etapas.
 - Quando houver resposta final matemática, destaque em uma linha própria com LaTeX.
-
-{regra_extra_pdf_math}
 
 Se a pergunta for de matemática:
 - identifique os dados do problema;
@@ -1013,21 +1036,18 @@ with st.sidebar:
         "Escolha o modo de trabalho:",
         [
             "Chat Geral",
+            "Análise de Conteúdo",
             "Matemática",
-            "PDF + Chat",
-            "PDF de Matemática",
-            "Análise de Imagem",
+            "Chat Criativo",
         ],
     )
 
-    if modo == "Matemática":
-        st.info("Ex.: resolva equações, explique derivadas, peça um gráfico ou uma figura matemática.")
-    elif modo == "PDF + Chat":
-        st.info("Ex.: anexe uma apostila e faça perguntas sobre o conteúdo.")
-    elif modo == "PDF de Matemática":
-        st.info("Ex.: anexe um material matemático e peça explicações, demonstrações e resoluções.")
-    elif modo == "Análise de Imagem":
-        st.info("Ex.: envie foto de questão, quadro, gráfico ou página de caderno.")
+    if modo == "Análise de Conteúdo":
+        st.info("Converse sobre PDFs e imagens enviados, de forma integrada.")
+    elif modo == "Matemática":
+        st.info("Use para matemática, questões por imagem, PDF matemático, gráficos e fórmulas.")
+    elif modo == "Chat Criativo":
+        st.info("Use para ideias, trabalhos, metodologias, planejamento de aula e desenvolvimento de projeto.")
 
     st.markdown("---")
     st.write(f"Perguntas nesta sessão: {st.session_state.contador_perguntas}/{MAX_PERGUNTAS_SESSAO}")
@@ -1044,36 +1064,52 @@ with st.sidebar:
 st.markdown('<div class="project-badge">Projeto Inércia Zero</div>', unsafe_allow_html=True)
 st.markdown('<div class="main-title">MentorEdu IFCE</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="subtitle">Assistente acadêmico inteligente com foco institucional, educacional e matemático</div>',
+    '<div class="subtitle">Assistente acadêmico inteligente com foco institucional, educacional, matemático e criativo</div>',
     unsafe_allow_html=True,
 )
 
 with st.expander("Como usar o MentorEdu"):
     st.markdown("""
-- Escolha um perfil de mentor na barra lateral.
+- Escolha um **mentor** para definir o estilo da resposta.
+- Escolha um **modo** para definir o tipo de tarefa.
 - Use o campo de mensagem abaixo e clique no **+** para anexar **PDF** ou **imagem**.
-- No modo **PDF + Chat**, faça perguntas gerais sobre um material.
-- No modo **PDF de Matemática**, anexe um PDF matemático e peça:
-  - explicações,
-  - resoluções,
-  - demonstrações,
-  - gráficos,
-  - relação entre teoria e exercício.
-- No modo **Análise de Imagem**, anexe uma foto de questão, quadro ou caderno.
-- No modo **Matemática**, peça resoluções passo a passo, gráficos e figuras.
-- Exemplos:
-  - Resolva $x^2 - 5x + 6 = 0$
-  - Faça o gráfico de $x^2 - 4$
-  - Mostre a circunferência trigonométrica
-  - Desenhe um triângulo retângulo
-  - Mostre vetores no plano
-  - Demonstre a equação da circunferência
-  - Mostre a fórmula de Bhaskara desmembrada
-  - Explique a derivada da potência
-  - Explique a integral da potência
-  - Resuma o PDF anexado
-  - Resolva a questão 3 do PDF de matemática
-  - Interprete esta imagem
+
+### Modos disponíveis
+**1. Análise de Conteúdo**
+- interpretar PDF
+- interpretar imagem
+- conversar sobre os dois juntos
+- resumir materiais
+- explicar páginas e questões
+
+**2. Matemática**
+- resolver exercícios
+- interpretar foto de questão
+- usar PDF matemático como apoio
+- gerar gráficos
+- mostrar figuras matemáticas
+- explicar fórmulas e demonstrações
+
+**3. Chat Geral**
+- conversar normalmente
+- pedir ajuda com textos, dúvidas e orientações gerais
+
+**4. Chat Criativo**
+- desenvolver ideias
+- planejar aula
+- discutir metodologia
+- estruturar trabalho
+- pensar apresentação
+- brainstorm de projeto
+
+### Exemplos
+- Explique esta imagem e compare com o PDF
+- Resolva a questão da foto
+- Faça o gráfico de $x^2 - 4$
+- Demonstre a fórmula de Bhaskara
+- Me ajude a planejar a aula de hoje
+- Sugira metodologias ativas para ensino de Física
+- Me ajude a estruturar meu projeto de pesquisa
 """)
 
 # =========================================================
@@ -1126,14 +1162,12 @@ for msg in st.session_state.chat:
 # CHAT INPUT
 # =========================================================
 placeholder_text = "Digite sua pergunta..."
-if modo == "Matemática":
-    placeholder_text = "Ex.: resolva x² - 5x + 6 = 0, faça o gráfico de x^2 - 4 ou mostre a circunferência trigonométrica"
-elif modo == "PDF + Chat":
-    placeholder_text = "Ex.: resuma o PDF anexado / explique a página 3 / resolva a questão do material"
-elif modo == "PDF de Matemática":
-    placeholder_text = "Ex.: explique a teoria da página 2, resolva a questão 4 do PDF, relacione fórmula e exemplo"
-elif modo == "Análise de Imagem":
-    placeholder_text = "Ex.: interprete esta imagem / leia esta questão / explique este gráfico"
+if modo == "Análise de Conteúdo":
+    placeholder_text = "Ex.: explique esta imagem, resuma este PDF, relacione a foto com o material"
+elif modo == "Matemática":
+    placeholder_text = "Ex.: resolva a questão, use o PDF, interprete a imagem, faça o gráfico de x^2 - 4"
+elif modo == "Chat Criativo":
+    placeholder_text = "Ex.: me ajude a montar uma aula, desenvolver uma ideia ou estruturar um projeto"
 
 entrada = st.chat_input(
     placeholder=placeholder_text,
@@ -1230,24 +1264,35 @@ if entrada:
                     conv = get_conversation(conversation_id)
                     image_path = conv[6] if conv else None
 
-                    if modo == "Análise de Imagem":
-                        if not image_path or not os.path.exists(image_path):
-                            resposta_final = "Anexe uma imagem no botão + para que eu possa interpretá-la."
+                    if modo == "Análise de Conteúdo":
+                        contexto = buscar_contexto(prompt, k=4) if st.session_state.db else ""
+                        if image_path and os.path.exists(image_path):
+                            resposta_final = analisar_imagem_com_vision(prompt, perfil, modo, image_path)
                         else:
-                            resposta_final = analisar_imagem_com_vision(prompt, perfil, image_path)
+                            resposta_final = ""
+                            for parcial in responder_texto(prompt, perfil, contexto, modo):
+                                resposta_final = parcial
+                                placeholder.markdown(resposta_final)
+
+                        if not resposta_final.strip():
+                            resposta_final = "Não consegui gerar uma resposta no momento."
 
                         placeholder.markdown(resposta_final)
                         save_message(conversation_id, "assistant", resposta_final)
                         st.session_state.chat.append({"role": "assistant", "content": resposta_final})
 
-                    elif modo in ["Matemática", "PDF de Matemática"]:
+                    elif modo == "Matemática":
                         expr_grafico = extrair_expressao_grafico(prompt)
                         contexto = buscar_contexto(prompt, k=4) if st.session_state.db else ""
 
-                        resposta_final = ""
-                        for parcial in responder_texto(prompt, perfil, contexto, modo):
-                            resposta_final = parcial
+                        if image_path and os.path.exists(image_path) and ("imagem" in prompt.lower() or "foto" in prompt.lower() or "questão" in prompt.lower() or "questao" in prompt.lower()):
+                            resposta_final = analisar_imagem_com_vision(prompt, perfil, modo, image_path)
                             placeholder.markdown(resposta_final)
+                        else:
+                            resposta_final = ""
+                            for parcial in responder_texto(prompt, perfil, contexto, modo):
+                                resposta_final = parcial
+                                placeholder.markdown(resposta_final)
 
                         renderizar_visual_matematico(prompt)
 
@@ -1264,20 +1309,6 @@ if entrada:
 
                         placeholder.empty()
                         renderizar_resposta_matematica(resposta_final)
-
-                        save_message(conversation_id, "assistant", resposta_final)
-                        st.session_state.chat.append({"role": "assistant", "content": resposta_final})
-
-                    elif modo == "PDF + Chat":
-                        contexto = buscar_contexto(prompt, k=4) if st.session_state.db else ""
-                        resposta_final = ""
-
-                        for parcial in responder_texto(prompt, perfil, contexto, modo):
-                            resposta_final = parcial
-                            placeholder.markdown(resposta_final)
-
-                        if not resposta_final.strip():
-                            resposta_final = "Não consegui gerar uma resposta no momento."
 
                         save_message(conversation_id, "assistant", resposta_final)
                         st.session_state.chat.append({"role": "assistant", "content": resposta_final})
