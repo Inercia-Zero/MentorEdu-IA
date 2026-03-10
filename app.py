@@ -88,6 +88,22 @@ st.markdown("""
         margin-top: 1rem;
         margin-bottom: 0.5rem;
     }
+
+    .math-box {
+        border: 1px solid #dbeafe;
+        background: #f8fbff;
+        border-radius: 12px;
+        padding: 0.9rem 1rem;
+        margin: 0.7rem 0;
+    }
+
+    .final-answer-box {
+        border: 1px solid #bbf7d0;
+        background: #f0fdf4;
+        border-radius: 12px;
+        padding: 0.9rem 1rem;
+        margin: 0.7rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -181,6 +197,17 @@ def get_conversation(conversation_id):
     row = cur.fetchone()
     conn.close()
     return row
+
+def rename_conversation(conversation_id, new_title):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE conversations
+        SET title = ?, updated_at = ?
+        WHERE id = ?
+    """, (new_title.strip()[:80], datetime.utcnow().isoformat(), conversation_id))
+    conn.commit()
+    conn.close()
 
 def delete_conversation(conversation_id):
     conv = get_conversation(conversation_id)
@@ -410,10 +437,8 @@ def processar_pdf_from_fileobj(pdf_file):
 
     vecs = embed_model.encode(txts)
     vecs = np.array(vecs).astype("float32")
-
     idx = faiss.IndexFlatL2(vecs.shape[1])
     idx.add(vecs)
-
     return {"idx": idx, "txts": txts, "pgs": pgs}
 
 def processar_pdf_from_path(pdf_path):
@@ -487,8 +512,19 @@ def analisar_imagem_com_vision(prompt_usuario: str, perfil: str, image_path: str
     )
     return resp.choices[0].message.content
 
-def responder_texto(prompt_usuario: str, perfil: str, contexto: str):
+def responder_texto(prompt_usuario: str, perfil: str, contexto: str, modo_atual: str):
     sys_prompt = obter_prompt_sistema(perfil)
+
+    regra_extra_pdf_math = ""
+    if modo_atual == "PDF de Matemática":
+        regra_extra_pdf_math = """
+Você está em modo PDF de Matemática.
+- Priorize fortemente o conteúdo do PDF.
+- Se o PDF trouxer fórmulas, definições, teoremas ou exercícios, use isso como base principal.
+- Explique de forma didática e organizada.
+- Se o usuário pedir resolução, resolva com base no material quando possível.
+- Se o usuário pedir teoria, conecte a explicação ao conteúdo do PDF.
+"""
 
     mensagem_usuario = f"""
 Responda à pergunta do usuário com base no contexto abaixo quando ele for útil.
@@ -503,6 +539,8 @@ REGRAS IMPORTANTES DE FORMATAÇÃO:
 - Em demonstrações, organize em etapas.
 - Quando houver resposta final matemática, destaque em uma linha própria com LaTeX.
 
+{regra_extra_pdf_math}
+
 Se a pergunta for de matemática:
 - identifique os dados do problema;
 - explique passo a passo;
@@ -512,13 +550,6 @@ Se a pergunta for de matemática:
 - quando houver demonstração, organize a prova em etapas;
 - quando houver gráfico ou figura, explique o comportamento geométrico;
 - quando houver mais de um caminho, cite o mais adequado.
-
-Exemplo de formato correto:
-Em vez de escrever:
-(x - 2)^2 + (y - 3)^2 = 16
-
-Escreva:
-$$(x - 2)^2 + (y - 3)^2 = 16$$
 
 Contexto:
 {contexto if contexto else "Nenhum contexto adicional disponível."}
@@ -688,16 +719,9 @@ def desenhar_circunferencia_trigonometrica():
     ax.axvline(0)
 
     pontos = [
-        (0, "0"),
-        (np.pi / 6, "π/6"),
-        (np.pi / 4, "π/4"),
-        (np.pi / 3, "π/3"),
-        (np.pi / 2, "π/2"),
-        (2 * np.pi / 3, "2π/3"),
-        (3 * np.pi / 4, "3π/4"),
-        (5 * np.pi / 6, "5π/6"),
-        (np.pi, "π"),
-        (3 * np.pi / 2, "3π/2"),
+        (0, "0"), (np.pi/6, "π/6"), (np.pi/4, "π/4"), (np.pi/3, "π/3"),
+        (np.pi/2, "π/2"), (2*np.pi/3, "2π/3"), (3*np.pi/4, "3π/4"),
+        (5*np.pi/6, "5π/6"), (np.pi, "π"), (3*np.pi/2, "3π/2"),
     ]
     for ang, label in pontos:
         x, y = np.cos(ang), np.sin(ang)
@@ -712,9 +736,7 @@ def desenhar_circunferencia_trigonometrica():
 
 def desenhar_triangulo_retangulo():
     fig, ax = plt.subplots(figsize=(7, 5))
-    A = (0, 0)
-    B = (4, 0)
-    C = (4, 3)
+    A, B, C = (0, 0), (4, 0), (4, 3)
 
     xs = [A[0], B[0], C[0], A[0]]
     ys = [A[1], B[1], C[1], A[1]]
@@ -781,28 +803,20 @@ def detectar_visual_matematico(prompt: str):
 
     if any(k in texto for k in ["circunferência trigonométrica", "circulo trigonometrico", "círculo trigonométrico", "trigonometrica"]):
         return "circ_trig"
-
     if any(k in texto for k in ["triângulo retângulo", "triangulo retangulo", "triângulo", "triangulo"]) and "gráfico de" not in texto and "grafico de" not in texto:
         return "triangulo"
-
     if any(k in texto for k in ["vetor", "vetores"]):
         return "vetores"
-
     if any(k in texto for k in ["parábola", "parabola"]) and "gráfico de" not in texto and "grafico de" not in texto:
         return "parabola"
-
     if any(k in texto for k in ["equação da circunferência", "equacao da circunferencia", "demonstre a circunferência", "demonstre a circunferencia"]):
         return "demo_circ"
-
     if any(k in texto for k in ["bhaskara", "fórmula de bhaskara", "formula de bhaskara"]):
         return "demo_bhaskara"
-
     if any(k in texto for k in ["derivada da potência", "derivada da potencia", "regra da potência", "regra da potencia"]):
         return "demo_derivada"
-
     if any(k in texto for k in ["integral da potência", "integral da potencia", "integração da potência", "integracao da potencia"]):
         return "demo_integral"
-
     if any(k in texto for k in ["equação da reta", "equacao da reta", "reta no plano", "forma da reta"]):
         return "demo_reta"
 
@@ -840,6 +854,21 @@ def renderizar_visual_matematico(prompt: str):
         return True
 
     return False
+
+def renderizar_resposta_matematica(resposta_texto: str):
+    st.markdown("<div class='math-box'>", unsafe_allow_html=True)
+    st.markdown(resposta_texto)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    padrao = r"(?:\*\*Resposta final:?\*\*|Resposta final:)(.*)"
+    m = re.search(padrao, resposta_texto, flags=re.IGNORECASE | re.DOTALL)
+    if m:
+        trecho = m.group(1).strip()
+        if trecho:
+            st.markdown("<div class='final-answer-box'>", unsafe_allow_html=True)
+            st.markdown("**Resposta final**")
+            st.markdown(trecho)
+            st.markdown("</div>", unsafe_allow_html=True)
 
 def carregar_conversa_no_estado(conversation_id):
     conv = get_conversation(conversation_id)
@@ -932,6 +961,15 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("### Gerenciar conversa")
+    conv_atual = get_conversation(st.session_state.current_conversation_id)
+    titulo_atual = conv_atual[1] if conv_atual else ""
+
+    novo_titulo = st.text_input("Renomear conversa", value=titulo_atual)
+    if st.button("Salvar nome"):
+        if novo_titulo.strip():
+            rename_conversation(st.session_state.current_conversation_id, novo_titulo)
+            st.rerun()
+
     st.session_state.confirm_delete = st.checkbox(
         "Confirmar exclusão da conversa atual",
         value=st.session_state.confirm_delete
@@ -976,17 +1014,20 @@ with st.sidebar:
         [
             "Chat Geral",
             "Matemática",
-            "Análise de Imagem",
             "PDF + Chat",
+            "PDF de Matemática",
+            "Análise de Imagem",
         ],
     )
 
     if modo == "Matemática":
         st.info("Ex.: resolva equações, explique derivadas, peça um gráfico ou uma figura matemática.")
-    elif modo == "Análise de Imagem":
-        st.info("Ex.: envie foto de questão, quadro, gráfico ou página de caderno.")
     elif modo == "PDF + Chat":
         st.info("Ex.: anexe uma apostila e faça perguntas sobre o conteúdo.")
+    elif modo == "PDF de Matemática":
+        st.info("Ex.: anexe um material matemático e peça explicações, demonstrações e resoluções.")
+    elif modo == "Análise de Imagem":
+        st.info("Ex.: envie foto de questão, quadro, gráfico ou página de caderno.")
 
     st.markdown("---")
     st.write(f"Perguntas nesta sessão: {st.session_state.contador_perguntas}/{MAX_PERGUNTAS_SESSAO}")
@@ -1011,7 +1052,13 @@ with st.expander("Como usar o MentorEdu"):
     st.markdown("""
 - Escolha um perfil de mentor na barra lateral.
 - Use o campo de mensagem abaixo e clique no **+** para anexar **PDF** ou **imagem**.
-- No modo **PDF + Chat**, anexe uma apostila e faça perguntas sobre o conteúdo.
+- No modo **PDF + Chat**, faça perguntas gerais sobre um material.
+- No modo **PDF de Matemática**, anexe um PDF matemático e peça:
+  - explicações,
+  - resoluções,
+  - demonstrações,
+  - gráficos,
+  - relação entre teoria e exercício.
 - No modo **Análise de Imagem**, anexe uma foto de questão, quadro ou caderno.
 - No modo **Matemática**, peça resoluções passo a passo, gráficos e figuras.
 - Exemplos:
@@ -1025,6 +1072,7 @@ with st.expander("Como usar o MentorEdu"):
   - Explique a derivada da potência
   - Explique a integral da potência
   - Resuma o PDF anexado
+  - Resolva a questão 3 do PDF de matemática
   - Interprete esta imagem
 """)
 
@@ -1075,15 +1123,17 @@ for msg in st.session_state.chat:
         st.markdown(msg["content"])
 
 # =========================================================
-# CHAT INPUT COM ANEXOS
+# CHAT INPUT
 # =========================================================
 placeholder_text = "Digite sua pergunta..."
 if modo == "Matemática":
     placeholder_text = "Ex.: resolva x² - 5x + 6 = 0, faça o gráfico de x^2 - 4 ou mostre a circunferência trigonométrica"
-elif modo == "Análise de Imagem":
-    placeholder_text = "Ex.: interprete esta imagem / leia esta questão / explique este gráfico"
 elif modo == "PDF + Chat":
     placeholder_text = "Ex.: resuma o PDF anexado / explique a página 3 / resolva a questão do material"
+elif modo == "PDF de Matemática":
+    placeholder_text = "Ex.: explique a teoria da página 2, resolva a questão 4 do PDF, relacione fórmula e exemplo"
+elif modo == "Análise de Imagem":
+    placeholder_text = "Ex.: interprete esta imagem / leia esta questão / explique este gráfico"
 
 entrada = st.chat_input(
     placeholder=placeholder_text,
@@ -1190,12 +1240,12 @@ if entrada:
                         save_message(conversation_id, "assistant", resposta_final)
                         st.session_state.chat.append({"role": "assistant", "content": resposta_final})
 
-                    elif modo == "Matemática":
+                    elif modo in ["Matemática", "PDF de Matemática"]:
                         expr_grafico = extrair_expressao_grafico(prompt)
-                        contexto = buscar_contexto(prompt, k=3) if st.session_state.db else ""
+                        contexto = buscar_contexto(prompt, k=4) if st.session_state.db else ""
 
                         resposta_final = ""
-                        for parcial in responder_texto(prompt, perfil, contexto):
+                        for parcial in responder_texto(prompt, perfil, contexto, modo):
                             resposta_final = parcial
                             placeholder.markdown(resposta_final)
 
@@ -1212,6 +1262,9 @@ if entrada:
                         if not resposta_final.strip():
                             resposta_final = "Não consegui gerar uma resposta no momento."
 
+                        placeholder.empty()
+                        renderizar_resposta_matematica(resposta_final)
+
                         save_message(conversation_id, "assistant", resposta_final)
                         st.session_state.chat.append({"role": "assistant", "content": resposta_final})
 
@@ -1219,7 +1272,7 @@ if entrada:
                         contexto = buscar_contexto(prompt, k=4) if st.session_state.db else ""
                         resposta_final = ""
 
-                        for parcial in responder_texto(prompt, perfil, contexto):
+                        for parcial in responder_texto(prompt, perfil, contexto, modo):
                             resposta_final = parcial
                             placeholder.markdown(resposta_final)
 
@@ -1233,7 +1286,7 @@ if entrada:
                         contexto = buscar_contexto(prompt, k=3) if st.session_state.db else ""
                         resposta_final = ""
 
-                        for parcial in responder_texto(prompt, perfil, contexto):
+                        for parcial in responder_texto(prompt, perfil, contexto, modo):
                             resposta_final = parcial
                             placeholder.markdown(resposta_final)
 
