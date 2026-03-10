@@ -1,6 +1,5 @@
 import os
 import re
-import math
 import base64
 import shutil
 import sqlite3
@@ -185,6 +184,7 @@ def get_conversation(conversation_id):
 
 def delete_conversation(conversation_id):
     conv = get_conversation(conversation_id)
+
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("DELETE FROM messages WHERE conversation_id = ?", (conversation_id,))
@@ -196,13 +196,12 @@ def delete_conversation(conversation_id):
     if os.path.isdir(conv_dir):
         shutil.rmtree(conv_dir, ignore_errors=True)
 
-    # Limpeza extra caso o diretório não exista mas caminhos existam
     if conv:
         pdf_path, image_path = conv[4], conv[6]
-        for p in [pdf_path, image_path]:
-            if p and os.path.isfile(p):
+        for path in [pdf_path, image_path]:
+            if path and os.path.isfile(path):
                 try:
-                    os.remove(p)
+                    os.remove(path)
                 except OSError:
                     pass
 
@@ -227,10 +226,12 @@ def maybe_update_title_from_first_message(conversation_id, text):
     cur = conn.cursor()
     cur.execute("SELECT title FROM conversations WHERE id = ?", (conversation_id,))
     row = cur.fetchone()
+
     if row and row[0] == "Nova conversa":
         title = texto.replace("\n", " ")[:60]
         cur.execute("UPDATE conversations SET title = ? WHERE id = ?", (title, conversation_id))
         conn.commit()
+
     conn.close()
 
 def save_message(conversation_id, role, content):
@@ -409,8 +410,10 @@ def processar_pdf_from_fileobj(pdf_file):
 
     vecs = embed_model.encode(txts)
     vecs = np.array(vecs).astype("float32")
+
     idx = faiss.IndexFlatL2(vecs.shape[1])
     idx.add(vecs)
+
     return {"idx": idx, "txts": txts, "pgs": pgs}
 
 def processar_pdf_from_path(pdf_path):
@@ -491,6 +494,15 @@ def responder_texto(prompt_usuario: str, perfil: str, contexto: str):
 Responda à pergunta do usuário com base no contexto abaixo quando ele for útil.
 Se o contexto não for suficiente, responda com honestidade e use conhecimento geral de forma prudente.
 
+REGRAS IMPORTANTES DE FORMATAÇÃO:
+- Sempre que houver matemática, escreva expressões, equações, fórmulas e identidades em LaTeX.
+- Para expressões curtas no meio do texto, use delimitadores inline: $...$
+- Para contas, equações, demonstrações e fórmulas centrais, use delimitadores destacados: $$...$$
+- Nunca escreva fórmulas matemáticas importantes apenas em texto simples.
+- Sempre prefira notação matemática bem formatada.
+- Em demonstrações, organize em etapas.
+- Quando houver resposta final matemática, destaque em uma linha própria com LaTeX.
+
 Se a pergunta for de matemática:
 - identifique os dados do problema;
 - explique passo a passo;
@@ -500,6 +512,13 @@ Se a pergunta for de matemática:
 - quando houver demonstração, organize a prova em etapas;
 - quando houver gráfico ou figura, explique o comportamento geométrico;
 - quando houver mais de um caminho, cite o mais adequado.
+
+Exemplo de formato correto:
+Em vez de escrever:
+(x - 2)^2 + (y - 3)^2 = 16
+
+Escreva:
+$$(x - 2)^2 + (y - 3)^2 = 16$$
 
 Contexto:
 {contexto if contexto else "Nenhum contexto adicional disponível."}
@@ -514,7 +533,7 @@ Pergunta do usuário:
             {"role": "system", "content": sys_prompt},
             {"role": "user", "content": mensagem_usuario},
         ],
-        temperature=0.5,
+        temperature=0.4,
         max_completion_tokens=1800,
         stream=True,
     )
@@ -580,6 +599,87 @@ def gerar_grafico_basico(expressao_str: str):
 # =========================================================
 # VISUAIS MATEMÁTICOS
 # =========================================================
+def gerar_quadro_formula(titulo: str, linhas: list[str]):
+    altura = max(4.5, 1.2 + 0.9 * len(linhas))
+    fig, ax = plt.subplots(figsize=(10, altura))
+    ax.axis("off")
+
+    y = 0.92
+    ax.text(0.02, y, titulo, fontsize=18, fontweight="bold", transform=ax.transAxes)
+    y -= 0.12
+
+    for linha in linhas:
+        ax.text(0.03, y, linha, fontsize=16, transform=ax.transAxes)
+        y -= 0.11
+
+    st.pyplot(fig)
+    plt.close(fig)
+
+def demonstrar_equacao_circunferencia():
+    linhas = [
+        r"Definição: a circunferência é o conjunto dos pontos cuja distância ao centro é constante.",
+        r"$d(P,C) = r$",
+        r"Se $P=(x,y)$ e $C=(a,b)$, então:",
+        r"$d(P,C)=\sqrt{(x-a)^2+(y-b)^2}$",
+        r"Logo:",
+        r"$\sqrt{(x-a)^2+(y-b)^2}=r$",
+        r"Elevando ao quadrado:",
+        r"$$(x-a)^2+(y-b)^2=r^2$$",
+    ]
+    gerar_quadro_formula("Demonstração da equação da circunferência", linhas)
+
+def demonstrar_bhaskara():
+    linhas = [
+        r"Equação do 2º grau:",
+        r"$ax^2 + bx + c = 0$, com $a \neq 0$",
+        r"Dividindo tudo por $a$:",
+        r"$x^2 + \frac{b}{a}x + \frac{c}{a} = 0$",
+        r"Isolando o termo constante:",
+        r"$x^2 + \frac{b}{a}x = -\frac{c}{a}$",
+        r"Completando quadrados:",
+        r"$x^2 + \frac{b}{a}x + \frac{b^2}{4a^2} = -\frac{c}{a} + \frac{b^2}{4a^2}$",
+        r"$\left(x+\frac{b}{2a}\right)^2 = \frac{b^2-4ac}{4a^2}$",
+        r"Extraindo a raiz:",
+        r"$x+\frac{b}{2a} = \pm \frac{\sqrt{b^2-4ac}}{2a}$",
+        r"Resultado final:",
+        r"$$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$",
+    ]
+    gerar_quadro_formula("Demonstração da fórmula de Bhaskara", linhas)
+
+def demonstrar_derivada_potencia():
+    linhas = [
+        r"Queremos derivar $f(x)=x^n$.",
+        r"Pela regra da potência:",
+        r"$$\frac{d}{dx}(x^n)=n x^{n-1}$$",
+        r"Exemplo:",
+        r"Se $f(x)=x^5$, então:",
+        r"$$f'(x)=5x^4$$",
+    ]
+    gerar_quadro_formula("Derivada da potência", linhas)
+
+def demonstrar_integral_potencia():
+    linhas = [
+        r"Para $n \neq -1$:",
+        r"$$\int x^n\,dx = \frac{x^{n+1}}{n+1} + C$$",
+        r"Exemplo:",
+        r"$$\int x^3\,dx = \frac{x^4}{4}+C$$",
+        r"Caso especial:",
+        r"$$\int \frac{1}{x}\,dx = \ln|x| + C$$",
+    ]
+    gerar_quadro_formula("Integral da potência", linhas)
+
+def demonstrar_equacao_reta():
+    linhas = [
+        r"Equação reduzida da reta:",
+        r"$$y = mx + b$$",
+        r"Onde:",
+        r"$m$ = coeficiente angular",
+        r"$b$ = coeficiente linear",
+        r"Forma ponto-inclinação:",
+        r"$$y - y_1 = m(x - x_1)$$",
+    ]
+    gerar_quadro_formula("Equações da reta", linhas)
+
 def desenhar_circunferencia_trigonometrica():
     fig, ax = plt.subplots(figsize=(6, 6))
     t = np.linspace(0, 2 * np.pi, 400)
@@ -589,15 +689,15 @@ def desenhar_circunferencia_trigonometrica():
 
     pontos = [
         (0, "0"),
-        (np.pi/6, "π/6"),
-        (np.pi/4, "π/4"),
-        (np.pi/3, "π/3"),
-        (np.pi/2, "π/2"),
-        (2*np.pi/3, "2π/3"),
-        (3*np.pi/4, "3π/4"),
-        (5*np.pi/6, "5π/6"),
+        (np.pi / 6, "π/6"),
+        (np.pi / 4, "π/4"),
+        (np.pi / 3, "π/3"),
+        (np.pi / 2, "π/2"),
+        (2 * np.pi / 3, "2π/3"),
+        (3 * np.pi / 4, "3π/4"),
+        (5 * np.pi / 6, "5π/6"),
         (np.pi, "π"),
-        (3*np.pi/2, "3π/2"),
+        (3 * np.pi / 2, "3π/2"),
     ]
     for ang, label in pontos:
         x, y = np.cos(ang), np.sin(ang)
@@ -620,9 +720,9 @@ def desenhar_triangulo_retangulo():
     ys = [A[1], B[1], C[1], A[1]]
     ax.plot(xs, ys, marker="o")
 
-    ax.text(A[0]-0.2, A[1]-0.2, "A")
-    ax.text(B[0]+0.1, B[1]-0.2, "B")
-    ax.text(C[0]+0.1, C[1]+0.1, "C")
+    ax.text(A[0] - 0.2, A[1] - 0.2, "A")
+    ax.text(B[0] + 0.1, B[1] - 0.2, "B")
+    ax.text(C[0] + 0.1, C[1] + 0.1, "C")
 
     ax.text(2, -0.3, "cateto = 4", ha="center")
     ax.text(4.2, 1.5, "cateto = 3", va="center", rotation=90)
@@ -681,16 +781,36 @@ def detectar_visual_matematico(prompt: str):
 
     if any(k in texto for k in ["circunferência trigonométrica", "circulo trigonometrico", "círculo trigonométrico", "trigonometrica"]):
         return "circ_trig"
+
     if any(k in texto for k in ["triângulo retângulo", "triangulo retangulo", "triângulo", "triangulo"]) and "gráfico de" not in texto and "grafico de" not in texto:
         return "triangulo"
+
     if any(k in texto for k in ["vetor", "vetores"]):
         return "vetores"
+
     if any(k in texto for k in ["parábola", "parabola"]) and "gráfico de" not in texto and "grafico de" not in texto:
         return "parabola"
+
+    if any(k in texto for k in ["equação da circunferência", "equacao da circunferencia", "demonstre a circunferência", "demonstre a circunferencia"]):
+        return "demo_circ"
+
+    if any(k in texto for k in ["bhaskara", "fórmula de bhaskara", "formula de bhaskara"]):
+        return "demo_bhaskara"
+
+    if any(k in texto for k in ["derivada da potência", "derivada da potencia", "regra da potência", "regra da potencia"]):
+        return "demo_derivada"
+
+    if any(k in texto for k in ["integral da potência", "integral da potencia", "integração da potência", "integracao da potencia"]):
+        return "demo_integral"
+
+    if any(k in texto for k in ["equação da reta", "equacao da reta", "reta no plano", "forma da reta"]):
+        return "demo_reta"
+
     return None
 
 def renderizar_visual_matematico(prompt: str):
     tipo = detectar_visual_matematico(prompt)
+
     if tipo == "circ_trig":
         desenhar_circunferencia_trigonometrica()
         return True
@@ -703,6 +823,22 @@ def renderizar_visual_matematico(prompt: str):
     if tipo == "parabola":
         desenhar_parabola_exemplo()
         return True
+    if tipo == "demo_circ":
+        demonstrar_equacao_circunferencia()
+        return True
+    if tipo == "demo_bhaskara":
+        demonstrar_bhaskara()
+        return True
+    if tipo == "demo_derivada":
+        demonstrar_derivada_potencia()
+        return True
+    if tipo == "demo_integral":
+        demonstrar_integral_potencia()
+        return True
+    if tipo == "demo_reta":
+        demonstrar_equacao_reta()
+        return True
+
     return False
 
 def carregar_conversa_no_estado(conversation_id):
@@ -800,16 +936,19 @@ with st.sidebar:
         "Confirmar exclusão da conversa atual",
         value=st.session_state.confirm_delete
     )
+
     if st.button("Apagar conversa atual"):
         if st.session_state.confirm_delete:
             apagar_id = st.session_state.current_conversation_id
             delete_conversation(apagar_id)
             resetar_sessao_visual()
+
             restantes = list_conversations()
             if restantes:
                 novo_atual = restantes[0][0]
             else:
                 novo_atual = create_conversation()
+
             st.session_state.current_conversation_id = novo_atual
             carregar_conversa_no_estado(novo_atual)
             st.rerun()
@@ -876,11 +1015,15 @@ with st.expander("Como usar o MentorEdu"):
 - No modo **Análise de Imagem**, anexe uma foto de questão, quadro ou caderno.
 - No modo **Matemática**, peça resoluções passo a passo, gráficos e figuras.
 - Exemplos:
-  - Resolva x² - 5x + 6 = 0
-  - Faça o gráfico de x^2 - 4
+  - Resolva $x^2 - 5x + 6 = 0$
+  - Faça o gráfico de $x^2 - 4$
   - Mostre a circunferência trigonométrica
   - Desenhe um triângulo retângulo
   - Mostre vetores no plano
+  - Demonstre a equação da circunferência
+  - Mostre a fórmula de Bhaskara desmembrada
+  - Explique a derivada da potência
+  - Explique a integral da potência
   - Resuma o PDF anexado
   - Interprete esta imagem
 """)
@@ -946,7 +1089,6 @@ entrada = st.chat_input(
     placeholder=placeholder_text,
     accept_file="multiple",
     file_type=ALLOWED_FILE_TYPES,
-    max_upload_size=MAX_PDF_MB,
     key="main_chat_input",
 )
 
@@ -1057,7 +1199,7 @@ if entrada:
                             resposta_final = parcial
                             placeholder.markdown(resposta_final)
 
-                        visual_renderizado = renderizar_visual_matematico(prompt)
+                        renderizar_visual_matematico(prompt)
 
                         if expr_grafico:
                             if expressao_valida(expr_grafico):
