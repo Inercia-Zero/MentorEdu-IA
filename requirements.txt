@@ -1,9 +1,11 @@
-streamlit>=1.55.0
-pypdf
+streamlit==1.55.0
+groq==1.1.0
+sentence-transformers==5.2.3
+
+PyMuPDF>=1.27.2
+pypdf>=5.9.0
 faiss-cpu
 numpy<2
-groq
-sentence-transformers
 torch
 sympy
 matplotlib
