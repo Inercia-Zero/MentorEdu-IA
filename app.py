@@ -6,7 +6,6 @@ import uuid
 import base64
 import shutil
 import sqlite3
-import html
 from collections import Counter
 from datetime import datetime
 from typing import List, Dict, Optional, Tuple
@@ -47,39 +46,30 @@ VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 EMBED_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 # =========================================================
-# ESTILO - TEMA ESCURO
+# ESTILO
 # =========================================================
 st.markdown("""
 <style>
     :root {
-        --if-green: #22a055;
-        --if-green-2: #15713a;
-        --if-soft: #0f1a13;
-        --if-border: #243128;
-        --if-gray: #0b1220;
-        --if-card: #121b2b;
-        --if-card-2: #0f1724;
-        --if-text: #e5e7eb;
-        --if-muted: #9ca3af;
-        --if-blue-soft: #0f1c31;
-        --if-blue-border: #294265;
-        --if-shadow: rgba(0, 0, 0, 0.28);
+        --if-green: #1f8f45;
+        --if-green-2: #126b31;
+        --if-soft: #eef8f1;
+        --if-border: #dfe8e3;
+        --if-gray: #f7f8fa;
+        --if-text: #1f2937;
+        --if-muted: #6b7280;
+        --if-blue-soft: #eff6ff;
     }
 
     .stApp {
         background:
-            radial-gradient(circle at top right, rgba(34,160,85,0.10), transparent 22%),
-            linear-gradient(180deg, #08111b 0%, #0b1220 100%);
-        color: var(--if-text);
-    }
-
-    [data-testid="stHeader"] {
-        background: rgba(8, 17, 27, 0.92);
+            radial-gradient(circle at top right, rgba(31,143,69,0.06), transparent 22%),
+            linear-gradient(180deg, #fbfcfd 0%, #f6f8fa 100%);
     }
 
     section[data-testid="stSidebar"] {
-        background: #0d1522;
-        border-right: 1px solid #1f2a3c;
+        background: #ffffff;
+        border-right: 1px solid #edf0f2;
     }
 
     .hero-wrap {
@@ -96,11 +86,11 @@ st.markdown("""
         font-size: 0.88rem;
         font-weight: 700;
         margin-bottom: 0.7rem;
-        box-shadow: 0 8px 20px rgba(34,160,85,0.22);
+        box-shadow: 0 8px 20px rgba(31,143,69,0.18);
     }
 
     .main-title {
-        color: #d7ffe6;
+        color: var(--if-green);
         font-weight: 800;
         font-size: 2.35rem;
         margin-bottom: 0.15rem;
@@ -109,45 +99,45 @@ st.markdown("""
     }
 
     .subtitle {
-        color: #c2cad5;
+        color: #4b5563;
         font-size: 0.98rem;
         margin-bottom: 1rem;
         text-align: center;
     }
 
     .hero-card {
-        background: rgba(16, 25, 39, 0.88);
-        border: 1px solid #1e2a3b;
+        background: rgba(255,255,255,0.88);
+        border: 1px solid #e9eef0;
         border-radius: 18px;
         padding: 1rem 1.2rem 0.95rem 1.2rem;
-        box-shadow: 0 10px 24px var(--if-shadow);
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
     }
 
     .status-card {
-        background: linear-gradient(180deg, #101a29 0%, #0d1522 100%);
-        border: 1px solid #1e2a3b;
+        background: white;
+        border: 1px solid #e8edf0;
         border-radius: 16px;
         padding: 0.9rem 1rem;
-        box-shadow: 0 8px 18px rgba(0,0,0,0.20);
-        min-height: 92px;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+        min-height: 96px;
     }
 
     .status-card h4 {
         margin: 0;
         font-size: 0.9rem;
-        color: #94a3b8;
+        color: #64748b;
         font-weight: 700;
     }
 
     .status-ok {
-        color: #86efac;
+        color: #15803d;
         font-weight: 800;
         margin-top: 0.35rem;
         font-size: 1rem;
     }
 
     .status-info {
-        color: #93c5fd;
+        color: #1d4ed8;
         font-weight: 700;
         margin-top: 0.35rem;
         font-size: 0.98rem;
@@ -155,42 +145,73 @@ st.markdown("""
     }
 
     .status-warn {
-        color: #fdba74;
+        color: #b45309;
         font-weight: 700;
         margin-top: 0.35rem;
         font-size: 0.98rem;
     }
 
+    .folder-hint {
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 0.8rem 0.9rem;
+        margin-bottom: 0.85rem;
+        color: #334155;
+        font-size: 0.92rem;
+    }
+
+    .mentor-card {
+        background: #ffffff;
+        border: 1px solid #e6ebef;
+        border-radius: 16px;
+        padding: 0.9rem 1rem;
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
+        margin-bottom: 0.75rem;
+    }
+
+    .mentor-card h4 {
+        margin: 0 0 0.2rem 0;
+        color: #0f172a;
+        font-size: 1rem;
+    }
+
+    .mentor-card p {
+        margin: 0;
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+
     .footer-note {
         text-align: center;
-        color: #94a3b8;
+        color: #6b7280;
         font-size: 0.9rem;
         margin-top: 1rem;
         margin-bottom: 0.4rem;
     }
 
     .math-box {
-        border: 1px solid #314d78;
-        background: linear-gradient(180deg, #0f1b2f 0%, #0d1522 100%);
+        border: 1px solid #dbeafe;
+        background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
         border-radius: 14px;
         padding: 0.95rem 1rem;
         margin: 0.7rem 0;
     }
 
     .final-answer-box {
-        border: 1px solid #2b5f3e;
-        background: linear-gradient(180deg, #0d1a12 0%, #0d1522 100%);
+        border: 1px solid #bbf7d0;
+        background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
         border-radius: 14px;
         padding: 0.95rem 1rem;
         margin: 0.7rem 0;
     }
 
     .source-box {
-        border: 1px dashed #334155;
-        background: #0f172a;
+        border: 1px dashed #cbd5e1;
+        background: #fafcff;
         border-radius: 12px;
         padding: 0.7rem 0.85rem;
-        color: #cbd5e1;
+        color: #475569;
         font-size: 0.9rem;
         margin-top: 0.5rem;
     }
@@ -202,75 +223,24 @@ st.markdown("""
         border-radius: 11px !important;
         font-weight: 700 !important;
         padding: 0.55rem 1rem !important;
-        box-shadow: 0 10px 20px rgba(34,160,85,0.16);
+        box-shadow: 0 10px 20px rgba(31,143,69,0.16);
     }
 
     div[data-testid="stChatInput"] {
-        border-top: 1px solid #1e293b;
+        border-top: 1px solid #edf1f4;
         padding-top: 0.35rem;
-        background: transparent;
-    }
-
-    .stTextArea textarea,
-    .stTextInput input,
-    .stSelectbox div[data-baseweb="select"] > div,
-    .stFileUploader section {
-        border-radius: 12px !important;
-        background: #0f172a !important;
-        color: #e5e7eb !important;
-        border: 1px solid #263244 !important;
-    }
-
-    .if-section-title {
-        font-size: 1rem;
-        font-weight: 800;
-        color: #e5e7eb;
-        margin-bottom: 0.25rem;
     }
 
     .if-chip {
         display: inline-block;
         padding: 0.28rem 0.65rem;
         border-radius: 999px;
-        background: #172033;
-        color: #dbe4ee;
-        border: 1px solid #263244;
+        background: #f1f5f9;
+        color: #334155;
         font-size: 0.82rem;
         font-weight: 700;
         margin-right: 0.35rem;
         margin-bottom: 0.35rem;
-    }
-
-    .sidebar-box {
-        background: #101827;
-        border: 1px solid #253143;
-        border-radius: 14px;
-        padding: 0.75rem 0.85rem;
-        margin-bottom: 0.8rem;
-    }
-
-    .stream-box {
-        border: 1px solid #263244;
-        background: #0f172a;
-        border-radius: 14px;
-        padding: 0.95rem 1rem;
-        margin: 0.7rem 0;
-        color: #e5e7eb;
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
-    }
-
-    .stMarkdown, .stText, p, li, label, span, div {
-        color: var(--if-text);
-    }
-
-    small, .mini-note {
-        color: var(--if-muted) !important;
-    }
-
-    code {
-        color: #d1fae5 !important;
-        background: rgba(255,255,255,0.04);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -891,38 +861,6 @@ def construir_memoria_conversa(max_msgs: int = 6) -> str:
         linhas.append(f"{role}: {msg['content']}")
     return "\n".join(linhas).strip()
 
-def escapar_html_stream(texto: str) -> str:
-    return html.escape(texto or "")
-
-def renderizar_markdown_matematico_seguro(texto: str):
-    """
-    Renderiza markdown com LaTeX sem quebrar o parser no streaming final.
-    Blocos $$...$$ viram st.latex.
-    Inline $...$ é mantido em markdown apenas quando a estrutura está estável.
-    """
-    if not texto:
-        return
-
-    partes_blocos = re.split(r"(\$\$.*?\$\$)", texto, flags=re.DOTALL)
-
-    for parte in partes_blocos:
-        if not parte:
-            continue
-
-        if parte.startswith("$$") and parte.endswith("$$"):
-            expr = parte[2:-2].strip()
-            if expr:
-                try:
-                    st.latex(expr)
-                except Exception:
-                    st.code(parte)
-        else:
-            # Mantém inline e markdown normal após resposta completa
-            try:
-                st.markdown(parte)
-            except Exception:
-                st.write(parte)
-
 # =========================================================
 # MENTORES
 # =========================================================
@@ -947,6 +885,7 @@ def obter_estrutura_mentores():
                     "Fundamentos Filosóficos e Sociológicos da Educação",
                     "Matemática Elementar",
                     "Química Geral",
+                    "Professor de Iniciação Científica",
                 ]
             }
         },
@@ -962,6 +901,27 @@ def obter_estrutura_mentores():
             ]
         }
     }
+
+def resumo_mentor(mentor: str) -> str:
+    resumos = {
+        "Professor de Matemática": "Álgebra, funções, geometria, trigonometria e exercícios do ensino médio.",
+        "Professor de Física": "Cinemática, dinâmica, energia, eletricidade e explicações com exemplos.",
+        "Professor de Química": "Conceitos químicos, fórmulas, reações, estequiometria e fundamentos.",
+        "Professor de Biologia": "Conteúdos biológicos com linguagem didática e organizada.",
+        "Professor de História": "Processos históricos, contexto social, político e econômico.",
+        "Professor de Língua Portuguesa": "Interpretação, gramática, redação e argumentação.",
+        "Métodos e Técnicas de Pesquisa Educacional": "Metodologia científica, projeto, objetivos e estrutura acadêmica.",
+        "Comunicação e Linguagem": "Leitura crítica, comunicação acadêmica, coesão e argumentação.",
+        "Introdução à Física": "Grandezas, vetores, movimento e fundamentos físicos iniciais.",
+        "Fundamentos Filosóficos e Sociológicos da Educação": "Educação, sociedade, pensamento filosófico e bases sociológicas.",
+        "Matemática Elementar": "Base matemática do superior com rigor e passo a passo.",
+        "Química Geral": "Estrutura da matéria, ligações, soluções e fundamentos químicos.",
+        "Professor de Iniciação Científica": "Metodologia científica, artigos, revisão bibliográfica e trabalhos científicos.",
+        "Professor Institucional": "Orientação acadêmica, documentos, relatórios e apoio institucional.",
+        "Mentor Simpático": "Tom acolhedor, amigável e motivador.",
+        "Mentor Rígido": "Tom direto, firme, exigente e objetivo.",
+    }
+    return resumos.get(mentor, "Mentor educacional especializado.")
 
 def obter_prompt_mentor_especializado(categoria: str, subgrupo: Optional[str], mentor: str) -> str:
     base = (
@@ -1023,6 +983,11 @@ def obter_prompt_mentor_especializado(categoria: str, subgrupo: Optional[str], m
         "Química Geral": (
             "Você é professor universitário da disciplina Química Geral. "
             "Explique estrutura da matéria, ligações químicas, estequiometria, soluções, equilíbrio, propriedades dos materiais e fundamentos químicos com linguagem clara e acadêmica."
+        ),
+        "Professor de Iniciação Científica": (
+            "Você é professor de Iniciação Científica. "
+            "Ajude com metodologia científica, projeto de pesquisa, trabalhos científicos, artigo, resumo, introdução, justificativa, problema de pesquisa, hipótese, objetivos, revisão bibliográfica, fichamento, normas acadêmicas e estrutura de produção científica. "
+            "Explique de forma clara, organizada e orientada para estudantes iniciantes."
         ),
         "Professor Institucional": (
             "Você é um professor institucional do IFCE. "
@@ -1087,7 +1052,6 @@ REGRAS IMPORTANTES DE FORMATAÇÃO:
 - Para fórmulas centrais, contas e demonstrações, use $$...$$
 - Em matemática, organize em etapas.
 - Se houver resposta final, destaque-a claramente.
-- Nunca deixe delimitadores matemáticos incompletos.
 """
 
     return f"""
@@ -1472,7 +1436,7 @@ def renderizar_visual_matematico(prompt: str):
 
 def renderizar_resposta_matematica(resposta_texto: str):
     st.markdown("<div class='math-box'>", unsafe_allow_html=True)
-    renderizar_markdown_matematico_seguro(resposta_texto)
+    st.markdown(resposta_texto)
     st.markdown("</div>", unsafe_allow_html=True)
 
     padrao = r"(?:\*\*Resposta final:?\*\*|Resposta final:)(.*)"
@@ -1482,7 +1446,7 @@ def renderizar_resposta_matematica(resposta_texto: str):
         if trecho:
             st.markdown("<div class='final-answer-box'>", unsafe_allow_html=True)
             st.markdown("**Resposta final**")
-            renderizar_markdown_matematico_seguro(trecho)
+            st.markdown(trecho)
             st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================================================
@@ -1616,27 +1580,57 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### Escolha seu Mentor")
+    st.markdown(
+        """
+        <div class="folder-hint">
+            Navegue pelas <b>pastas</b> abaixo, escolha a área e depois selecione o professor especializado.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     estrutura = obter_estrutura_mentores()
-
-    categoria_mentor = st.selectbox(
-        "Categoria",
-        list(estrutura.keys())
+    categoria_mentor = st.radio(
+        "Pastas",
+        [
+            "📁 Ensino Médio",
+            "📁 Ensino Superior",
+            "📁 Institucional",
+            "📁 Mentores de Conversa",
+        ],
     )
+
+    categoria_mapa = {
+        "📁 Ensino Médio": "Ensino Médio",
+        "📁 Ensino Superior": "Ensino Superior",
+        "📁 Institucional": "Institucional",
+        "📁 Mentores de Conversa": "Mentores de Conversa",
+    }
+    categoria_real = categoria_mapa[categoria_mentor]
 
     periodo_escolhido = None
 
-    if categoria_mentor == "Ensino Superior":
+    if categoria_real == "Ensino Superior":
         periodos = list(estrutura["Ensino Superior"]["periodos"].keys())
-        periodo_escolhido = st.selectbox("Período", periodos)
+        periodo_escolhido = st.selectbox("📂 Período", periodos)
         mentor_opcoes = estrutura["Ensino Superior"]["periodos"][periodo_escolhido]
     else:
-        mentor_opcoes = estrutura[categoria_mentor]["disciplinas"]
+        mentor_opcoes = estrutura[categoria_real]["disciplinas"]
 
-    mentor_escolhido = st.selectbox("Mentor", mentor_opcoes)
+    mentor_escolhido = st.radio("Professor / Mentor", mentor_opcoes)
+
+    st.markdown(
+        f"""
+        <div class="mentor-card">
+            <h4>{mentor_escolhido}</h4>
+            <p>{resumo_mentor(mentor_escolhido)}</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     prompt_sistema_ativo = obter_prompt_mentor_especializado(
-        categoria=categoria_mentor,
+        categoria=categoria_real,
         subgrupo=periodo_escolhido,
         mentor=mentor_escolhido
     )
@@ -1653,7 +1647,7 @@ with st.sidebar:
         ],
     )
 
-    if categoria_mentor == "Institucional":
+    if categoria_real == "Institucional":
         st.caption("Mentor voltado para orientação acadêmica e institucional geral.")
 
     if modo == "Análise de Conteúdo":
@@ -1691,7 +1685,7 @@ st.markdown(
                     <span class="if-chip">Discentes</span>
                     <span class="if-chip">PDF + Imagem</span>
                     <span class="if-chip">Mentores por Área</span>
-                    <span class="if-chip">Projeto de Pesquisa</span>
+                    <span class="if-chip">Iniciação Científica</span>
                 </div>
             </div>
         </div>
@@ -1702,34 +1696,35 @@ st.markdown(
 
 with st.expander("Como usar o MentorEdu"):
     st.markdown("""
-- Escolha uma **categoria de mentor**.
+- Escolha uma **pasta de mentores**.
 - Se estiver em **Ensino Superior**, selecione também o **período**.
-- Escolha o **mentor especializado** da disciplina ou perfil desejado.
+- Escolha o **professor especializado**.
 - Escolha um **modo de trabalho**.
 - Use o campo de mensagem abaixo e clique no **+** para anexar **PDF** ou **imagem**.
 
 ### Estrutura de mentores
-**1. Ensino Médio**
-- Matemática
-- Física
-- Química
-- Biologia
-- História
-- Língua Portuguesa
+**1. 📁 Ensino Médio**
+- Professor de Matemática
+- Professor de Física
+- Professor de Química
+- Professor de Biologia
+- Professor de História
+- Professor de Língua Portuguesa
 
-**2. Ensino Superior**
-- 1º Período
+**2. 📁 Ensino Superior**
+- 📂 1º Período
   - Métodos e Técnicas de Pesquisa Educacional
   - Comunicação e Linguagem
   - Introdução à Física
   - Fundamentos Filosóficos e Sociológicos da Educação
   - Matemática Elementar
   - Química Geral
+  - Professor de Iniciação Científica
 
-**3. Institucional**
+**3. 📁 Institucional**
 - Professor Institucional
 
-**4. Mentores de Conversa**
+**4. 📁 Mentores de Conversa**
 - Mentor Simpático
 - Mentor Rígido
 
@@ -1766,7 +1761,8 @@ with st.expander("Como usar o MentorEdu"):
 - Resuma o capítulo 2 do PDF
 - Faça o gráfico de $x^2 - 4$
 - Demonstre a fórmula de Bhaskara
-- Me ajude a estruturar meu projeto de pesquisa
+- Me ajude a montar um projeto de iniciação científica
+- Como estruturar um trabalho científico?
 """)
 
 # =========================================================
@@ -1781,7 +1777,9 @@ with c1:
         f"""<div class="status-card">
                 <h4>Conexão de IA</h4>
                 <div class="{status_class}">{status_text}</div>
-                <div class="mini-note">Modelo textual e visão habilitados quando a chave estiver correta.</div>
+                <div style="margin-top:0.35rem;color:#64748b;font-size:0.88rem;">
+                    Modelo textual e visão habilitados quando a chave estiver correta.
+                </div>
             </div>""",
         unsafe_allow_html=True
     )
@@ -1793,7 +1791,9 @@ with c2:
         f"""<div class="status-card">
                 <h4>Documento</h4>
                 <div class="{css_class}">{pdf_info}</div>
-                <div class="mini-note">Extração robusta, chunking com sobreposição e busca híbrida.</div>
+                <div style="margin-top:0.35rem;color:#64748b;font-size:0.88rem;">
+                    Extração robusta, chunking com sobreposição e busca híbrida.
+                </div>
             </div>""",
         unsafe_allow_html=True
     )
@@ -1805,7 +1805,9 @@ with c3:
         f"""<div class="status-card">
                 <h4>Imagem</h4>
                 <div class="{css_class}">{img_info}</div>
-                <div class="mini-note">Pode ser integrada ao PDF na resposta.</div>
+                <div style="margin-top:0.35rem;color:#64748b;font-size:0.88rem;">
+                    Pode ser integrada ao PDF na resposta.
+                </div>
             </div>""",
         unsafe_allow_html=True
     )
@@ -1832,10 +1834,7 @@ avatar_path = IF_LOGO if os.path.exists(IF_LOGO) else None
 
 for msg in st.session_state.chat:
     with st.chat_message(msg["role"], avatar=avatar_path):
-        if msg["role"] == "assistant":
-            renderizar_markdown_matematico_seguro(msg["content"])
-        else:
-            st.markdown(msg["content"])
+        st.markdown(msg["content"])
 
 # =========================================================
 # CHAT INPUT
@@ -1960,19 +1959,12 @@ if entrada:
                                 contexto=contexto,
                                 referencias=referencias,
                             )
-                            placeholder.empty()
-                            renderizar_markdown_matematico_seguro(resposta_final)
+                            placeholder.markdown(resposta_final)
                         else:
                             resposta_final = ""
                             for parcial in responder_texto(prompt, prompt_sistema_ativo, contexto, modo, referencias=referencias):
                                 resposta_final = parcial
-                                preview = escapar_html_stream(resposta_final)
-                                placeholder.markdown(
-                                    f"<div class='stream-box'>{preview}</div>",
-                                    unsafe_allow_html=True
-                                )
-                            placeholder.empty()
-                            renderizar_markdown_matematico_seguro(resposta_final)
+                                placeholder.markdown(resposta_final)
 
                     elif modo == "Matemática":
                         expr_grafico = extrair_expressao_grafico(prompt)
@@ -1991,21 +1983,12 @@ if entrada:
                                 contexto=contexto,
                                 referencias=referencias,
                             )
+                            placeholder.markdown(resposta_final)
                         else:
                             resposta_final = ""
                             for parcial in responder_texto(prompt, prompt_sistema_ativo, contexto, modo, referencias=referencias):
                                 resposta_final = parcial
-                                preview = escapar_html_stream(resposta_final)
-                                placeholder.markdown(
-                                    f"<div class='stream-box'>{preview}</div>",
-                                    unsafe_allow_html=True
-                                )
-
-                        if not resposta_final.strip():
-                            resposta_final = "Não consegui gerar uma resposta no momento."
-
-                        placeholder.empty()
-                        renderizar_resposta_matematica(resposta_final)
+                                placeholder.markdown(resposta_final)
 
                         renderizar_visual_matematico(prompt)
 
@@ -2017,21 +2000,21 @@ if entrada:
                             else:
                                 st.warning("Expressão inválida para geração de gráfico.")
 
-                    else:
-                        resposta_final = ""
-                        for parcial in responder_texto(prompt, prompt_sistema_ativo, contexto, modo, referencias=referencias):
-                            resposta_final = parcial
-                            preview = escapar_html_stream(resposta_final)
-                            placeholder.markdown(
-                                f"<div class='stream-box'>{preview}</div>",
-                                unsafe_allow_html=True
-                            )
-
                         if not resposta_final.strip():
                             resposta_final = "Não consegui gerar uma resposta no momento."
 
                         placeholder.empty()
-                        renderizar_markdown_matematico_seguro(resposta_final)
+                        renderizar_resposta_matematica(resposta_final)
+
+                    else:
+                        resposta_final = ""
+                        for parcial in responder_texto(prompt, prompt_sistema_ativo, contexto, modo, referencias=referencias):
+                            resposta_final = parcial
+                            placeholder.markdown(resposta_final)
+
+                    if not resposta_final.strip():
+                        resposta_final = "Não consegui gerar uma resposta no momento."
+                        placeholder.markdown(resposta_final)
 
                     if referencias:
                         st.markdown(
