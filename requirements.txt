@@ -1,0 +1,10 @@
+streamlit
+groq
+sentence-transformers
+faiss-cpu
+numpy
+matplotlib
+sympy
+pymupdf
+pypdf
+pillow
