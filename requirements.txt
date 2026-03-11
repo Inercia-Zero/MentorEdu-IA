@@ -1,8 +1,8 @@
 streamlit==1.55.0
-groq==1.1.0
-sentence-transformers==5.2.3
-PyMuPDF>=1.27.2
-pypdf>=5.9.0
+groq
+sentence-transformers
+PyMuPDF
+pypdf
 faiss-cpu
 numpy<2
 torch
