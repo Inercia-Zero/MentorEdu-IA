@@ -6,6 +6,7 @@ import uuid
 import base64
 import shutil
 import sqlite3
+import html
 from collections import Counter
 from datetime import datetime
 from typing import List, Dict, Optional, Tuple
@@ -46,31 +47,39 @@ VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 EMBED_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 # =========================================================
-# ESTILO
+# ESTILO - TEMA ESCURO
 # =========================================================
 st.markdown("""
 <style>
     :root {
-        --if-green: #1f8f45;
-        --if-green-2: #126b31;
-        --if-soft: #eef8f1;
-        --if-border: #dfe8e3;
-        --if-gray: #f7f8fa;
-        --if-text: #1f2937;
-        --if-muted: #6b7280;
-        --if-blue-soft: #eff6ff;
-        --if-blue-border: #dbeafe;
+        --if-green: #22a055;
+        --if-green-2: #15713a;
+        --if-soft: #0f1a13;
+        --if-border: #243128;
+        --if-gray: #0b1220;
+        --if-card: #121b2b;
+        --if-card-2: #0f1724;
+        --if-text: #e5e7eb;
+        --if-muted: #9ca3af;
+        --if-blue-soft: #0f1c31;
+        --if-blue-border: #294265;
+        --if-shadow: rgba(0, 0, 0, 0.28);
     }
 
     .stApp {
         background:
-            radial-gradient(circle at top right, rgba(31,143,69,0.06), transparent 22%),
-            linear-gradient(180deg, #fbfcfd 0%, #f6f8fa 100%);
+            radial-gradient(circle at top right, rgba(34,160,85,0.10), transparent 22%),
+            linear-gradient(180deg, #08111b 0%, #0b1220 100%);
+        color: var(--if-text);
+    }
+
+    [data-testid="stHeader"] {
+        background: rgba(8, 17, 27, 0.92);
     }
 
     section[data-testid="stSidebar"] {
-        background: #ffffff;
-        border-right: 1px solid #edf0f2;
+        background: #0d1522;
+        border-right: 1px solid #1f2a3c;
     }
 
     .hero-wrap {
@@ -87,11 +96,11 @@ st.markdown("""
         font-size: 0.88rem;
         font-weight: 700;
         margin-bottom: 0.7rem;
-        box-shadow: 0 8px 20px rgba(31,143,69,0.18);
+        box-shadow: 0 8px 20px rgba(34,160,85,0.22);
     }
 
     .main-title {
-        color: var(--if-green);
+        color: #d7ffe6;
         font-weight: 800;
         font-size: 2.35rem;
         margin-bottom: 0.15rem;
@@ -100,45 +109,45 @@ st.markdown("""
     }
 
     .subtitle {
-        color: #4b5563;
+        color: #c2cad5;
         font-size: 0.98rem;
         margin-bottom: 1rem;
         text-align: center;
     }
 
     .hero-card {
-        background: rgba(255,255,255,0.86);
-        border: 1px solid #e9eef0;
+        background: rgba(16, 25, 39, 0.88);
+        border: 1px solid #1e2a3b;
         border-radius: 18px;
         padding: 1rem 1.2rem 0.95rem 1.2rem;
-        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+        box-shadow: 0 10px 24px var(--if-shadow);
     }
 
     .status-card {
-        background: white;
-        border: 1px solid #e8edf0;
+        background: linear-gradient(180deg, #101a29 0%, #0d1522 100%);
+        border: 1px solid #1e2a3b;
         border-radius: 16px;
         padding: 0.9rem 1rem;
-        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+        box-shadow: 0 8px 18px rgba(0,0,0,0.20);
         min-height: 92px;
     }
 
     .status-card h4 {
         margin: 0;
         font-size: 0.9rem;
-        color: #64748b;
+        color: #94a3b8;
         font-weight: 700;
     }
 
     .status-ok {
-        color: #15803d;
+        color: #86efac;
         font-weight: 800;
         margin-top: 0.35rem;
         font-size: 1rem;
     }
 
     .status-info {
-        color: #1d4ed8;
+        color: #93c5fd;
         font-weight: 700;
         margin-top: 0.35rem;
         font-size: 0.98rem;
@@ -146,7 +155,7 @@ st.markdown("""
     }
 
     .status-warn {
-        color: #b45309;
+        color: #fdba74;
         font-weight: 700;
         margin-top: 0.35rem;
         font-size: 0.98rem;
@@ -154,34 +163,34 @@ st.markdown("""
 
     .footer-note {
         text-align: center;
-        color: #6b7280;
+        color: #94a3b8;
         font-size: 0.9rem;
         margin-top: 1rem;
         margin-bottom: 0.4rem;
     }
 
     .math-box {
-        border: 1px solid #dbeafe;
-        background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+        border: 1px solid #314d78;
+        background: linear-gradient(180deg, #0f1b2f 0%, #0d1522 100%);
         border-radius: 14px;
         padding: 0.95rem 1rem;
         margin: 0.7rem 0;
     }
 
     .final-answer-box {
-        border: 1px solid #bbf7d0;
-        background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
+        border: 1px solid #2b5f3e;
+        background: linear-gradient(180deg, #0d1a12 0%, #0d1522 100%);
         border-radius: 14px;
         padding: 0.95rem 1rem;
         margin: 0.7rem 0;
     }
 
     .source-box {
-        border: 1px dashed #cbd5e1;
-        background: #fafcff;
+        border: 1px dashed #334155;
+        background: #0f172a;
         border-radius: 12px;
         padding: 0.7rem 0.85rem;
-        color: #475569;
+        color: #cbd5e1;
         font-size: 0.9rem;
         margin-top: 0.5rem;
     }
@@ -193,22 +202,29 @@ st.markdown("""
         border-radius: 11px !important;
         font-weight: 700 !important;
         padding: 0.55rem 1rem !important;
-        box-shadow: 0 10px 20px rgba(31,143,69,0.16);
+        box-shadow: 0 10px 20px rgba(34,160,85,0.16);
     }
 
     div[data-testid="stChatInput"] {
-        border-top: 1px solid #edf1f4;
+        border-top: 1px solid #1e293b;
         padding-top: 0.35rem;
+        background: transparent;
     }
 
-    .stTextArea textarea, .stTextInput input {
+    .stTextArea textarea,
+    .stTextInput input,
+    .stSelectbox div[data-baseweb="select"] > div,
+    .stFileUploader section {
         border-radius: 12px !important;
+        background: #0f172a !important;
+        color: #e5e7eb !important;
+        border: 1px solid #263244 !important;
     }
 
     .if-section-title {
         font-size: 1rem;
         font-weight: 800;
-        color: #1f2937;
+        color: #e5e7eb;
         margin-bottom: 0.25rem;
     }
 
@@ -216,8 +232,9 @@ st.markdown("""
         display: inline-block;
         padding: 0.28rem 0.65rem;
         border-radius: 999px;
-        background: #f1f5f9;
-        color: #334155;
+        background: #172033;
+        color: #dbe4ee;
+        border: 1px solid #263244;
         font-size: 0.82rem;
         font-weight: 700;
         margin-right: 0.35rem;
@@ -225,11 +242,35 @@ st.markdown("""
     }
 
     .sidebar-box {
-        background: #f8fafc;
-        border: 1px solid #e5e7eb;
+        background: #101827;
+        border: 1px solid #253143;
         border-radius: 14px;
         padding: 0.75rem 0.85rem;
         margin-bottom: 0.8rem;
+    }
+
+    .stream-box {
+        border: 1px solid #263244;
+        background: #0f172a;
+        border-radius: 14px;
+        padding: 0.95rem 1rem;
+        margin: 0.7rem 0;
+        color: #e5e7eb;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .stMarkdown, .stText, p, li, label, span, div {
+        color: var(--if-text);
+    }
+
+    small, .mini-note {
+        color: var(--if-muted) !important;
+    }
+
+    code {
+        color: #d1fae5 !important;
+        background: rgba(255,255,255,0.04);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -850,6 +891,38 @@ def construir_memoria_conversa(max_msgs: int = 6) -> str:
         linhas.append(f"{role}: {msg['content']}")
     return "\n".join(linhas).strip()
 
+def escapar_html_stream(texto: str) -> str:
+    return html.escape(texto or "")
+
+def renderizar_markdown_matematico_seguro(texto: str):
+    """
+    Renderiza markdown com LaTeX sem quebrar o parser no streaming final.
+    Blocos $$...$$ viram st.latex.
+    Inline $...$ é mantido em markdown apenas quando a estrutura está estável.
+    """
+    if not texto:
+        return
+
+    partes_blocos = re.split(r"(\$\$.*?\$\$)", texto, flags=re.DOTALL)
+
+    for parte in partes_blocos:
+        if not parte:
+            continue
+
+        if parte.startswith("$$") and parte.endswith("$$"):
+            expr = parte[2:-2].strip()
+            if expr:
+                try:
+                    st.latex(expr)
+                except Exception:
+                    st.code(parte)
+        else:
+            # Mantém inline e markdown normal após resposta completa
+            try:
+                st.markdown(parte)
+            except Exception:
+                st.write(parte)
+
 # =========================================================
 # MENTORES
 # =========================================================
@@ -1014,6 +1087,7 @@ REGRAS IMPORTANTES DE FORMATAÇÃO:
 - Para fórmulas centrais, contas e demonstrações, use $$...$$
 - Em matemática, organize em etapas.
 - Se houver resposta final, destaque-a claramente.
+- Nunca deixe delimitadores matemáticos incompletos.
 """
 
     return f"""
@@ -1398,7 +1472,7 @@ def renderizar_visual_matematico(prompt: str):
 
 def renderizar_resposta_matematica(resposta_texto: str):
     st.markdown("<div class='math-box'>", unsafe_allow_html=True)
-    st.markdown(resposta_texto)
+    renderizar_markdown_matematico_seguro(resposta_texto)
     st.markdown("</div>", unsafe_allow_html=True)
 
     padrao = r"(?:\*\*Resposta final:?\*\*|Resposta final:)(.*)"
@@ -1408,7 +1482,7 @@ def renderizar_resposta_matematica(resposta_texto: str):
         if trecho:
             st.markdown("<div class='final-answer-box'>", unsafe_allow_html=True)
             st.markdown("**Resposta final**")
-            st.markdown(trecho)
+            renderizar_markdown_matematico_seguro(trecho)
             st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================================================
@@ -1758,7 +1832,10 @@ avatar_path = IF_LOGO if os.path.exists(IF_LOGO) else None
 
 for msg in st.session_state.chat:
     with st.chat_message(msg["role"], avatar=avatar_path):
-        st.markdown(msg["content"])
+        if msg["role"] == "assistant":
+            renderizar_markdown_matematico_seguro(msg["content"])
+        else:
+            st.markdown(msg["content"])
 
 # =========================================================
 # CHAT INPUT
@@ -1883,12 +1960,19 @@ if entrada:
                                 contexto=contexto,
                                 referencias=referencias,
                             )
-                            placeholder.markdown(resposta_final)
+                            placeholder.empty()
+                            renderizar_markdown_matematico_seguro(resposta_final)
                         else:
                             resposta_final = ""
                             for parcial in responder_texto(prompt, prompt_sistema_ativo, contexto, modo, referencias=referencias):
                                 resposta_final = parcial
-                                placeholder.markdown(resposta_final)
+                                preview = escapar_html_stream(resposta_final)
+                                placeholder.markdown(
+                                    f"<div class='stream-box'>{preview}</div>",
+                                    unsafe_allow_html=True
+                                )
+                            placeholder.empty()
+                            renderizar_markdown_matematico_seguro(resposta_final)
 
                     elif modo == "Matemática":
                         expr_grafico = extrair_expressao_grafico(prompt)
@@ -1907,12 +1991,21 @@ if entrada:
                                 contexto=contexto,
                                 referencias=referencias,
                             )
-                            placeholder.markdown(resposta_final)
                         else:
                             resposta_final = ""
                             for parcial in responder_texto(prompt, prompt_sistema_ativo, contexto, modo, referencias=referencias):
                                 resposta_final = parcial
-                                placeholder.markdown(resposta_final)
+                                preview = escapar_html_stream(resposta_final)
+                                placeholder.markdown(
+                                    f"<div class='stream-box'>{preview}</div>",
+                                    unsafe_allow_html=True
+                                )
+
+                        if not resposta_final.strip():
+                            resposta_final = "Não consegui gerar uma resposta no momento."
+
+                        placeholder.empty()
+                        renderizar_resposta_matematica(resposta_final)
 
                         renderizar_visual_matematico(prompt)
 
@@ -1924,21 +2017,21 @@ if entrada:
                             else:
                                 st.warning("Expressão inválida para geração de gráfico.")
 
-                        if not resposta_final.strip():
-                            resposta_final = "Não consegui gerar uma resposta no momento."
-
-                        placeholder.empty()
-                        renderizar_resposta_matematica(resposta_final)
-
                     else:
                         resposta_final = ""
                         for parcial in responder_texto(prompt, prompt_sistema_ativo, contexto, modo, referencias=referencias):
                             resposta_final = parcial
-                            placeholder.markdown(resposta_final)
+                            preview = escapar_html_stream(resposta_final)
+                            placeholder.markdown(
+                                f"<div class='stream-box'>{preview}</div>",
+                                unsafe_allow_html=True
+                            )
 
-                    if not resposta_final.strip():
-                        resposta_final = "Não consegui gerar uma resposta no momento."
-                        placeholder.markdown(resposta_final)
+                        if not resposta_final.strip():
+                            resposta_final = "Não consegui gerar uma resposta no momento."
+
+                        placeholder.empty()
+                        renderizar_markdown_matematico_seguro(resposta_final)
 
                     if referencias:
                         st.markdown(
