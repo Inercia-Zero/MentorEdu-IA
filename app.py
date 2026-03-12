@@ -222,7 +222,18 @@ font-size:.9rem;
     .stApp {
         background:
             radial-gradient(circle at top right, rgba(34,197,94,0.10), transparent 22%),
-            linear-gradient(180deg, #0b1120 0%, #0f172a 100%);
+            st.markdown("""
+<style>
+
+.stApp{
+background:
+radial-gradient(circle at 20% 10%, rgba(34,197,94,0.08), transparent 25%),
+linear-gradient(180deg,#0b1220 0%,#0f172a 100%);
+color:white;
+}
+
+</style>
+""", unsafe_allow_html=True)
         color: var(--text);
     }
 
