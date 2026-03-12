@@ -1,11 +1,9 @@
 streamlit==1.55.0
 groq
-sentence-transformers
 PyMuPDF
 pypdf
 faiss-cpu
 numpy<2
-torch
 sympy
 matplotlib
 pillow
