@@ -2,7 +2,6 @@ streamlit==1.55.0
 groq
 PyMuPDF
 pypdf
-faiss-cpu
 numpy<2
 sympy
 matplotlib
