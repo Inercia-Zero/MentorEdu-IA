@@ -13,13 +13,11 @@ from typing import List, Dict, Optional, Tuple
 import streamlit as st
 import fitz  # PyMuPDF
 from pypdf import PdfReader
-import faiss
 import numpy as np
 import matplotlib.pyplot as plt
 import sympy as sp
 from PIL import Image
 from groq import Groq
-from sentence_transformers import SentenceTransformer
 
 # =========================================================
 # CONFIGURAÇÃO GERAL
@@ -43,7 +41,6 @@ ALLOWED_FILE_TYPES = ["pdf", "png", "jpg", "jpeg", "webp"]
 
 TEXT_MODEL = "llama-3.3-70b-versatile"
 VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
-EMBED_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 # =========================================================
 # ESTILO
@@ -497,12 +494,8 @@ def update_conversation_files(conversation_id, pdf_path=None, pdf_name=None, ima
     conn.close()
 
 # =========================================================
-# RECURSOS
+# CLIENTE GROQ
 # =========================================================
-@st.cache_resource(show_spinner=False)
-def carregar_embeddings():
-    return SentenceTransformer(EMBED_MODEL_NAME)
-
 def carregar_cliente():
     if "GROQ_API_KEY" not in st.secrets:
         return None, "A chave GROQ_API_KEY não foi encontrada nos Secrets do Streamlit Cloud."
@@ -516,7 +509,6 @@ def carregar_cliente():
     except Exception as e:
         return None, f"Erro ao iniciar cliente Groq: {e}"
 
-embed_model = carregar_embeddings()
 client, erro_cliente = carregar_cliente()
 
 # =========================================================
@@ -698,39 +690,6 @@ def _extract_with_pypdf(pdf_bytes: bytes) -> List[Dict]:
             blocks.append({"page": i + 1, "text": txt, "source": "pdf"})
     return blocks
 
-def construir_db_documento(blocos: List[Dict], source_name: str = "pdf") -> Optional[Dict]:
-    textos = []
-    pgs = []
-    metas = []
-
-    for bloco in blocos:
-        chunks = chunk_text(bloco.get("text", ""))
-        for ch in chunks:
-            textos.append(ch)
-            pgs.append(bloco.get("page"))
-            metas.append({
-                "page": bloco.get("page"),
-                "source": bloco.get("source", source_name),
-            })
-
-    if not textos:
-        return None
-
-    vecs = embed_model.encode(textos, normalize_embeddings=True, show_progress_bar=False)
-    vecs = np.array(vecs).astype("float32")
-
-    idx = faiss.IndexFlatIP(vecs.shape[1])
-    idx.add(vecs)
-
-    return {
-        "idx": idx,
-        "vecs": vecs,
-        "txts": textos,
-        "pgs": pgs,
-        "metas": metas,
-        "source_name": source_name,
-    }
-
 def processar_pdf_from_bytes(pdf_bytes: bytes) -> Optional[Dict]:
     blocks = []
     try:
@@ -747,7 +706,29 @@ def processar_pdf_from_bytes(pdf_bytes: bytes) -> Optional[Dict]:
     if not blocks:
         return None
 
-    return construir_db_documento(blocks, source_name="pdf")
+    textos = []
+    pgs = []
+    metas = []
+
+    for bloco in blocks:
+        chunks = chunk_text(bloco.get("text", ""))
+        for ch in chunks:
+            textos.append(ch)
+            pgs.append(bloco.get("page"))
+            metas.append({
+                "page": bloco.get("page"),
+                "source": bloco.get("source", "pdf"),
+            })
+
+    if not textos:
+        return None
+
+    return {
+        "txts": textos,
+        "pgs": pgs,
+        "metas": metas,
+        "source_name": "pdf",
+    }
 
 def processar_pdf_from_path(pdf_path: str) -> Optional[Dict]:
     with open(pdf_path, "rb") as f:
@@ -767,36 +748,18 @@ def buscar_contexto_em_db(db: Dict, pergunta: str, k: int = 6) -> List[Dict]:
     if not db or not pergunta:
         return []
 
-    v_q = embed_model.encode([pergunta], normalize_embeddings=True, show_progress_bar=False)
-    v_q = np.array(v_q).astype("float32")
-
-    total_chunks = len(db["txts"])
-    k_busca = min(max(k * 3, 8), total_chunks)
-
-    sims, ids = db["idx"].search(v_q, k=k_busca)
-
     resultados = []
-    vistos = set()
-    for sim, i in zip(sims[0], ids[0]):
-        if i < 0 or i >= total_chunks:
-            continue
-        texto = db["txts"][i]
+    for i, texto in enumerate(db["txts"]):
         kw = score_keywords(pergunta, texto)
-        final_score = (0.78 * float(sim)) + (0.22 * kw)
-
-        chave = (db["metas"][i].get("source"), db["metas"][i].get("page"), texto[:120])
-        if chave in vistos:
-            continue
-        vistos.add(chave)
-
-        resultados.append({
-            "score": final_score,
-            "semantic_score": float(sim),
-            "keyword_score": kw,
-            "page": db["pgs"][i],
-            "text": texto,
-            "source": db["metas"][i].get("source"),
-        })
+        if kw > 0:
+            resultados.append({
+                "score": kw,
+                "semantic_score": 0.0,
+                "keyword_score": kw,
+                "page": db["pgs"][i],
+                "text": texto,
+                "source": db["metas"][i].get("source"),
+            })
 
     resultados = sorted(resultados, key=lambda x: x["score"], reverse=True)
     return resultados[:k]
@@ -1792,7 +1755,7 @@ with c2:
                 <h4>Documento</h4>
                 <div class="{css_class}">{pdf_info}</div>
                 <div style="margin-top:0.35rem;color:#64748b;font-size:0.88rem;">
-                    Extração robusta, chunking com sobreposição e busca híbrida.
+                    Leitura leve por palavras-chave para estabilizar o deploy.
                 </div>
             </div>""",
         unsafe_allow_html=True
