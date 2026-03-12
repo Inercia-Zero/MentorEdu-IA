@@ -43,291 +43,164 @@ TEXT_MODEL = "llama-3.3-70b-versatile"
 VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 # =========================================================
-# ESTILO - TEMA ESCURO MODERNO
+# ESTILO VISUAL MODERNO (VERSÃO ESTÁVEL)
 # =========================================================
 st.markdown("""
 <style>
-    :root {
-        --bg: #0a0f1c;
-        --bg-2: #0f172a;
-        --panel: rgba(15, 23, 42, 0.88);
-        --panel-2: #111827;
-        --border: rgba(148, 163, 184, 0.16);
-        --text: #f8fafc;
-        --muted: #cbd5e1;
-        --muted-2: #94a3b8;
-        --green: #22c55e;
-        --green-2: #16a34a;
-        --green-3: #86efac;
-        --blue-soft: #93c5fd;
-        --yellow: #fbbf24;
-        --shadow: 0 12px 30px rgba(0,0,0,0.28);
-        --radius: 18px;
-    }
 
-    .stApp {
-        background:
-            radial-gradient(circle at 15% 15%, rgba(34,197,94,0.08), transparent 24%),
-            radial-gradient(circle at 85% 10%, rgba(59,130,246,0.06), transparent 20%),
-            linear-gradient(180deg, #08111f 0%, #0a1222 48%, #0d1528 100%);
-        color: var(--text);
-    }
+:root{
+--bg:#0b1220;
+--bg2:#0f172a;
+--card:#111827;
+--border:#1f2937;
+--text:#f9fafb;
+--muted:#9ca3af;
+--green:#22c55e;
+--green2:#16a34a;
+--greenSoft:#86efac;
+}
 
-    /* remove sensação de faixa branca superior */
-    header[data-testid="stHeader"] {
-        background: rgba(8, 17, 31, 0.82);
-        border-bottom: 1px solid rgba(148, 163, 184, 0.08);
-        backdrop-filter: blur(8px);
-    }
+.stApp{
+background:
+radial-gradient(circle at 20% 10%, rgba(34,197,94,0.08), transparent 25%),
+linear-gradient(180deg,#0b1220 0%,#0f172a 100%);
+color:var(--text);
+}
 
-    section[data-testid="stSidebar"] {
-        background:
-            linear-gradient(180deg, #091325 0%, #0b1628 100%);
-        border-right: 1px solid rgba(148, 163, 184, 0.10);
-    }
+/* SIDEBAR */
 
-    /* textos gerais */
-    html, body, [class*="css"] {
-        color: var(--text);
-    }
+section[data-testid="stSidebar"]{
+background:linear-gradient(180deg,#0c1424 0%,#0f172a 100%);
+border-right:1px solid #1f2937;
+}
 
-    .hero-wrap {
-        padding: 0.35rem 0 0.1rem 0;
-        margin-bottom: 0.65rem;
-    }
+/* HERO */
 
-    .project-badge {
-        display: inline-block;
-        color: white;
-        background: linear-gradient(90deg, var(--green), var(--green-2));
-        padding: 0.45rem 1rem;
-        border-radius: 999px;
-        font-size: 0.9rem;
-        font-weight: 800;
-        margin-bottom: 0.9rem;
-        box-shadow: 0 10px 24px rgba(34,197,94,0.18);
-    }
+.hero-card{
+background:linear-gradient(180deg,#0f172a 0%,#111827 100%);
+border:1px solid #1f2937;
+border-radius:20px;
+padding:1.4rem;
+box-shadow:0 10px 30px rgba(0,0,0,0.35);
+}
 
-    .main-title {
-        color: var(--green-3);
-        font-weight: 900;
-        font-size: 2.55rem;
-        margin-bottom: 0.2rem;
-        letter-spacing: -0.03em;
-        text-align: center;
-    }
+.main-title{
+color:var(--greenSoft);
+font-weight:800;
+font-size:2.4rem;
+text-align:center;
+}
 
-    .subtitle {
-        color: var(--muted);
-        font-size: 1.02rem;
-        margin-bottom: 1rem;
-        text-align: center;
-        line-height: 1.55;
-    }
+.subtitle{
+text-align:center;
+color:#cbd5e1;
+margin-top:.4rem;
+}
 
-    .hero-card {
-        background:
-            linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(12,20,36,0.92) 100%);
-        border: 1px solid var(--border);
-        border-radius: 24px;
-        padding: 1.35rem 1.35rem 1.15rem 1.35rem;
-        box-shadow: var(--shadow);
-    }
+/* CARDS STATUS */
 
-    .status-card {
-        background:
-            linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(17,24,39,0.94) 100%);
-        border: 1px solid var(--border);
-        border-radius: 20px;
-        padding: 1rem 1rem 0.95rem 1rem;
-        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
-        min-height: 118px;
-    }
+.status-card{
+background:#111827;
+border:1px solid #1f2937;
+border-radius:16px;
+padding:1rem;
+box-shadow:0 6px 18px rgba(0,0,0,0.25);
+}
 
-    .status-card h4 {
-        margin: 0;
-        font-size: 0.92rem;
-        color: var(--muted-2);
-        font-weight: 800;
-        letter-spacing: 0.01em;
-    }
+.status-ok{
+color:#4ade80;
+font-weight:700;
+}
 
-    .status-ok {
-        color: #4ade80;
-        font-weight: 800;
-        margin-top: 0.5rem;
-        font-size: 1rem;
-    }
+.status-info{
+color:#93c5fd;
+font-weight:700;
+}
 
-    .status-info {
-        color: var(--blue-soft);
-        font-weight: 800;
-        margin-top: 0.5rem;
-        font-size: 1rem;
-        word-break: break-word;
-    }
+.status-warn{
+color:#fbbf24;
+font-weight:700;
+}
 
-    .status-warn {
-        color: var(--yellow);
-        font-weight: 800;
-        margin-top: 0.5rem;
-        font-size: 1rem;
-    }
+/* MENTOR CARD */
 
-    .folder-hint {
-        background: rgba(15, 23, 42, 0.82);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 0.9rem 1rem;
-        margin-bottom: 0.9rem;
-        color: var(--muted);
-        font-size: 0.92rem;
-        line-height: 1.5;
-    }
+.mentor-card{
+background:#111827;
+border:1px solid #1f2937;
+border-radius:16px;
+padding:1rem;
+}
 
-    .mentor-card {
-        background:
-            linear-gradient(180deg, rgba(15,23,42,0.96) 0%, rgba(17,24,39,0.94) 100%);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 1rem 1rem;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
-        margin-bottom: 0.85rem;
-    }
+/* CHAT INPUT */
 
-    .mentor-card h4 {
-        margin: 0 0 0.25rem 0;
-        color: #f8fafc;
-        font-size: 1.02rem;
-        font-weight: 800;
-    }
+div[data-testid="stChatInput"] textarea{
+background:#111827 !important;
+color:white !important;
+border:1px solid #374151 !important;
+border-radius:12px !important;
+}
 
-    .mentor-card p {
-        margin: 0;
-        color: var(--muted-2);
-        font-size: 0.92rem;
-        line-height: 1.5;
-    }
+/* INPUTS */
 
-    .footer-note {
-        text-align: center;
-        color: var(--muted-2);
-        font-size: 0.92rem;
-        margin-top: 1rem;
-        margin-bottom: 0.5rem;
-    }
+.stTextInput input,
+.stTextArea textarea,
+.stSelectbox div[data-baseweb="select"]>div{
+background:#111827 !important;
+color:white !important;
+border:1px solid #374151 !important;
+}
 
-    .math-box {
-        border: 1px solid rgba(59,130,246,0.30);
-        background: linear-gradient(180deg, rgba(12,20,36,0.95) 0%, rgba(17,24,39,0.95) 100%);
-        border-radius: 16px;
-        padding: 1rem 1rem;
-        margin: 0.8rem 0;
-        color: #f8fafc;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
-    }
+/* BOTÕES */
 
-    .final-answer-box {
-        border: 1px solid rgba(34,197,94,0.32);
-        background: linear-gradient(180deg, rgba(5,46,22,0.88) 0%, rgba(15,23,42,0.95) 100%);
-        border-radius: 16px;
-        padding: 1rem 1rem;
-        margin: 0.8rem 0;
-        color: #f8fafc;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
-    }
+.stButton>button{
+background:linear-gradient(90deg,var(--green),var(--green2)) !important;
+color:white !important;
+border:none !important;
+border-radius:12px !important;
+font-weight:700 !important;
+}
 
-    .source-box {
-        border: 1px dashed rgba(148,163,184,0.24);
-        background: rgba(15,23,42,0.9);
-        border-radius: 14px;
-        padding: 0.8rem 0.9rem;
-        color: #cbd5e1;
-        font-size: 0.92rem;
-        margin-top: 0.6rem;
-    }
+/* TAGS */
 
-    .stButton > button {
-        background: linear-gradient(90deg, var(--green), var(--green-2)) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 14px !important;
-        font-weight: 800 !important;
-        padding: 0.62rem 1rem !important;
-        box-shadow: 0 10px 20px rgba(34,197,94,0.18) !important;
-        transition: all 0.18s ease;
-    }
+.if-chip{
+display:inline-block;
+padding:0.3rem 0.7rem;
+border-radius:999px;
+background:#1f2937;
+color:#e5e7eb;
+font-size:.8rem;
+margin-right:.3rem;
+}
 
-    .stButton > button:hover {
-        transform: translateY(-1px);
-        filter: brightness(1.03);
-    }
+/* MATEMÁTICA */
 
-    div[data-testid="stChatInput"] {
-        border-top: 1px solid rgba(148,163,184,0.10);
-        padding-top: 0.35rem;
-        background: transparent;
-    }
+.math-box{
+border:1px solid #1d4ed8;
+background:#0f172a;
+border-radius:14px;
+padding:.9rem;
+margin:.7rem 0;
+}
 
-    /* campo principal */
-    div[data-testid="stChatInput"] textarea,
-    .stTextInput input,
-    .stTextArea textarea,
-    .stSelectbox div[data-baseweb="select"] > div,
-    .stMultiSelect div[data-baseweb="select"] > div {
-        background: rgba(15,23,42,0.94) !important;
-        color: #f9fafb !important;
-        border: 1px solid rgba(148,163,184,0.18) !important;
-        border-radius: 14px !important;
-    }
+.final-answer-box{
+border:1px solid #16a34a;
+background:#052e16;
+border-radius:14px;
+padding:.9rem;
+margin:.7rem 0;
+}
 
-    .stRadio label,
-    .stCheckbox label,
-    .stMarkdown,
-    .stCaption,
-    .stSelectbox label,
-    .stTextInput label,
-    .stTextArea label {
-        color: #e5e7eb !important;
-    }
+/* FONTES */
 
-    .if-chip {
-        display: inline-block;
-        padding: 0.34rem 0.75rem;
-        border-radius: 999px;
-        background: rgba(31,41,55,0.88);
-        border: 1px solid rgba(148,163,184,0.10);
-        color: #e5e7eb;
-        font-size: 0.84rem;
-        font-weight: 800;
-        margin-right: 0.38rem;
-        margin-bottom: 0.38rem;
-    }
+.source-box{
+border:1px dashed #334155;
+background:#0f172a;
+border-radius:12px;
+padding:.7rem;
+color:#cbd5e1;
+font-size:.9rem;
+}
 
-    /* expander */
-    div[data-testid="stExpander"] {
-        background: rgba(15,23,42,0.62);
-        border: 1px solid rgba(148,163,184,0.10);
-        border-radius: 16px;
-        overflow: hidden;
-    }
-
-    /* linhas */
-    hr {
-        border-color: rgba(148,163,184,0.10);
-    }
-
-    /* melhora cards/chat */
-    [data-testid="stChatMessage"] {
-        background: transparent;
-    }
-
-    /* selectbox dropdown dark */
-    div[role="listbox"] {
-        background: #0f172a !important;
-        color: #f8fafc !important;
-        border: 1px solid rgba(148,163,184,0.18) !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 <style>
