@@ -1,1 +1,8 @@
 streamlit==1.55.0
+groq
+PyMuPDF
+pypdf
+numpy<2
+sympy
+matplotlib
+pillow
