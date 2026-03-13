@@ -707,40 +707,42 @@ def tokenizer_basico(txt: str) -> List[str]:
 def escapar_latex_problematico(texto: str) -> str:
     if not texto:
         return ""
-    texto = texto.replace("\\$", "$")
-    texto = texto.replace("$$", r"\$\$")
-    texto = texto.replace("$", r"\$")
-    return texto
+    return texto.replace("$", r"\$")
 
 
-def render_markdown_seguro(container, texto: str, allow_html: bool = False):
-    texto = texto or ""
+def render_texto_stream_seguro(container, texto: str, bubble_class: str = "assistant-bubble"):
+    texto = html.escape(texto or "")
+    container.markdown(
+        f"""
+        <div class="{bubble_class}">
+            <pre style="white-space:pre-wrap; margin:0; font-family:inherit;">{texto}</pre>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_markdown_final_seguro(container, texto: str, bubble_class: str = "assistant-bubble"):
     try:
-        container.markdown(texto, unsafe_allow_html=allow_html)
+        with container:
+            st.markdown(f"<div class='{bubble_class}'>", unsafe_allow_html=True)
+            st.markdown(texto)
+            st.markdown("</div>", unsafe_allow_html=True)
     except Exception:
-        texto_seguro = escapar_latex_problematico(texto)
         try:
-            container.markdown(texto_seguro, unsafe_allow_html=allow_html)
+            texto_seguro = escapar_latex_problematico(texto)
+            with container:
+                st.markdown(
+                    f"""
+                    <div class="{bubble_class}">
+                        <pre style="white-space:pre-wrap; margin:0; font-family:inherit;">{html.escape(texto_seguro)}</pre>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
         except Exception:
-            try:
-                container.code(texto)
-            except Exception:
+            with container:
                 st.code(texto)
-
-
-def renderizar_bolha_html_segura(container, texto: str, bubble_class: str):
-    texto = texto or ""
-    try:
-        container.markdown(f"<div class='{bubble_class}'>", unsafe_allow_html=True)
-        render_markdown_seguro(container, texto)
-        container.markdown("</div>", unsafe_allow_html=True)
-    except Exception:
-        # fallback: renderiza como bloco simples
-        escaped = html.escape(texto)
-        container.markdown(
-            f"<div class='{bubble_class}'><pre style='white-space:pre-wrap;margin:0;font-family:inherit'>{escaped}</pre></div>",
-            unsafe_allow_html=True,
-        )
 
 
 def remover_linhas_repetidas_paginas(paginas_texto: List[str]) -> List[str]:
@@ -1582,7 +1584,11 @@ def renderizar_resposta_matematica(resposta_texto: str):
         st.markdown(resposta_texto)
     except Exception:
         try:
-            st.markdown(escapar_latex_problematico(resposta_texto))
+            texto_seguro = escapar_latex_problematico(resposta_texto)
+            st.markdown(
+                f"<pre style='white-space:pre-wrap; margin:0; font-family:inherit;'>{html.escape(texto_seguro)}</pre>",
+                unsafe_allow_html=True,
+            )
         except Exception:
             st.code(resposta_texto)
     st.markdown("</div>", unsafe_allow_html=True)
@@ -1598,7 +1604,11 @@ def renderizar_resposta_matematica(resposta_texto: str):
                 st.markdown(trecho)
             except Exception:
                 try:
-                    st.markdown(escapar_latex_problematico(trecho))
+                    trecho_seguro = escapar_latex_problematico(trecho)
+                    st.markdown(
+                        f"<pre style='white-space:pre-wrap; margin:0; font-family:inherit;'>{html.escape(trecho_seguro)}</pre>",
+                        unsafe_allow_html=True,
+                    )
                 except Exception:
                     st.code(trecho)
             st.markdown("</div>", unsafe_allow_html=True)
@@ -2010,7 +2020,10 @@ for msg in st.session_state.chat:
     bubble_class = "user-bubble" if msg["role"] == "user" else "assistant-bubble"
 
     with st.chat_message(msg["role"], avatar=avatar):
-        renderizar_bolha_html_segura(st, msg["content"], bubble_class)
+        if msg["role"] == "assistant":
+            render_markdown_final_seguro(st.container(), msg["content"], bubble_class)
+        else:
+            render_texto_stream_seguro(st, msg["content"], bubble_class)
 
 
 # =========================================================
@@ -2104,10 +2117,11 @@ if entrada:
         st.session_state.chat.append({"role": "user", "content": prompt})
 
         with st.chat_message("user", avatar=user_avatar):
-            renderizar_bolha_html_segura(st, prompt, "user-bubble")
+            render_texto_stream_seguro(st, prompt, "user-bubble")
 
         with st.chat_message("assistant", avatar=assistant_avatar):
             placeholder = st.empty()
+            final_box = st.container()
 
             if client is None:
                 resposta_final = "Não consegui responder porque a chave da API Groq não está configurada corretamente."
@@ -2137,22 +2151,16 @@ if entrada:
                                 contexto=contexto,
                                 referencias=referencias,
                             )
-                            try:
-                                placeholder.markdown("")
-                                renderizar_bolha_html_segura(st, resposta_final, "assistant-bubble")
-                            except Exception:
-                                placeholder.code(resposta_final)
+                            placeholder.empty()
+                            render_markdown_final_seguro(final_box, resposta_final, "assistant-bubble")
                         else:
                             resposta_final = ""
                             for parcial in responder_texto(prompt, prompt_sistema_ativo, contexto, modo, referencias=referencias):
                                 resposta_final = parcial
-                                try:
-                                    placeholder.markdown(resposta_final)
-                                except Exception:
-                                    try:
-                                        placeholder.markdown(escapar_latex_problematico(resposta_final))
-                                    except Exception:
-                                        placeholder.code(resposta_final)
+                                render_texto_stream_seguro(placeholder, resposta_final, "assistant-bubble")
+
+                            placeholder.empty()
+                            render_markdown_final_seguro(final_box, resposta_final, "assistant-bubble")
 
                     elif modo == "Matemática":
                         expr_grafico = extrair_expressao_grafico(prompt)
@@ -2171,24 +2179,11 @@ if entrada:
                                 contexto=contexto,
                                 referencias=referencias,
                             )
-                            try:
-                                placeholder.markdown(resposta_final)
-                            except Exception:
-                                try:
-                                    placeholder.markdown(escapar_latex_problematico(resposta_final))
-                                except Exception:
-                                    placeholder.code(resposta_final)
                         else:
                             resposta_final = ""
                             for parcial in responder_texto(prompt, prompt_sistema_ativo, contexto, modo, referencias=referencias):
                                 resposta_final = parcial
-                                try:
-                                    placeholder.markdown(resposta_final)
-                                except Exception:
-                                    try:
-                                        placeholder.markdown(escapar_latex_problematico(resposta_final))
-                                    except Exception:
-                                        placeholder.code(resposta_final)
+                                render_texto_stream_seguro(placeholder, resposta_final, "assistant-bubble")
 
                         renderizar_visual_matematico(prompt)
 
@@ -2210,20 +2205,15 @@ if entrada:
                         resposta_final = ""
                         for parcial in responder_texto(prompt, prompt_sistema_ativo, contexto, modo, referencias=referencias):
                             resposta_final = parcial
-                            try:
-                                placeholder.markdown(resposta_final)
-                            except Exception:
-                                try:
-                                    placeholder.markdown(escapar_latex_problematico(resposta_final))
-                                except Exception:
-                                    placeholder.code(resposta_final)
+                            render_texto_stream_seguro(placeholder, resposta_final, "assistant-bubble")
+
+                        placeholder.empty()
+                        render_markdown_final_seguro(final_box, resposta_final, "assistant-bubble")
 
                     if not resposta_final.strip():
                         resposta_final = "Não consegui gerar uma resposta no momento."
-                        try:
-                            placeholder.markdown(resposta_final)
-                        except Exception:
-                            placeholder.code(resposta_final)
+                        placeholder.empty()
+                        render_markdown_final_seguro(final_box, resposta_final, "assistant-bubble")
 
                     if referencias:
                         st.markdown(
