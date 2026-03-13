@@ -19,13 +19,15 @@ import sympy as sp
 from PIL import Image
 from groq import Groq
 
+
 # =========================================================
 # CONFIGURAÇÃO GERAL
 # =========================================================
 st.set_page_config(
     page_title="MentorEdu | Projeto Inércia Zero",
     page_icon="🎓",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 APP_NAME = "MentorEdu IFCE"
@@ -42,256 +44,324 @@ ALLOWED_FILE_TYPES = ["pdf", "png", "jpg", "jpeg", "webp"]
 TEXT_MODEL = "llama-3.3-70b-versatile"
 VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
+
 # =========================================================
-# ESTILO VISUAL REFINADO
+# ESTILO VISUAL
 # =========================================================
-st.markdown("""
-<style>
-:root{
-    --bg:#0e1525;
-    --bg-soft:#111a2e;
-    --panel:#121c31;
-    --panel-2:#16233b;
-    --border:rgba(148,163,184,0.12);
-    --text:#f8fafc;
-    --muted:#cbd5e1;
-    --muted-2:#94a3b8;
-    --green:#22c55e;
-    --green-2:#16a34a;
-    --green-soft:#86efac;
-    --blue-soft:#93c5fd;
-    --yellow:#fbbf24;
-    --shadow:0 10px 30px rgba(0,0,0,0.22);
-}
+def inject_css():
+    st.markdown("""
+    <style>
+    :root{
+        --bg:#0b1120;
+        --bg2:#0f172a;
+        --panel:#111827;
+        --panel-soft:#172033;
+        --line:rgba(148,163,184,0.14);
+        --line-soft:rgba(148,163,184,0.08);
+        --text:#f8fafc;
+        --muted:#cbd5e1;
+        --muted-2:#94a3b8;
+        --green:#22c55e;
+        --green-2:#16a34a;
+        --green-soft:#86efac;
+        --info:#93c5fd;
+        --warn:#fbbf24;
+        --danger:#f87171;
+        --shadow:0 10px 28px rgba(0,0,0,0.18);
+        --radius:18px;
+    }
 
-.stApp{
-    background:
-        radial-gradient(circle at 15% 10%, rgba(34,197,94,0.07), transparent 22%),
-        radial-gradient(circle at 85% 8%, rgba(59,130,246,0.05), transparent 18%),
-        linear-gradient(180deg,#0b1322 0%,#0f172a 100%);
-    color:var(--text);
-}
+    html, body, [class*="css"] {
+        color: var(--text);
+    }
 
-header[data-testid="stHeader"]{
-    background:rgba(11,19,34,0.78);
-    border-bottom:1px solid rgba(148,163,184,0.06);
-    backdrop-filter:blur(8px);
-}
+    .stApp{
+        background:
+            radial-gradient(circle at top left, rgba(34,197,94,0.05), transparent 18%),
+            radial-gradient(circle at top right, rgba(59,130,246,0.04), transparent 16%),
+            linear-gradient(180deg, #0b1120 0%, #0f172a 100%);
+        color: var(--text);
+    }
 
-section[data-testid="stSidebar"]{
-    background:linear-gradient(180deg,#0d1728 0%,#101a2d 100%);
-    border-right:1px solid rgba(148,163,184,0.08);
-}
+    header[data-testid="stHeader"]{
+        background: rgba(11,17,32,0.78);
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+        backdrop-filter: blur(10px);
+    }
 
-.hero-wrap{
-    padding:0.3rem 0 0.15rem 0;
-    margin-bottom:0.7rem;
-}
+    section[data-testid="stSidebar"]{
+        background: linear-gradient(180deg, #0d1424 0%, #101827 100%);
+        border-right: 1px solid rgba(255,255,255,0.05);
+    }
 
-.hero-card{
-    background:linear-gradient(180deg, rgba(18,28,49,0.92) 0%, rgba(15,23,42,0.92) 100%);
-    border:1px solid var(--border);
-    border-radius:24px;
-    padding:1.5rem 1.4rem 1.25rem 1.4rem;
-    box-shadow:var(--shadow);
-}
+    .block-container{
+        padding-top: 1.25rem;
+        padding-bottom: 1.5rem;
+    }
 
-.project-badge{
-    display:inline-block;
-    color:white;
-    background:linear-gradient(90deg,var(--green),var(--green-2));
-    padding:0.5rem 1rem;
-    border-radius:999px;
-    font-weight:800;
-    font-size:0.9rem;
-    box-shadow:0 10px 20px rgba(34,197,94,0.18);
-    margin-bottom:0.9rem;
-}
+    .hero-wrap{
+        margin-bottom: 1rem;
+    }
 
-.main-title{
-    color:var(--green-soft);
-    font-weight:900;
-    font-size:2.6rem;
-    text-align:center;
-    letter-spacing:-0.03em;
-    margin-bottom:0.2rem;
-}
+    .hero-card{
+        background: linear-gradient(180deg, rgba(17,24,39,0.96) 0%, rgba(15,23,42,0.96) 100%);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: 1.35rem 1.2rem;
+        box-shadow: var(--shadow);
+    }
 
-.subtitle{
-    text-align:center;
-    color:var(--muted);
-    margin-top:.35rem;
-    line-height:1.6;
-    font-size:1.02rem;
-}
+    .project-badge{
+        display:inline-block;
+        color:white;
+        background: linear-gradient(90deg, var(--green), var(--green-2));
+        padding: .48rem .95rem;
+        border-radius: 999px;
+        font-weight: 800;
+        font-size: .88rem;
+        margin-bottom: .9rem;
+        box-shadow: 0 10px 20px rgba(34,197,94,0.14);
+    }
 
-.status-card{
-    background:linear-gradient(180deg, rgba(18,28,49,0.95) 0%, rgba(17,24,39,0.94) 100%);
-    border:1px solid var(--border);
-    border-radius:20px;
-    padding:1rem;
-    box-shadow:0 8px 20px rgba(0,0,0,0.16);
-    min-height:118px;
-}
+    .main-title{
+        color: var(--green-soft);
+        font-weight: 900;
+        font-size: 2.2rem;
+        text-align: center;
+        letter-spacing: -.03em;
+        margin: 0;
+    }
 
-.status-card h4{
-    margin:0;
-    color:var(--muted-2);
-    font-size:0.92rem;
-    font-weight:800;
-}
+    .subtitle{
+        text-align:center;
+        color: var(--muted);
+        margin-top: .45rem;
+        line-height: 1.55;
+        font-size: .98rem;
+    }
 
-.status-ok{color:#4ade80;font-weight:800;}
-.status-info{color:var(--blue-soft);font-weight:800;}
-.status-warn{color:var(--yellow);font-weight:800;}
+    .chip-wrap{
+        text-align:center;
+        margin-top: .55rem;
+    }
 
-.mentor-card{
-    background:linear-gradient(180deg, rgba(18,28,49,0.95) 0%, rgba(17,24,39,0.94) 100%);
-    border:1px solid var(--border);
-    border-radius:18px;
-    padding:1rem;
-    box-shadow:0 8px 20px rgba(0,0,0,0.14);
-}
+    .if-chip{
+        display:inline-block;
+        padding:.35rem .72rem;
+        border-radius:999px;
+        background:rgba(30,41,59,0.70);
+        border:1px solid rgba(255,255,255,0.06);
+        color:#e5e7eb;
+        font-size:.8rem;
+        font-weight:700;
+        margin:.25rem .25rem 0 0;
+    }
 
-.mentor-card h4{
-    margin:0 0 .25rem 0;
-    font-size:1rem;
-    font-weight:800;
-    color:#f8fafc;
-}
+    .status-card{
+        background: rgba(17,24,39,0.92);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 1rem;
+        box-shadow: var(--shadow);
+        min-height: 108px;
+    }
 
-.mentor-card p{
-    margin:0;
-    color:var(--muted-2);
-    line-height:1.5;
-    font-size:0.92rem;
-}
+    .status-card h4{
+        margin: 0;
+        color: var(--muted-2);
+        font-size: .9rem;
+        font-weight: 700;
+    }
 
-.folder-hint{
-    background:rgba(18,28,49,0.82);
-    border:1px solid var(--border);
-    border-radius:16px;
-    padding:.9rem 1rem;
-    color:var(--muted);
-    line-height:1.5;
-}
+    .status-ok{color:#4ade80;font-weight:800;}
+    .status-info{color:var(--info);font-weight:800;}
+    .status-warn{color:var(--warn);font-weight:800;}
+    .status-danger{color:var(--danger);font-weight:800;}
 
-.math-box{
-    border:1px solid rgba(59,130,246,0.22);
-    background:linear-gradient(180deg,#111a2e 0%, #0f172a 100%);
-    border-radius:16px;
-    padding:1rem;
-    margin:.8rem 0;
-    box-shadow:0 6px 18px rgba(0,0,0,0.12);
-}
+    .soft-card,
+    .mentor-card,
+    .folder-hint,
+    .math-box,
+    .final-answer-box,
+    .source-box,
+    .preview-card{
+        background: rgba(17,24,39,0.92);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+    }
 
-.final-answer-box{
-    border:1px solid rgba(34,197,94,0.24);
-    background:linear-gradient(180deg,#0c2417 0%, #0f172a 100%);
-    border-radius:16px;
-    padding:1rem;
-    margin:.8rem 0;
-    box-shadow:0 6px 18px rgba(0,0,0,0.12);
-}
+    .soft-card,
+    .mentor-card,
+    .folder-hint,
+    .preview-card{
+        padding: 1rem;
+    }
 
-.source-box{
-    border:1px dashed rgba(148,163,184,0.18);
-    background:rgba(17,24,39,0.72);
-    border-radius:14px;
-    padding:.8rem .9rem;
-    color:var(--muted);
-    font-size:.92rem;
-}
+    .mentor-card h4{
+        margin:0 0 .3rem 0;
+        font-size:1rem;
+        font-weight:800;
+        color: var(--text);
+    }
 
-.stButton>button{
-    background:linear-gradient(90deg,var(--green),var(--green-2)) !important;
-    color:white !important;
-    border:none !important;
-    border-radius:14px !important;
-    font-weight:800 !important;
-    padding:0.62rem 1rem !important;
-    box-shadow:0 10px 20px rgba(34,197,94,0.16) !important;
-}
+    .mentor-card p{
+        margin:0;
+        color: var(--muted);
+        line-height:1.5;
+        font-size:.92rem;
+    }
 
-.stButton>button:hover{
-    filter:brightness(1.03);
-    transform:translateY(-1px);
-}
+    .folder-hint{
+        color: var(--muted);
+        line-height:1.5;
+        font-size: .92rem;
+    }
 
-.stTextInput input,
-.stTextArea textarea,
-.stSelectbox div[data-baseweb="select"] > div,
-.stMultiSelect div[data-baseweb="select"] > div{
-    background:rgba(18,28,49,0.88) !important;
-    color:#f8fafc !important;
-    border:1px solid rgba(148,163,184,0.14) !important;
-    border-radius:14px !important;
-}
+    .math-box{
+        padding: 1rem;
+        margin: .8rem 0;
+    }
 
-div[data-testid="stChatInput"]{
-    border-top:1px solid rgba(148,163,184,0.08);
-    padding-top:.35rem;
-}
+    .final-answer-box{
+        padding: 1rem;
+        margin: .8rem 0;
+        border-color: rgba(34,197,94,0.22);
+        background: linear-gradient(180deg, rgba(12,36,23,0.82) 0%, rgba(15,23,42,0.92) 100%);
+    }
 
-div[data-testid="stChatInput"] textarea{
-    background:rgba(18,28,49,0.94) !important;
-    color:#ffffff !important;
-    border:1px solid rgba(148,163,184,0.16) !important;
-    border-radius:16px !important;
-}
+    .source-box{
+        padding:.8rem .95rem;
+        color: var(--muted);
+        font-size:.9rem;
+        margin-top: .7rem;
+    }
 
-.if-chip{
-    display:inline-block;
-    padding:.35rem .78rem;
-    border-radius:999px;
-    background:rgba(30,41,59,0.72);
-    border:1px solid rgba(148,163,184,0.08);
-    color:#e5e7eb;
-    font-size:.82rem;
-    font-weight:800;
-    margin-right:.35rem;
-    margin-bottom:.35rem;
-}
+    .small-note{
+        color: var(--muted-2);
+        font-size: .84rem;
+        line-height: 1.5;
+    }
 
-div[data-testid="stExpander"]{
-    background:rgba(18,28,49,0.54);
-    border:1px solid rgba(148,163,184,0.08);
-    border-radius:16px;
-    overflow:hidden;
-}
+    .section-title{
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--text);
+        margin-bottom: .5rem;
+    }
 
-hr{
-    border-color:rgba(148,163,184,0.08);
-}
+    .stButton > button{
+        width:100%;
+        background: linear-gradient(90deg, var(--green), var(--green-2)) !important;
+        color:white !important;
+        border:none !important;
+        border-radius:14px !important;
+        font-weight:800 !important;
+        padding:.65rem 1rem !important;
+        box-shadow:0 8px 18px rgba(34,197,94,0.16) !important;
+    }
 
-.footer-note{
-    text-align:center;
-    color:var(--muted-2);
-    font-size:.92rem;
-    margin-top:1rem;
-    margin-bottom:.5rem;
-}
-</style>
-""", unsafe_allow_html=True)
+    .stButton > button:hover{
+        transform: translateY(-1px);
+        filter: brightness(1.03);
+    }
+
+    .stTextInput input,
+    .stTextArea textarea,
+    div[data-baseweb="select"] > div{
+        background: rgba(15,23,42,0.95) !important;
+        color: #f8fafc !important;
+        border: 1px solid rgba(148,163,184,0.16) !important;
+        border-radius: 14px !important;
+    }
+
+    div[data-testid="stChatInput"]{
+        padding-top: .45rem;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        margin-top: .35rem;
+    }
+
+    div[data-testid="stChatInput"] textarea{
+        background: rgba(15,23,42,0.98) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(148,163,184,0.18) !important;
+        border-radius: 16px !important;
+    }
+
+    div[data-testid="stExpander"]{
+        background: rgba(17,24,39,0.82);
+        border: 1px solid var(--line-soft);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    hr{
+        border-color: rgba(255,255,255,0.06);
+    }
+
+    .footer-note{
+        text-align:center;
+        color:var(--muted-2);
+        font-size:.9rem;
+        margin-top:1rem;
+        margin-bottom:.35rem;
+    }
+
+    .user-bubble{
+        background: rgba(34,197,94,0.10);
+        border: 1px solid rgba(34,197,94,0.18);
+        border-radius: 16px;
+        padding: .95rem 1rem;
+    }
+
+    .assistant-bubble{
+        background: rgba(17,24,39,0.92);
+        border: 1px solid rgba(148,163,184,0.12);
+        border-radius: 16px;
+        padding: .95rem 1rem;
+    }
+
+    .sidebar-kpi{
+        background: rgba(17,24,39,0.88);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: .85rem .9rem;
+        margin-bottom: .7rem;
+    }
+
+    .sidebar-kpi b{
+        color: var(--green-soft);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+
+inject_css()
+
 
 # =========================================================
 # ESTADO DA SESSÃO
 # =========================================================
-defaults = {
-    "chat": [],
-    "db": None,
-    "pdf_nome": None,
-    "img_nome": None,
-    "current_conversation_id": None,
-    "loaded_conversation_id": None,
-    "contador_perguntas": 0,
-    "confirm_delete": False,
-    "last_sources": [],
-    "user_id": None,
-}
-for k, v in defaults.items():
-    if k not in st.session_state:
-        st.session_state[k] = v
+def init_session_state():
+    defaults = {
+        "chat": [],
+        "db": None,
+        "pdf_nome": None,
+        "img_nome": None,
+        "current_conversation_id": None,
+        "loaded_conversation_id": None,
+        "contador_perguntas": 0,
+        "confirm_delete": False,
+        "last_sources": [],
+        "user_id": None,
+    }
+    for k, v in defaults.items():
+        if k not in st.session_state:
+            st.session_state[k] = v
+
+
+init_session_state()
+
 
 # =========================================================
 # SQLITE
@@ -299,13 +369,34 @@ for k, v in defaults.items():
 def get_conn():
     return sqlite3.connect(DB_PATH, check_same_thread=False)
 
+
 def get_or_create_user_id():
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    user_file = os.path.join(UPLOAD_DIR, ".local_user_id")
+
     if st.session_state.get("user_id"):
         return st.session_state.user_id
 
+    if os.path.exists(user_file):
+        try:
+            with open(user_file, "r", encoding="utf-8") as f:
+                uid = f.read().strip()
+                if uid:
+                    st.session_state.user_id = uid
+                    return uid
+        except Exception:
+            pass
+
     uid = str(uuid.uuid4())
+    try:
+        with open(user_file, "w", encoding="utf-8") as f:
+            f.write(uid)
+    except Exception:
+        pass
+
     st.session_state.user_id = uid
     return uid
+
 
 def init_db():
     conn = get_conn()
@@ -320,7 +411,8 @@ def init_db():
             pdf_path TEXT,
             pdf_name TEXT,
             image_path TEXT,
-            image_name TEXT
+            image_name TEXT,
+            owner_id TEXT
         )
     """)
 
@@ -337,17 +429,17 @@ def init_db():
 
     cur.execute("PRAGMA table_info(conversations)")
     cols = [row[1] for row in cur.fetchall()]
-
     if "owner_id" not in cols:
         cur.execute("ALTER TABLE conversations ADD COLUMN owner_id TEXT")
-        conn.commit()
 
     conn.commit()
     conn.close()
 
+
 init_db()
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 USER_ID = get_or_create_user_id()
+
 
 def list_conversations():
     conn = get_conn()
@@ -362,6 +454,7 @@ def list_conversations():
     conn.close()
     return rows
 
+
 def create_conversation(title="Nova conversa"):
     now = datetime.utcnow().isoformat()
     conn = get_conn()
@@ -375,6 +468,7 @@ def create_conversation(title="Nova conversa"):
     conn.close()
     return cid
 
+
 def get_conversation(conversation_id):
     conn = get_conn()
     cur = conn.cursor()
@@ -387,16 +481,21 @@ def get_conversation(conversation_id):
     conn.close()
     return row
 
+
 def rename_conversation(conversation_id, new_title):
+    new_title = (new_title or "").strip()[:90]
+    if not new_title:
+        return
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("""
         UPDATE conversations
         SET title = ?, updated_at = ?
         WHERE id = ? AND owner_id = ?
-    """, (new_title.strip()[:90], datetime.utcnow().isoformat(), conversation_id, USER_ID))
+    """, (new_title, datetime.utcnow().isoformat(), conversation_id, USER_ID))
     conn.commit()
     conn.close()
+
 
 def delete_conversation(conversation_id):
     conv = get_conversation(conversation_id)
@@ -422,17 +521,18 @@ def delete_conversation(conversation_id):
             except OSError:
                 pass
 
+
 def update_conversation_timestamp(conversation_id):
-    now = datetime.utcnow().isoformat()
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("""
         UPDATE conversations
         SET updated_at = ?
         WHERE id = ? AND owner_id = ?
-    """, (now, conversation_id, USER_ID))
+    """, (datetime.utcnow().isoformat(), conversation_id, USER_ID))
     conn.commit()
     conn.close()
+
 
 def maybe_update_title_from_first_message(conversation_id, text):
     texto = (text or "").strip()
@@ -441,22 +541,24 @@ def maybe_update_title_from_first_message(conversation_id, text):
 
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute(
-        "SELECT title FROM conversations WHERE id = ? AND owner_id = ?",
-        (conversation_id, USER_ID)
-    )
+    cur.execute("""
+        SELECT title FROM conversations
+        WHERE id = ? AND owner_id = ?
+    """, (conversation_id, USER_ID))
     row = cur.fetchone()
 
     if row and row[0] == "Nova conversa":
         title = texto.replace("\n", " ")
         title = re.sub(r"\s+", " ", title).strip()[:72]
-        cur.execute(
-            "UPDATE conversations SET title = ? WHERE id = ? AND owner_id = ?",
-            (title, conversation_id, USER_ID)
-        )
+        cur.execute("""
+            UPDATE conversations
+            SET title = ?, updated_at = ?
+            WHERE id = ? AND owner_id = ?
+        """, (title, datetime.utcnow().isoformat(), conversation_id, USER_ID))
         conn.commit()
 
     conn.close()
+
 
 def save_message(conversation_id, role, content):
     conv = get_conversation(conversation_id)
@@ -478,6 +580,7 @@ def save_message(conversation_id, role, content):
     conn.commit()
     conn.close()
 
+
 def get_messages(conversation_id):
     conv = get_conversation(conversation_id)
     if not conv:
@@ -494,6 +597,7 @@ def get_messages(conversation_id):
     rows = cur.fetchall()
     conn.close()
     return rows
+
 
 def update_conversation_files(conversation_id, pdf_path=None, pdf_name=None, image_path=None, image_name=None):
     conn = get_conn()
@@ -516,6 +620,7 @@ def update_conversation_files(conversation_id, pdf_path=None, pdf_name=None, ima
     conn.commit()
     conn.close()
 
+
 # =========================================================
 # CLIENTE GROQ
 # =========================================================
@@ -532,6 +637,7 @@ def carregar_cliente():
     except Exception as e:
         return None, f"Erro ao iniciar cliente Groq: {e}"
 
+
 client = None
 erro_cliente = None
 try:
@@ -540,14 +646,17 @@ except Exception as e:
     client = None
     erro_cliente = f"Erro ao iniciar cliente Groq: {e}"
 
+
 # =========================================================
 # UTILIDADES
 # =========================================================
 def pode_perguntar():
     return st.session_state.contador_perguntas < MAX_PERGUNTAS_SESSAO
 
+
 def registrar_pergunta():
     st.session_state.contador_perguntas += 1
+
 
 def resetar_sessao_visual():
     st.session_state.chat = []
@@ -558,6 +667,7 @@ def resetar_sessao_visual():
     st.session_state.loaded_conversation_id = None
     st.session_state.confirm_delete = False
     st.session_state.last_sources = []
+
 
 def salvar_uploaded_file(conversation_id, uploaded_file):
     conv_dir = os.path.join(UPLOAD_DIR, f"conv_{conversation_id}")
@@ -574,6 +684,7 @@ def salvar_uploaded_file(conversation_id, uploaded_file):
 
     return path
 
+
 def limpar_texto(txt: str) -> str:
     if not txt:
         return ""
@@ -583,8 +694,10 @@ def limpar_texto(txt: str) -> str:
     txt = re.sub(r"\n{3,}", "\n\n", txt)
     return txt.strip()
 
+
 def tokenizer_basico(txt: str) -> List[str]:
     return re.findall(r"[a-zA-ZÀ-ÿ0-9_]+", (txt or "").lower())
+
 
 def remover_linhas_repetidas_paginas(paginas_texto: List[str]) -> List[str]:
     if len(paginas_texto) <= 2:
@@ -614,6 +727,7 @@ def remover_linhas_repetidas_paginas(paginas_texto: List[str]) -> List[str]:
         novas_paginas.append(limpar_texto("\n".join(filtradas)))
 
     return novas_paginas
+
 
 def chunk_text(texto: str, chunk_size: int = 900, overlap: int = 180) -> List[str]:
     texto = limpar_texto(texto)
@@ -661,6 +775,7 @@ def chunk_text(texto: str, chunk_size: int = 900, overlap: int = 180) -> List[st
 
     return [c for c in chunks if c.strip()]
 
+
 def _extract_with_pymupdf(pdf_bytes: bytes) -> List[Dict]:
     blocks = []
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
@@ -700,6 +815,7 @@ def _extract_with_pymupdf(pdf_bytes: bytes) -> List[Dict]:
     doc.close()
     return blocks
 
+
 def _extract_with_pypdf(pdf_bytes: bytes) -> List[Dict]:
     blocks = []
     reader = PdfReader(io.BytesIO(pdf_bytes))
@@ -718,6 +834,7 @@ def _extract_with_pypdf(pdf_bytes: bytes) -> List[Dict]:
         if txt:
             blocks.append({"page": i + 1, "text": txt, "source": "pdf"})
     return blocks
+
 
 def processar_pdf_from_bytes(pdf_bytes: bytes) -> Optional[Dict]:
     blocks = []
@@ -759,9 +876,11 @@ def processar_pdf_from_bytes(pdf_bytes: bytes) -> Optional[Dict]:
         "source_name": "pdf",
     }
 
+
 def processar_pdf_from_path(pdf_path: str) -> Optional[Dict]:
     with open(pdf_path, "rb") as f:
         return processar_pdf_from_bytes(f.read())
+
 
 def score_keywords(query: str, text: str) -> float:
     q_tokens = set(tokenizer_basico(query))
@@ -772,6 +891,7 @@ def score_keywords(query: str, text: str) -> float:
         return 0.0
     inter = len(q_tokens.intersection(t_tokens))
     return inter / max(1, len(q_tokens))
+
 
 def buscar_contexto_em_db(db: Dict, pergunta: str, k: int = 6) -> List[Dict]:
     if not db or not pergunta:
@@ -792,6 +912,7 @@ def buscar_contexto_em_db(db: Dict, pergunta: str, k: int = 6) -> List[Dict]:
 
     resultados = sorted(resultados, key=lambda x: x["score"], reverse=True)
     return resultados[:k]
+
 
 def buscar_contexto(pergunta: str, k: int = 5) -> Tuple[str, List[str]]:
     resultados = []
@@ -831,6 +952,7 @@ def buscar_contexto(pergunta: str, k: int = 5) -> Tuple[str, List[str]]:
 
     return "\n\n".join(contexto), referencias
 
+
 def imagem_path_para_data_url(path):
     ext = os.path.splitext(path)[1].lower()
     mime_map = {
@@ -845,6 +967,7 @@ def imagem_path_para_data_url(path):
     b64 = base64.b64encode(dados).decode("utf-8")
     return f"data:{mime};base64,{b64}"
 
+
 def construir_memoria_conversa(max_msgs: int = 6) -> str:
     msgs = st.session_state.chat[-max_msgs:]
     linhas = []
@@ -853,8 +976,9 @@ def construir_memoria_conversa(max_msgs: int = 6) -> str:
         linhas.append(f"{role}: {msg['content']}")
     return "\n".join(linhas).strip()
 
+
 # =========================================================
-# MENTORES - SEM ENSINO MÉDIO
+# MENTORES
 # =========================================================
 def obter_estrutura_mentores():
     return {
@@ -884,6 +1008,7 @@ def obter_estrutura_mentores():
         }
     }
 
+
 def resumo_mentor(mentor: str) -> str:
     resumos = {
         "Métodos e Técnicas de Pesquisa Educacional": "Metodologia científica, projeto, objetivos e estrutura acadêmica.",
@@ -898,6 +1023,7 @@ def resumo_mentor(mentor: str) -> str:
         "Mentor Rígido": "Tom direto, firme, exigente e objetivo.",
     }
     return resumos.get(mentor, "Mentor educacional especializado.")
+
 
 def obter_prompt_mentor_especializado(categoria: str, subgrupo: Optional[str], mentor: str) -> str:
     base = (
@@ -959,6 +1085,7 @@ def obter_prompt_mentor_especializado(categoria: str, subgrupo: Optional[str], m
         "Você é um assistente educacional útil, claro e objetivo."
     )
 
+
 def obter_instrucao_modo(modo_atual: str) -> str:
     if modo_atual == "Matemática":
         return """
@@ -985,6 +1112,7 @@ Você está no modo Chat Criativo.
 Você está no modo Chat Geral.
 - Responda com clareza, objetividade e adaptação ao mentor selecionado.
 """
+
 
 def montar_prompt_usuario(
     prompt_usuario: str,
@@ -1029,6 +1157,7 @@ Instruções finais:
 - Se pedir resumo, resuma.
 - Se pedir comparação, compare ponto a ponto.
 """
+
 
 # =========================================================
 # GROQ
@@ -1080,6 +1209,7 @@ def analisar_imagem_com_vision(
     )
     return (resp.choices[0].message.content or "").strip()
 
+
 def responder_texto(prompt_usuario: str, prompt_sistema: str, contexto: str, modo_atual: str, referencias=None):
     referencias = referencias or []
     memoria = construir_memoria_conversa()
@@ -1110,6 +1240,7 @@ def responder_texto(prompt_usuario: str, prompt_sistema: str, contexto: str, mod
             resposta += delta
             yield resposta
 
+
 # =========================================================
 # GRÁFICOS E VISUAIS MATEMÁTICOS
 # =========================================================
@@ -1127,6 +1258,7 @@ def extrair_expressao_grafico(prompt: str):
             return m.group(1).strip(" .,:;")
     return None
 
+
 def normalizar_expressao(expr: str):
     expr = expr.replace("^", "**")
     expr = expr.replace("sen(", "sin(")
@@ -1134,10 +1266,12 @@ def normalizar_expressao(expr: str):
     expr = expr.replace("ln(", "log(")
     return expr
 
+
 def expressao_valida(expr: str):
     proibidos = ["__", "import", "exec", "eval", "open", "os.", "sys.", "subprocess"]
     expr_lower = expr.lower()
     return not any(item in expr_lower for item in proibidos)
+
 
 def gerar_grafico_basico(expressao_str: str):
     try:
@@ -1165,6 +1299,7 @@ def gerar_grafico_basico(expressao_str: str):
     except Exception as e:
         return False, str(e)
 
+
 def gerar_quadro_formula(titulo: str, linhas: List[str]):
     altura = max(4.6, 1.35 + 0.95 * len(linhas))
     fig, ax = plt.subplots(figsize=(10, altura))
@@ -1181,6 +1316,7 @@ def gerar_quadro_formula(titulo: str, linhas: List[str]):
     st.pyplot(fig)
     plt.close(fig)
 
+
 def demonstrar_equacao_circunferencia():
     linhas = [
         r"Definição: a circunferência é o conjunto dos pontos cuja distância ao centro é constante.",
@@ -1193,6 +1329,7 @@ def demonstrar_equacao_circunferencia():
         r"$$(x-a)^2+(y-b)^2=r^2$$",
     ]
     gerar_quadro_formula("Demonstração da equação da circunferência", linhas)
+
 
 def demonstrar_bhaskara():
     linhas = [
@@ -1209,6 +1346,7 @@ def demonstrar_bhaskara():
     ]
     gerar_quadro_formula("Demonstração da fórmula de Bhaskara", linhas)
 
+
 def demonstrar_derivada_potencia():
     linhas = [
         r"Queremos derivar $f(x)=x^n$.",
@@ -1218,6 +1356,7 @@ def demonstrar_derivada_potencia():
         r"$$f'(x)=5x^4$$",
     ]
     gerar_quadro_formula("Derivada da potência", linhas)
+
 
 def demonstrar_integral_potencia():
     linhas = [
@@ -1230,6 +1369,7 @@ def demonstrar_integral_potencia():
     ]
     gerar_quadro_formula("Integral da potência", linhas)
 
+
 def demonstrar_equacao_reta():
     linhas = [
         r"Equação reduzida da reta:",
@@ -1239,6 +1379,7 @@ def demonstrar_equacao_reta():
         r"$$y-y_1=m(x-x_1)$$",
     ]
     gerar_quadro_formula("Equações da reta", linhas)
+
 
 def desenhar_circunferencia_trigonometrica():
     fig, ax = plt.subplots(figsize=(6.2, 6.2))
@@ -1262,6 +1403,7 @@ def desenhar_circunferencia_trigonometrica():
     ax.grid(True, alpha=0.35)
     st.pyplot(fig)
     plt.close(fig)
+
 
 def desenhar_triangulo_retangulo():
     fig, ax = plt.subplots(figsize=(7.2, 5))
@@ -1288,6 +1430,7 @@ def desenhar_triangulo_retangulo():
     st.pyplot(fig)
     plt.close(fig)
 
+
 def desenhar_vetores():
     fig, ax = plt.subplots(figsize=(7.2, 5.2))
     origem = np.array([0, 0])
@@ -1313,6 +1456,7 @@ def desenhar_vetores():
     st.pyplot(fig)
     plt.close(fig)
 
+
 def desenhar_parabola_exemplo():
     fig, ax = plt.subplots(figsize=(7.2, 5.2))
     x = np.linspace(-6, 6, 400)
@@ -1326,6 +1470,7 @@ def desenhar_parabola_exemplo():
     ax.grid(True, alpha=0.35)
     st.pyplot(fig)
     plt.close(fig)
+
 
 def detectar_visual_matematico(prompt: str):
     texto = (prompt or "").lower()
@@ -1350,6 +1495,7 @@ def detectar_visual_matematico(prompt: str):
         return "demo_reta"
 
     return None
+
 
 def renderizar_visual_matematico(prompt: str):
     tipo = detectar_visual_matematico(prompt)
@@ -1384,6 +1530,7 @@ def renderizar_visual_matematico(prompt: str):
 
     return False
 
+
 def renderizar_resposta_matematica(resposta_texto: str):
     st.markdown("<div class='math-box'>", unsafe_allow_html=True)
     st.markdown(resposta_texto)
@@ -1398,6 +1545,7 @@ def renderizar_resposta_matematica(resposta_texto: str):
             st.markdown("**Resposta final**")
             st.markdown(trecho)
             st.markdown("</div>", unsafe_allow_html=True)
+
 
 # =========================================================
 # CONVERSAS
@@ -1429,6 +1577,7 @@ def carregar_conversa_no_estado(conversation_id):
     st.session_state.loaded_conversation_id = conversation_id
     st.session_state.confirm_delete = False
 
+
 def formatar_conversation_label(row):
     conv_id, title, created_at, updated_at, pdf_name, image_name = row
     extras = []
@@ -1438,6 +1587,7 @@ def formatar_conversation_label(row):
         extras.append("IMG")
     sufixo = f" [{' | '.join(extras)}]" if extras else ""
     return f"{title}{sufixo}"
+
 
 # =========================================================
 # CONVERSA INICIAL
@@ -1451,6 +1601,7 @@ elif st.session_state.current_conversation_id is None:
     st.session_state.current_conversation_id = rows[0][0]
     carregar_conversa_no_estado(rows[0][0])
 
+
 # =========================================================
 # SIDEBAR
 # =========================================================
@@ -1461,17 +1612,21 @@ with st.sidebar:
     st.markdown("### Conversas")
 
     conv_rows = list_conversations()
-    conv_ids = [r[0] for r in conv_rows]
-    conv_labels = [formatar_conversation_label(r) for r in conv_rows]
+    conv_map = {
+        f"{formatar_conversation_label(r)} • #{r[0]}": r[0]
+        for r in conv_rows
+    }
+    conv_keys = list(conv_map.keys())
+    conv_ids = list(conv_map.values())
 
     current_id = st.session_state.current_conversation_id
     if current_id not in conv_ids and conv_ids:
         current_id = conv_ids[0]
 
-    if conv_ids:
+    if conv_keys:
         idx = conv_ids.index(current_id)
-        escolhido_label = st.selectbox("Selecione a conversa", conv_labels, index=idx)
-        escolhido_id = conv_ids[conv_labels.index(escolhido_label)]
+        escolhido_key = st.selectbox("Selecione a conversa", conv_keys, index=idx)
+        escolhido_id = conv_map[escolhido_key]
     else:
         escolhido_id = create_conversation()
 
@@ -1533,7 +1688,7 @@ with st.sidebar:
     st.markdown(
         """
         <div class="folder-hint">
-            Navegue pelas <b>pastas</b> abaixo, escolha a área e depois selecione o professor especializado.
+            Navegue pelas <b>pastas</b>, escolha a área e depois selecione o professor especializado.
         </div>
         """,
         unsafe_allow_html=True
@@ -1584,7 +1739,6 @@ with st.sidebar:
     )
 
     st.markdown("---")
-
     modo = st.selectbox(
         "Modo de trabalho",
         [
@@ -1607,13 +1761,29 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### Estado da sessão")
-    st.write(f"Perguntas nesta sessão: {st.session_state.contador_perguntas}/{MAX_PERGUNTAS_SESSAO}")
 
     conv = get_conversation(st.session_state.current_conversation_id)
-    if conv:
-        _, _, _, _, _, pdf_name, _, image_name = conv
-        st.write(f"PDF ativo: {pdf_name if pdf_name else 'Nenhum'}")
-        st.write(f"Imagem ativa: {image_name if image_name else 'Nenhuma'}")
+    pdf_name = conv[5] if conv else None
+    image_name = conv[7] if conv else None
+
+    st.markdown(
+        f"""
+        <div class="sidebar-kpi">
+            <div><b>Perguntas</b></div>
+            <div>{st.session_state.contador_perguntas}/{MAX_PERGUNTAS_SESSAO}</div>
+        </div>
+        <div class="sidebar-kpi">
+            <div><b>PDF ativo</b></div>
+            <div>{pdf_name if pdf_name else 'Nenhum'}</div>
+        </div>
+        <div class="sidebar-kpi">
+            <div><b>Imagem ativa</b></div>
+            <div>{image_name if image_name else 'Nenhuma'}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 # =========================================================
 # CABEÇALHO
@@ -1628,7 +1798,7 @@ st.markdown(
                 <div class="subtitle">
                     Assistente acadêmico inteligente com foco institucional, educacional, matemático e criativo
                 </div>
-                <div style="margin-top:0.5rem;">
+                <div class="chip-wrap">
                     <span class="if-chip">Docentes</span>
                     <span class="if-chip">Discentes</span>
                     <span class="if-chip">PDF + Imagem</span>
@@ -1707,6 +1877,7 @@ with st.expander("Como usar o MentorEdu"):
 - Como estruturar um trabalho científico?
 """)
 
+
 # =========================================================
 # STATUS
 # =========================================================
@@ -1714,7 +1885,7 @@ c1, c2, c3 = st.columns(3)
 
 with c1:
     status_text = "Groq conectada" if not erro_cliente else "Erro de configuração"
-    status_class = "status-ok" if not erro_cliente else "status-warn"
+    status_class = "status-ok" if not erro_cliente else "status-danger"
     st.markdown(
         f"""<div class="status-card">
                 <h4>Conexão de IA</h4>
@@ -1734,7 +1905,7 @@ with c2:
                 <h4>Documento</h4>
                 <div style="margin-top:.55rem;" class="{css_class}">{pdf_info}</div>
                 <div style="margin-top:.5rem;color:#94a3b8;font-size:.88rem;line-height:1.5;">
-                    Leitura leve por palavras-chave para estabilidade no deploy.
+                    Busca leve por palavras-chave para manter estabilidade e rapidez.
                 </div>
             </div>""",
         unsafe_allow_html=True
@@ -1748,11 +1919,12 @@ with c3:
                 <h4>Imagem</h4>
                 <div style="margin-top:.55rem;" class="{css_class}">{img_info}</div>
                 <div style="margin-top:.5rem;color:#94a3b8;font-size:.88rem;line-height:1.5;">
-                    Pode ser integrada ao PDF e ajudar na interpretação da resposta.
+                    Pode ser integrada ao PDF e enriquecer a interpretação da resposta.
                 </div>
             </div>""",
         unsafe_allow_html=True
     )
+
 
 # =========================================================
 # PRÉVIA DA IMAGEM ATIVA
@@ -1769,14 +1941,22 @@ if image_path and os.path.exists(image_path):
     except Exception as e:
         st.warning(f"Não consegui abrir a imagem ativa: {e}")
 
+
 # =========================================================
-# HISTÓRICO
+# HISTÓRICO DO CHAT
 # =========================================================
-avatar_path = IF_LOGO if os.path.exists(IF_LOGO) else None
+assistant_avatar = IF_LOGO if os.path.exists(IF_LOGO) else "🎓"
+user_avatar = "👤"
 
 for msg in st.session_state.chat:
-    with st.chat_message(msg["role"], avatar=avatar_path):
+    avatar = user_avatar if msg["role"] == "user" else assistant_avatar
+    bubble_class = "user-bubble" if msg["role"] == "user" else "assistant-bubble"
+
+    with st.chat_message(msg["role"], avatar=avatar):
+        st.markdown(f"<div class='{bubble_class}'>", unsafe_allow_html=True)
         st.markdown(msg["content"])
+        st.markdown("</div>", unsafe_allow_html=True)
+
 
 # =========================================================
 # CHAT INPUT
@@ -1795,6 +1975,7 @@ entrada = st.chat_input(
     file_type=ALLOWED_FILE_TYPES,
     key="main_chat_input",
 )
+
 
 # =========================================================
 # PROCESSAMENTO
@@ -1867,15 +2048,17 @@ if entrada:
 
         st.session_state.chat.append({"role": "user", "content": prompt})
 
-        with st.chat_message("user", avatar=avatar_path):
+        with st.chat_message("user", avatar=user_avatar):
+            st.markdown("<div class='user-bubble'>", unsafe_allow_html=True)
             st.markdown(prompt)
+            st.markdown("</div>", unsafe_allow_html=True)
 
-        with st.chat_message("assistant", avatar=avatar_path):
+        with st.chat_message("assistant", avatar=assistant_avatar):
             placeholder = st.empty()
 
             if client is None:
                 resposta_final = "Não consegui responder porque a chave da API Groq não está configurada corretamente."
-                placeholder.markdown(resposta_final)
+                placeholder.markdown(f"<div class='assistant-bubble'>{resposta_final}</div>", unsafe_allow_html=True)
                 save_message(conversation_id, "assistant", resposta_final)
                 st.session_state.chat.append({"role": "assistant", "content": resposta_final})
 
@@ -1901,12 +2084,12 @@ if entrada:
                                 contexto=contexto,
                                 referencias=referencias,
                             )
-                            placeholder.markdown(resposta_final)
+                            placeholder.markdown(f"<div class='assistant-bubble'>{resposta_final}</div>", unsafe_allow_html=True)
                         else:
                             resposta_final = ""
                             for parcial in responder_texto(prompt, prompt_sistema_ativo, contexto, modo, referencias=referencias):
                                 resposta_final = parcial
-                                placeholder.markdown(resposta_final)
+                                placeholder.markdown(f"<div class='assistant-bubble'>{resposta_final}</div>", unsafe_allow_html=True)
 
                     elif modo == "Matemática":
                         expr_grafico = extrair_expressao_grafico(prompt)
@@ -1925,12 +2108,12 @@ if entrada:
                                 contexto=contexto,
                                 referencias=referencias,
                             )
-                            placeholder.markdown(resposta_final)
+                            placeholder.markdown(f"<div class='assistant-bubble'>{resposta_final}</div>", unsafe_allow_html=True)
                         else:
                             resposta_final = ""
                             for parcial in responder_texto(prompt, prompt_sistema_ativo, contexto, modo, referencias=referencias):
                                 resposta_final = parcial
-                                placeholder.markdown(resposta_final)
+                                placeholder.markdown(f"<div class='assistant-bubble'>{resposta_final}</div>", unsafe_allow_html=True)
 
                         renderizar_visual_matematico(prompt)
 
@@ -1952,11 +2135,11 @@ if entrada:
                         resposta_final = ""
                         for parcial in responder_texto(prompt, prompt_sistema_ativo, contexto, modo, referencias=referencias):
                             resposta_final = parcial
-                            placeholder.markdown(resposta_final)
+                            placeholder.markdown(f"<div class='assistant-bubble'>{resposta_final}</div>", unsafe_allow_html=True)
 
                     if not resposta_final.strip():
                         resposta_final = "Não consegui gerar uma resposta no momento."
-                        placeholder.markdown(resposta_final)
+                        placeholder.markdown(f"<div class='assistant-bubble'>{resposta_final}</div>", unsafe_allow_html=True)
 
                     if referencias:
                         st.markdown(
@@ -1971,9 +2154,10 @@ if entrada:
 
                 except Exception as e:
                     resposta_erro = f"Erro ao consultar a IA: {e}"
-                    placeholder.markdown(resposta_erro)
+                    placeholder.markdown(f"<div class='assistant-bubble'>{resposta_erro}</div>", unsafe_allow_html=True)
                     save_message(conversation_id, "assistant", resposta_erro)
                     st.session_state.chat.append({"role": "assistant", "content": resposta_erro})
+
 
 # =========================================================
 # RODAPÉ
