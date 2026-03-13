@@ -43,149 +43,19 @@ TEXT_MODEL = "llama-3.3-70b-versatile"
 VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 # =========================================================
-# ESTILO VISUAL MODERNO
+# ESTILO VISUAL REFINADO
 # =========================================================
 st.markdown("""
 <style>
-.stApp{
-    background:
-        radial-gradient(circle at 20% 10%, rgba(34,197,94,0.08), transparent 25%),
-        linear-gradient(180deg,#0b1220 0%,#0f172a 100%);
-    color:#f9fafb;
-}
-
-section[data-testid="stSidebar"]{
-    background:linear-gradient(180deg,#0c1424 0%,#0f172a 100%);
-    border-right:1px solid #1f2937;
-}
-
-header[data-testid="stHeader"]{
-    background:rgba(11,18,32,0.85);
-    border-bottom:1px solid rgba(148,163,184,0.08);
-}
-
-.hero-card{
-    background:linear-gradient(180deg,#0f172a 0%,#111827 100%);
-    border:1px solid #1f2937;
-    border-radius:20px;
-    padding:1.4rem;
-    box-shadow:0 10px 30px rgba(0,0,0,0.35);
-}
-
-.main-title{
-    color:#86efac;
-    font-weight:800;
-    font-size:2.4rem;
-    text-align:center;
-}
-
-.subtitle{
-    text-align:center;
-    color:#cbd5e1;
-    margin-top:.4rem;
-}
-
-.status-card{
-    background:#111827;
-    border:1px solid #1f2937;
-    border-radius:16px;
-    padding:1rem;
-    box-shadow:0 6px 18px rgba(0,0,0,0.25);
-}
-
-.status-ok{color:#4ade80;font-weight:700;}
-.status-info{color:#93c5fd;font-weight:700;}
-.status-warn{color:#fbbf24;font-weight:700;}
-
-.mentor-card{
-    background:#111827;
-    border:1px solid #1f2937;
-    border-radius:16px;
-    padding:1rem;
-    box-shadow:0 6px 18px rgba(0,0,0,0.18);
-}
-
-.folder-hint{
-    background:#111827;
-    border:1px solid #1f2937;
-    border-radius:14px;
-    padding:.85rem 1rem;
-    color:#cbd5e1;
-}
-
-.math-box{
-    border:1px solid #1d4ed8;
-    background:#0f172a;
-    border-radius:14px;
-    padding:.9rem;
-    margin:.7rem 0;
-}
-
-.final-answer-box{
-    border:1px solid #16a34a;
-    background:#052e16;
-    border-radius:14px;
-    padding:.9rem;
-    margin:.7rem 0;
-}
-
-.source-box{
-    border:1px dashed #334155;
-    background:#0f172a;
-    border-radius:12px;
-    padding:.7rem;
-    color:#cbd5e1;
-    font-size:.9rem;
-}
-
-.stButton>button{
-    background:linear-gradient(90deg,#22c55e,#16a34a)!important;
-    color:white!important;
-    border:none!important;
-    border-radius:12px!important;
-    font-weight:700!important;
-}
-
-.stTextInput input,
-.stTextArea textarea,
-.stSelectbox div[data-baseweb="select"] > div,
-.stMultiSelect div[data-baseweb="select"] > div{
-    background:#111827!important;
-    color:#f9fafb!important;
-    border:1px solid #374151!important;
-}
-
-div[data-testid="stChatInput"] textarea{
-    background:#111827!important;
-    color:white!important;
-    border:1px solid #374151!important;
-    border-radius:12px!important;
-}
-
-.if-chip{
-    display:inline-block;
-    padding:0.3rem 0.7rem;
-    border-radius:999px;
-    background:#1f2937;
-    color:#e5e7eb;
-    font-size:.8rem;
-    margin-right:.3rem;
-}
-
-.footer-note{
-    text-align:center;
-    color:#94a3b8;
-    font-size:.92rem;
-    margin-top:1rem;
-    margin-bottom:.5rem;
-}
-
-hr{
-    border-color:#334155;
-}
-</style>
-""", unsafe_allow_html=True)
-
+:root{
+    --bg:#0e1525;
+    --bg-soft:#111a2e;
+    --panel:#121c31;
+    --panel-2:#16233b;
+    --border:rgba(148,163,184,0.12);
+    --text:#f8fafc;
+    --muted:#cbd5e1;
+   
 # =========================================================
 # ESTADO DA SESSÃO
 # =========================================================
