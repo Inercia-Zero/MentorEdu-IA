@@ -52,22 +52,22 @@ def inject_css():
     st.markdown("""
     <style>
     :root{
-        --bg:#0b1120;
-        --bg2:#0f172a;
-        --panel:#111827;
-        --panel-soft:#172033;
-        --line:rgba(148,163,184,0.14);
-        --line-soft:rgba(148,163,184,0.08);
-        --text:#f8fafc;
-        --muted:#cbd5e1;
-        --muted-2:#94a3b8;
-        --green:#22c55e;
-        --green-2:#16a34a;
-        --green-soft:#86efac;
-        --info:#93c5fd;
-        --warn:#fbbf24;
-        --danger:#f87171;
-        --shadow:0 10px 28px rgba(0,0,0,0.18);
+        --bg:#f6f8fb;
+        --bg2:#eef3f8;
+        --panel:#ffffff;
+        --panel-soft:#f8fafc;
+        --line:rgba(15,23,42,0.08);
+        --line-soft:rgba(15,23,42,0.05);
+        --text:#0f172a;
+        --muted:#475569;
+        --muted-2:#64748b;
+        --green:#16a34a;
+        --green-2:#15803d;
+        --green-soft:#166534;
+        --info:#2563eb;
+        --warn:#d97706;
+        --danger:#dc2626;
+        --shadow:0 10px 28px rgba(15,23,42,0.08);
         --radius:18px;
     }
 
@@ -77,21 +77,21 @@ def inject_css():
 
     .stApp{
         background:
-            radial-gradient(circle at top left, rgba(34,197,94,0.05), transparent 18%),
-            radial-gradient(circle at top right, rgba(59,130,246,0.04), transparent 16%),
-            linear-gradient(180deg, #0b1120 0%, #0f172a 100%);
+            radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 18%),
+            radial-gradient(circle at top right, rgba(37,99,235,0.05), transparent 16%),
+            linear-gradient(180deg, #f8fafc 0%, #eef4f8 100%);
         color: var(--text);
     }
 
     header[data-testid="stHeader"]{
-        background: rgba(11,17,32,0.78);
-        border-bottom: 1px solid rgba(255,255,255,0.04);
+        background: rgba(255,255,255,0.88);
+        border-bottom: 1px solid rgba(15,23,42,0.05);
         backdrop-filter: blur(10px);
     }
 
     section[data-testid="stSidebar"]{
-        background: linear-gradient(180deg, #0d1424 0%, #101827 100%);
-        border-right: 1px solid rgba(255,255,255,0.05);
+        background: linear-gradient(180deg, #f8fbff 0%, #f1f5f9 100%);
+        border-right: 1px solid rgba(15,23,42,0.06);
     }
 
     .block-container{
@@ -104,7 +104,7 @@ def inject_css():
     }
 
     .hero-card{
-        background: linear-gradient(180deg, rgba(17,24,39,0.96) 0%, rgba(15,23,42,0.96) 100%);
+        background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 100%);
         border: 1px solid var(--line);
         border-radius: 24px;
         padding: 1.35rem 1.2rem;
@@ -120,7 +120,7 @@ def inject_css():
         font-weight: 800;
         font-size: .88rem;
         margin-bottom: .9rem;
-        box-shadow: 0 10px 20px rgba(34,197,94,0.14);
+        box-shadow: 0 10px 20px rgba(22,163,74,0.16);
     }
 
     .main-title{
@@ -149,16 +149,16 @@ def inject_css():
         display:inline-block;
         padding:.35rem .72rem;
         border-radius:999px;
-        background:rgba(30,41,59,0.70);
-        border:1px solid rgba(255,255,255,0.06);
-        color:#e5e7eb;
+        background:#f1f5f9;
+        border:1px solid rgba(15,23,42,0.06);
+        color:#334155;
         font-size:.8rem;
         font-weight:700;
         margin:.25rem .25rem 0 0;
     }
 
     .status-card{
-        background: rgba(17,24,39,0.92);
+        background: #ffffff;
         border: 1px solid var(--line);
         border-radius: 18px;
         padding: 1rem;
@@ -173,7 +173,7 @@ def inject_css():
         font-weight: 700;
     }
 
-    .status-ok{color:#4ade80;font-weight:800;}
+    .status-ok{color:#16a34a;font-weight:800;}
     .status-info{color:var(--info);font-weight:800;}
     .status-warn{color:var(--warn);font-weight:800;}
     .status-danger{color:var(--danger);font-weight:800;}
@@ -185,7 +185,7 @@ def inject_css():
     .final-answer-box,
     .source-box,
     .preview-card{
-        background: rgba(17,24,39,0.92);
+        background: #ffffff;
         border: 1px solid var(--line);
         border-radius: 16px;
         box-shadow: var(--shadow);
@@ -216,18 +216,20 @@ def inject_css():
         color: var(--muted);
         line-height:1.5;
         font-size: .92rem;
+        background:#fcfdff;
     }
 
     .math-box{
         padding: 1rem;
         margin: .8rem 0;
+        background:#ffffff;
     }
 
     .final-answer-box{
         padding: 1rem;
         margin: .8rem 0;
-        border-color: rgba(34,197,94,0.22);
-        background: linear-gradient(180deg, rgba(12,36,23,0.82) 0%, rgba(15,23,42,0.92) 100%);
+        border-color: rgba(22,163,74,0.18);
+        background: linear-gradient(180deg, #f6fff8 0%, #ffffff 100%);
     }
 
     .source-box{
@@ -235,6 +237,7 @@ def inject_css():
         color: var(--muted);
         font-size:.9rem;
         margin-top: .7rem;
+        background:#fbfdff;
     }
 
     .small-note{
@@ -258,45 +261,45 @@ def inject_css():
         border-radius:14px !important;
         font-weight:800 !important;
         padding:.65rem 1rem !important;
-        box-shadow:0 8px 18px rgba(34,197,94,0.16) !important;
+        box-shadow:0 8px 18px rgba(22,163,74,0.14) !important;
     }
 
     .stButton > button:hover{
         transform: translateY(-1px);
-        filter: brightness(1.03);
+        filter: brightness(1.02);
     }
 
     .stTextInput input,
     .stTextArea textarea,
     div[data-baseweb="select"] > div{
-        background: rgba(15,23,42,0.95) !important;
-        color: #f8fafc !important;
-        border: 1px solid rgba(148,163,184,0.16) !important;
+        background: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid rgba(15,23,42,0.10) !important;
         border-radius: 14px !important;
     }
 
     div[data-testid="stChatInput"]{
         padding-top: .45rem;
-        border-top: 1px solid rgba(255,255,255,0.05);
+        border-top: 1px solid rgba(15,23,42,0.06);
         margin-top: .35rem;
     }
 
     div[data-testid="stChatInput"] textarea{
-        background: rgba(15,23,42,0.98) !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(148,163,184,0.18) !important;
+        background: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid rgba(15,23,42,0.10) !important;
         border-radius: 16px !important;
     }
 
     div[data-testid="stExpander"]{
-        background: rgba(17,24,39,0.82);
+        background: #ffffff;
         border: 1px solid var(--line-soft);
         border-radius: 16px;
         overflow: hidden;
     }
 
     hr{
-        border-color: rgba(255,255,255,0.06);
+        border-color: rgba(15,23,42,0.06);
     }
 
     .footer-note{
@@ -308,25 +311,26 @@ def inject_css():
     }
 
     .user-bubble{
-        background: rgba(34,197,94,0.10);
-        border: 1px solid rgba(34,197,94,0.18);
+        background: #ecfdf3;
+        border: 1px solid rgba(22,163,74,0.16);
         border-radius: 16px;
         padding: .95rem 1rem;
     }
 
     .assistant-bubble{
-        background: rgba(17,24,39,0.92);
-        border: 1px solid rgba(148,163,184,0.12);
+        background: #ffffff;
+        border: 1px solid rgba(15,23,42,0.08);
         border-radius: 16px;
         padding: .95rem 1rem;
     }
 
     .sidebar-kpi{
-        background: rgba(17,24,39,0.88);
+        background: #ffffff;
         border: 1px solid var(--line);
         border-radius: 14px;
         padding: .85rem .9rem;
         margin-bottom: .7rem;
+        box-shadow: 0 6px 16px rgba(15,23,42,0.05);
     }
 
     .sidebar-kpi b{
