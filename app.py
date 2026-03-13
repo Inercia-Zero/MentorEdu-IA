@@ -6,6 +6,7 @@ import uuid
 import base64
 import shutil
 import sqlite3
+import html
 from collections import Counter
 from datetime import datetime
 from typing import List, Dict, Optional, Tuple
@@ -46,7 +47,7 @@ VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 
 # =========================================================
-# ESTILO VISUAL
+# ESTILO VISUAL CLARO
 # =========================================================
 def inject_css():
     st.markdown("""
@@ -703,6 +704,45 @@ def tokenizer_basico(txt: str) -> List[str]:
     return re.findall(r"[a-zA-ZÀ-ÿ0-9_]+", (txt or "").lower())
 
 
+def escapar_latex_problematico(texto: str) -> str:
+    if not texto:
+        return ""
+    texto = texto.replace("\\$", "$")
+    texto = texto.replace("$$", r"\$\$")
+    texto = texto.replace("$", r"\$")
+    return texto
+
+
+def render_markdown_seguro(container, texto: str, allow_html: bool = False):
+    texto = texto or ""
+    try:
+        container.markdown(texto, unsafe_allow_html=allow_html)
+    except Exception:
+        texto_seguro = escapar_latex_problematico(texto)
+        try:
+            container.markdown(texto_seguro, unsafe_allow_html=allow_html)
+        except Exception:
+            try:
+                container.code(texto)
+            except Exception:
+                st.code(texto)
+
+
+def renderizar_bolha_html_segura(container, texto: str, bubble_class: str):
+    texto = texto or ""
+    try:
+        container.markdown(f"<div class='{bubble_class}'>", unsafe_allow_html=True)
+        render_markdown_seguro(container, texto)
+        container.markdown("</div>", unsafe_allow_html=True)
+    except Exception:
+        # fallback: renderiza como bloco simples
+        escaped = html.escape(texto)
+        container.markdown(
+            f"<div class='{bubble_class}'><pre style='white-space:pre-wrap;margin:0;font-family:inherit'>{escaped}</pre></div>",
+            unsafe_allow_html=True,
+        )
+
+
 def remover_linhas_repetidas_paginas(paginas_texto: List[str]) -> List[str]:
     if len(paginas_texto) <= 2:
         return paginas_texto
@@ -1132,8 +1172,9 @@ REGRAS IMPORTANTES DE FORMATAÇÃO:
 - Sempre que houver matemática, escreva expressões, equações, fórmulas e identidades em LaTeX.
 - Para expressões curtas no meio do texto, use $...$
 - Para fórmulas centrais, contas e demonstrações, use $$...$$
-- Em matemática, organize em etapas.
+- Em matemática, organize a resposta em etapas.
 - Se houver resposta final, destaque-a claramente.
+- Evite blocos LaTeX inválidos ou incompletos.
 """
 
     return f"""
@@ -1537,7 +1578,13 @@ def renderizar_visual_matematico(prompt: str):
 
 def renderizar_resposta_matematica(resposta_texto: str):
     st.markdown("<div class='math-box'>", unsafe_allow_html=True)
-    st.markdown(resposta_texto)
+    try:
+        st.markdown(resposta_texto)
+    except Exception:
+        try:
+            st.markdown(escapar_latex_problematico(resposta_texto))
+        except Exception:
+            st.code(resposta_texto)
     st.markdown("</div>", unsafe_allow_html=True)
 
     padrao = r"(?:\*\*Resposta final:?\*\*|Resposta final:)(.*)"
@@ -1547,7 +1594,13 @@ def renderizar_resposta_matematica(resposta_texto: str):
         if trecho:
             st.markdown("<div class='final-answer-box'>", unsafe_allow_html=True)
             st.markdown("**Resposta final**")
-            st.markdown(trecho)
+            try:
+                st.markdown(trecho)
+            except Exception:
+                try:
+                    st.markdown(escapar_latex_problematico(trecho))
+                except Exception:
+                    st.code(trecho)
             st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -1800,7 +1853,7 @@ st.markdown(
                 <div class="project-badge">{PROJECT_NAME}</div>
                 <div class="main-title">{APP_NAME}</div>
                 <div class="subtitle">
-                    Assistente acadêmico inteligente com foco institucional, educacional, matemático e criativo
+                    Plataforma acadêmica para apoio em estudos, análise de materiais e orientação educacional
                 </div>
                 <div class="chip-wrap">
                     <span class="if-chip">Docentes</span>
@@ -1957,9 +2010,7 @@ for msg in st.session_state.chat:
     bubble_class = "user-bubble" if msg["role"] == "user" else "assistant-bubble"
 
     with st.chat_message(msg["role"], avatar=avatar):
-        st.markdown(f"<div class='{bubble_class}'>", unsafe_allow_html=True)
-        st.markdown(msg["content"])
-        st.markdown("</div>", unsafe_allow_html=True)
+        renderizar_bolha_html_segura(st, msg["content"], bubble_class)
 
 
 # =========================================================
@@ -2053,16 +2104,14 @@ if entrada:
         st.session_state.chat.append({"role": "user", "content": prompt})
 
         with st.chat_message("user", avatar=user_avatar):
-            st.markdown("<div class='user-bubble'>", unsafe_allow_html=True)
-            st.markdown(prompt)
-            st.markdown("</div>", unsafe_allow_html=True)
+            renderizar_bolha_html_segura(st, prompt, "user-bubble")
 
         with st.chat_message("assistant", avatar=assistant_avatar):
             placeholder = st.empty()
 
             if client is None:
                 resposta_final = "Não consegui responder porque a chave da API Groq não está configurada corretamente."
-                placeholder.markdown(f"<div class='assistant-bubble'>{resposta_final}</div>", unsafe_allow_html=True)
+                placeholder.code(resposta_final)
                 save_message(conversation_id, "assistant", resposta_final)
                 st.session_state.chat.append({"role": "assistant", "content": resposta_final})
 
@@ -2088,12 +2137,22 @@ if entrada:
                                 contexto=contexto,
                                 referencias=referencias,
                             )
-                            placeholder.markdown(f"<div class='assistant-bubble'>{resposta_final}</div>", unsafe_allow_html=True)
+                            try:
+                                placeholder.markdown("")
+                                renderizar_bolha_html_segura(st, resposta_final, "assistant-bubble")
+                            except Exception:
+                                placeholder.code(resposta_final)
                         else:
                             resposta_final = ""
                             for parcial in responder_texto(prompt, prompt_sistema_ativo, contexto, modo, referencias=referencias):
                                 resposta_final = parcial
-                                placeholder.markdown(f"<div class='assistant-bubble'>{resposta_final}</div>", unsafe_allow_html=True)
+                                try:
+                                    placeholder.markdown(resposta_final)
+                                except Exception:
+                                    try:
+                                        placeholder.markdown(escapar_latex_problematico(resposta_final))
+                                    except Exception:
+                                        placeholder.code(resposta_final)
 
                     elif modo == "Matemática":
                         expr_grafico = extrair_expressao_grafico(prompt)
@@ -2112,12 +2171,24 @@ if entrada:
                                 contexto=contexto,
                                 referencias=referencias,
                             )
-                            placeholder.markdown(f"<div class='assistant-bubble'>{resposta_final}</div>", unsafe_allow_html=True)
+                            try:
+                                placeholder.markdown(resposta_final)
+                            except Exception:
+                                try:
+                                    placeholder.markdown(escapar_latex_problematico(resposta_final))
+                                except Exception:
+                                    placeholder.code(resposta_final)
                         else:
                             resposta_final = ""
                             for parcial in responder_texto(prompt, prompt_sistema_ativo, contexto, modo, referencias=referencias):
                                 resposta_final = parcial
-                                placeholder.markdown(f"<div class='assistant-bubble'>{resposta_final}</div>", unsafe_allow_html=True)
+                                try:
+                                    placeholder.markdown(resposta_final)
+                                except Exception:
+                                    try:
+                                        placeholder.markdown(escapar_latex_problematico(resposta_final))
+                                    except Exception:
+                                        placeholder.code(resposta_final)
 
                         renderizar_visual_matematico(prompt)
 
@@ -2139,11 +2210,20 @@ if entrada:
                         resposta_final = ""
                         for parcial in responder_texto(prompt, prompt_sistema_ativo, contexto, modo, referencias=referencias):
                             resposta_final = parcial
-                            placeholder.markdown(f"<div class='assistant-bubble'>{resposta_final}</div>", unsafe_allow_html=True)
+                            try:
+                                placeholder.markdown(resposta_final)
+                            except Exception:
+                                try:
+                                    placeholder.markdown(escapar_latex_problematico(resposta_final))
+                                except Exception:
+                                    placeholder.code(resposta_final)
 
                     if not resposta_final.strip():
                         resposta_final = "Não consegui gerar uma resposta no momento."
-                        placeholder.markdown(f"<div class='assistant-bubble'>{resposta_final}</div>", unsafe_allow_html=True)
+                        try:
+                            placeholder.markdown(resposta_final)
+                        except Exception:
+                            placeholder.code(resposta_final)
 
                     if referencias:
                         st.markdown(
@@ -2157,8 +2237,12 @@ if entrada:
                     st.session_state.chat.append({"role": "assistant", "content": resposta_final})
 
                 except Exception as e:
-                    resposta_erro = f"Erro ao consultar a IA: {e}"
-                    placeholder.markdown(f"<div class='assistant-bubble'>{resposta_erro}</div>", unsafe_allow_html=True)
+                    resposta_erro = f"Erro ao consultar a IA:\n{str(e)}"
+                    try:
+                        placeholder.code(resposta_erro)
+                    except Exception:
+                        st.code(resposta_erro)
+
                     save_message(conversation_id, "assistant", resposta_erro)
                     st.session_state.chat.append({"role": "assistant", "content": resposta_erro})
 
