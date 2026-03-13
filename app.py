@@ -55,7 +55,225 @@ st.markdown("""
     --border:rgba(148,163,184,0.12);
     --text:#f8fafc;
     --muted:#cbd5e1;
-   
+    --muted-2:#94a3b8;
+    --green:#22c55e;
+    --green-2:#16a34a;
+    --green-soft:#86efac;
+    --blue-soft:#93c5fd;
+    --yellow:#fbbf24;
+    --shadow:0 10px 30px rgba(0,0,0,0.22);
+}
+
+.stApp{
+    background:
+        radial-gradient(circle at 15% 10%, rgba(34,197,94,0.07), transparent 22%),
+        radial-gradient(circle at 85% 8%, rgba(59,130,246,0.05), transparent 18%),
+        linear-gradient(180deg,#0b1322 0%,#0f172a 100%);
+    color:var(--text);
+}
+
+header[data-testid="stHeader"]{
+    background:rgba(11,19,34,0.78);
+    border-bottom:1px solid rgba(148,163,184,0.06);
+    backdrop-filter:blur(8px);
+}
+
+section[data-testid="stSidebar"]{
+    background:linear-gradient(180deg,#0d1728 0%,#101a2d 100%);
+    border-right:1px solid rgba(148,163,184,0.08);
+}
+
+.hero-wrap{
+    padding:0.3rem 0 0.15rem 0;
+    margin-bottom:0.7rem;
+}
+
+.hero-card{
+    background:linear-gradient(180deg, rgba(18,28,49,0.92) 0%, rgba(15,23,42,0.92) 100%);
+    border:1px solid var(--border);
+    border-radius:24px;
+    padding:1.5rem 1.4rem 1.25rem 1.4rem;
+    box-shadow:var(--shadow);
+}
+
+.project-badge{
+    display:inline-block;
+    color:white;
+    background:linear-gradient(90deg,var(--green),var(--green-2));
+    padding:0.5rem 1rem;
+    border-radius:999px;
+    font-weight:800;
+    font-size:0.9rem;
+    box-shadow:0 10px 20px rgba(34,197,94,0.18);
+    margin-bottom:0.9rem;
+}
+
+.main-title{
+    color:var(--green-soft);
+    font-weight:900;
+    font-size:2.6rem;
+    text-align:center;
+    letter-spacing:-0.03em;
+    margin-bottom:0.2rem;
+}
+
+.subtitle{
+    text-align:center;
+    color:var(--muted);
+    margin-top:.35rem;
+    line-height:1.6;
+    font-size:1.02rem;
+}
+
+.status-card{
+    background:linear-gradient(180deg, rgba(18,28,49,0.95) 0%, rgba(17,24,39,0.94) 100%);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:1rem;
+    box-shadow:0 8px 20px rgba(0,0,0,0.16);
+    min-height:118px;
+}
+
+.status-card h4{
+    margin:0;
+    color:var(--muted-2);
+    font-size:0.92rem;
+    font-weight:800;
+}
+
+.status-ok{color:#4ade80;font-weight:800;}
+.status-info{color:var(--blue-soft);font-weight:800;}
+.status-warn{color:var(--yellow);font-weight:800;}
+
+.mentor-card{
+    background:linear-gradient(180deg, rgba(18,28,49,0.95) 0%, rgba(17,24,39,0.94) 100%);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:1rem;
+    box-shadow:0 8px 20px rgba(0,0,0,0.14);
+}
+
+.mentor-card h4{
+    margin:0 0 .25rem 0;
+    font-size:1rem;
+    font-weight:800;
+    color:#f8fafc;
+}
+
+.mentor-card p{
+    margin:0;
+    color:var(--muted-2);
+    line-height:1.5;
+    font-size:0.92rem;
+}
+
+.folder-hint{
+    background:rgba(18,28,49,0.82);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:.9rem 1rem;
+    color:var(--muted);
+    line-height:1.5;
+}
+
+.math-box{
+    border:1px solid rgba(59,130,246,0.22);
+    background:linear-gradient(180deg,#111a2e 0%, #0f172a 100%);
+    border-radius:16px;
+    padding:1rem;
+    margin:.8rem 0;
+    box-shadow:0 6px 18px rgba(0,0,0,0.12);
+}
+
+.final-answer-box{
+    border:1px solid rgba(34,197,94,0.24);
+    background:linear-gradient(180deg,#0c2417 0%, #0f172a 100%);
+    border-radius:16px;
+    padding:1rem;
+    margin:.8rem 0;
+    box-shadow:0 6px 18px rgba(0,0,0,0.12);
+}
+
+.source-box{
+    border:1px dashed rgba(148,163,184,0.18);
+    background:rgba(17,24,39,0.72);
+    border-radius:14px;
+    padding:.8rem .9rem;
+    color:var(--muted);
+    font-size:.92rem;
+}
+
+.stButton>button{
+    background:linear-gradient(90deg,var(--green),var(--green-2)) !important;
+    color:white !important;
+    border:none !important;
+    border-radius:14px !important;
+    font-weight:800 !important;
+    padding:0.62rem 1rem !important;
+    box-shadow:0 10px 20px rgba(34,197,94,0.16) !important;
+}
+
+.stButton>button:hover{
+    filter:brightness(1.03);
+    transform:translateY(-1px);
+}
+
+.stTextInput input,
+.stTextArea textarea,
+.stSelectbox div[data-baseweb="select"] > div,
+.stMultiSelect div[data-baseweb="select"] > div{
+    background:rgba(18,28,49,0.88) !important;
+    color:#f8fafc !important;
+    border:1px solid rgba(148,163,184,0.14) !important;
+    border-radius:14px !important;
+}
+
+div[data-testid="stChatInput"]{
+    border-top:1px solid rgba(148,163,184,0.08);
+    padding-top:.35rem;
+}
+
+div[data-testid="stChatInput"] textarea{
+    background:rgba(18,28,49,0.94) !important;
+    color:#ffffff !important;
+    border:1px solid rgba(148,163,184,0.16) !important;
+    border-radius:16px !important;
+}
+
+.if-chip{
+    display:inline-block;
+    padding:.35rem .78rem;
+    border-radius:999px;
+    background:rgba(30,41,59,0.72);
+    border:1px solid rgba(148,163,184,0.08);
+    color:#e5e7eb;
+    font-size:.82rem;
+    font-weight:800;
+    margin-right:.35rem;
+    margin-bottom:.35rem;
+}
+
+div[data-testid="stExpander"]{
+    background:rgba(18,28,49,0.54);
+    border:1px solid rgba(148,163,184,0.08);
+    border-radius:16px;
+    overflow:hidden;
+}
+
+hr{
+    border-color:rgba(148,163,184,0.08);
+}
+
+.footer-note{
+    text-align:center;
+    color:var(--muted-2);
+    font-size:.92rem;
+    margin-top:1rem;
+    margin-bottom:.5rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # =========================================================
 # ESTADO DA SESSÃO
 # =========================================================
@@ -1410,7 +1628,7 @@ st.markdown(
                 <div class="subtitle">
                     Assistente acadêmico inteligente com foco institucional, educacional, matemático e criativo
                 </div>
-                <div>
+                <div style="margin-top:0.5rem;">
                     <span class="if-chip">Docentes</span>
                     <span class="if-chip">Discentes</span>
                     <span class="if-chip">PDF + Imagem</span>
@@ -1433,6 +1651,7 @@ with st.expander("Como usar o MentorEdu"):
 - Use o campo de mensagem abaixo e clique no **+** para anexar **PDF** ou **imagem**.
 
 ### Estrutura de mentores
+
 **1. 📁 Ensino Superior**
 - 📂 1º Período
   - Métodos e Técnicas de Pesquisa Educacional
@@ -1451,6 +1670,7 @@ with st.expander("Como usar o MentorEdu"):
 - Mentor Rígido
 
 ### Modos disponíveis
+
 **Análise de Conteúdo**
 - interpretar PDF
 - interpretar imagem
@@ -1498,8 +1718,8 @@ with c1:
     st.markdown(
         f"""<div class="status-card">
                 <h4>Conexão de IA</h4>
-                <div class="{status_class}">{status_text}</div>
-                <div style="margin-top:0.35rem;color:#94a3b8;font-size:0.88rem;">
+                <div style="margin-top:.55rem;" class="{status_class}">{status_text}</div>
+                <div style="margin-top:.5rem;color:#94a3b8;font-size:.88rem;line-height:1.5;">
                     Modelo textual e visão habilitados quando a chave estiver correta.
                 </div>
             </div>""",
@@ -1512,8 +1732,8 @@ with c2:
     st.markdown(
         f"""<div class="status-card">
                 <h4>Documento</h4>
-                <div class="{css_class}">{pdf_info}</div>
-                <div style="margin-top:0.35rem;color:#94a3b8;font-size:0.88rem;">
+                <div style="margin-top:.55rem;" class="{css_class}">{pdf_info}</div>
+                <div style="margin-top:.5rem;color:#94a3b8;font-size:.88rem;line-height:1.5;">
                     Leitura leve por palavras-chave para estabilidade no deploy.
                 </div>
             </div>""",
@@ -1526,9 +1746,9 @@ with c3:
     st.markdown(
         f"""<div class="status-card">
                 <h4>Imagem</h4>
-                <div class="{css_class}">{img_info}</div>
-                <div style="margin-top:0.35rem;color:#94a3b8;font-size:0.88rem;">
-                    Pode ser integrada ao PDF na resposta.
+                <div style="margin-top:.55rem;" class="{css_class}">{img_info}</div>
+                <div style="margin-top:.5rem;color:#94a3b8;font-size:.88rem;line-height:1.5;">
+                    Pode ser integrada ao PDF e ajudar na interpretação da resposta.
                 </div>
             </div>""",
         unsafe_allow_html=True
