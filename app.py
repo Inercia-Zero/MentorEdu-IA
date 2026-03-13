@@ -723,26 +723,32 @@ def render_texto_stream_seguro(container, texto: str, bubble_class: str = "assis
 
 
 def render_markdown_final_seguro(container, texto: str, bubble_class: str = "assistant-bubble"):
-    try:
-        with container:
+    with container:
+        try:
             st.markdown(f"<div class='{bubble_class}'>", unsafe_allow_html=True)
             st.markdown(texto)
             st.markdown("</div>", unsafe_allow_html=True)
-    except Exception:
-        try:
-            texto_seguro = escapar_latex_problematico(texto)
-            with container:
-                st.markdown(
-                    f"""
-                    <div class="{bubble_class}">
-                        <pre style="white-space:pre-wrap; margin:0; font-family:inherit;">{html.escape(texto_seguro)}</pre>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+            return
         except Exception:
-            with container:
-                st.code(texto)
+            pass
+
+        try:
+            texto_limpo = (texto or "").replace("\r\n", "\n").strip()
+            st.markdown(f"<div class='{bubble_class}'>", unsafe_allow_html=True)
+            st.markdown(texto_limpo)
+            st.markdown("</div>", unsafe_allow_html=True)
+            return
+        except Exception:
+            pass
+
+        st.markdown(
+            f"""
+            <div class="{bubble_class}">
+                <pre style="white-space:pre-wrap; margin:0; font-family:inherit;">{html.escape(texto or "")}</pre>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 def remover_linhas_repetidas_paginas(paginas_texto: List[str]) -> List[str]:
@@ -1171,12 +1177,16 @@ def montar_prompt_usuario(
 
     instrucoes_math = """
 REGRAS IMPORTANTES DE FORMATAÇÃO:
-- Sempre que houver matemática, escreva expressões, equações, fórmulas e identidades em LaTeX.
-- Para expressões curtas no meio do texto, use $...$
-- Para fórmulas centrais, contas e demonstrações, use $$...$$
-- Em matemática, organize a resposta em etapas.
-- Se houver resposta final, destaque-a claramente.
-- Evite blocos LaTeX inválidos ou incompletos.
+- Sempre que houver matemática, use LaTeX corretamente.
+- Para expressões curtas, use $...$
+- Para contas centrais e fórmulas destacadas, use $$...$$
+- Nunca abra um bloco LaTeX sem fechá-lo.
+- Nunca misture texto comum dentro de uma fórmula sem necessidade.
+- Organize a resolução em etapas:
+  1. Ideia
+  2. Desenvolvimento
+  3. Resultado
+- Quando o usuário pedir para desenvolver, mostre a dedução passo a passo.
 """
 
     return f"""
@@ -1580,17 +1590,22 @@ def renderizar_visual_matematico(prompt: str):
 
 def renderizar_resposta_matematica(resposta_texto: str):
     st.markdown("<div class='math-box'>", unsafe_allow_html=True)
+
     try:
         st.markdown(resposta_texto)
     except Exception:
+        texto_limpo = (resposta_texto or "").strip()
+        if texto_limpo.count("$$") % 2 != 0:
+            texto_limpo = texto_limpo.replace("$$", "$", 1)
+
         try:
-            texto_seguro = escapar_latex_problematico(resposta_texto)
+            st.markdown(texto_limpo)
+        except Exception:
             st.markdown(
-                f"<pre style='white-space:pre-wrap; margin:0; font-family:inherit;'>{html.escape(texto_seguro)}</pre>",
+                f"<pre style='white-space:pre-wrap; margin:0; font-family:inherit;'>{html.escape(resposta_texto or '')}</pre>",
                 unsafe_allow_html=True,
             )
-        except Exception:
-            st.code(resposta_texto)
+
     st.markdown("</div>", unsafe_allow_html=True)
 
     padrao = r"(?:\*\*Resposta final:?\*\*|Resposta final:)(.*)"
@@ -1603,14 +1618,10 @@ def renderizar_resposta_matematica(resposta_texto: str):
             try:
                 st.markdown(trecho)
             except Exception:
-                try:
-                    trecho_seguro = escapar_latex_problematico(trecho)
-                    st.markdown(
-                        f"<pre style='white-space:pre-wrap; margin:0; font-family:inherit;'>{html.escape(trecho_seguro)}</pre>",
-                        unsafe_allow_html=True,
-                    )
-                except Exception:
-                    st.code(trecho)
+                st.markdown(
+                    f"<pre style='white-space:pre-wrap; margin:0; font-family:inherit;'>{html.escape(trecho)}</pre>",
+                    unsafe_allow_html=True,
+                )
             st.markdown("</div>", unsafe_allow_html=True)
 
 
