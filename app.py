@@ -344,7 +344,6 @@ def init_session_state():
     defaults = {
         "chat": [],
         "db": None,
-        ...
     }
 inject_css()
 init_session_state()
