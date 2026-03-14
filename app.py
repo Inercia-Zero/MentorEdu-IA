@@ -344,6 +344,7 @@ def init_session_state():
     defaults = {
         "chat": [],
         "db": None,
+        
     }
 inject_css()
 init_session_state()
@@ -372,7 +373,8 @@ if not st.user.is_logged_in:
 
 USER_ID = obter_user_id_logado()
 
-
+st.write(f"Usuário logado: {USER_ID}")
+st.write("Iniciando interface principal")
 # =========================================================
 # ESTADO DA SESSÃO
 # =========================================================
