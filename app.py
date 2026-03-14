@@ -340,8 +340,38 @@ def inject_css():
     </style>
     """, unsafe_allow_html=True)
 
-
+def init_session_state():
+    defaults = {
+        "chat": [],
+        "db": None,
+        ...
+    }
 inject_css()
+init_session_state()
+# =========================================================
+# AUTENTICAÇÃO GOOGLE
+# =========================================================
+
+def tela_login():
+    st.markdown("### Entre com sua conta Google")
+    st.button("Entrar com Google", on_click=st.login, use_container_width=True)
+
+def obter_user_id_logado():
+    if not st.user.is_logged_in:
+        return None
+
+    user_id = (
+        st.user.get("sub")
+        or st.user.get("email")
+        or st.user.get("name")
+    )
+    return str(user_id)
+
+if not st.user.is_logged_in:
+    tela_login()
+    st.stop()
+
+USER_ID = obter_user_id_logado()
 
 
 # =========================================================
