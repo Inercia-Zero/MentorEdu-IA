@@ -2,7 +2,6 @@ import os
 import re
 import io
 import math
-import uuid
 import base64
 import shutil
 import sqlite3
@@ -340,41 +339,7 @@ def inject_css():
     </style>
     """, unsafe_allow_html=True)
 
-def init_session_state():
-    defaults = {
-        "chat": [],
-        "db": None,
-        
-    }
-inject_css()
-init_session_state()
-# =========================================================
-# AUTENTICAÇÃO GOOGLE
-# =========================================================
 
-def tela_login():
-    st.markdown("### Entre com sua conta Google")
-    st.button("Entrar com Google", on_click=st.login, use_container_width=True)
-
-def obter_user_id_logado():
-    if not st.user.is_logged_in:
-        return None
-
-    user_id = (
-        st.user.get("sub")
-        or st.user.get("email")
-        or st.user.get("name")
-    )
-    return str(user_id)
-
-if not st.user.is_logged_in:
-    tela_login()
-    st.stop()
-
-USER_ID = obter_user_id_logado()
-
-st.write(f"Usuário logado: {USER_ID}")
-st.write("Iniciando interface principal")
 # =========================================================
 # ESTADO DA SESSÃO
 # =========================================================
@@ -396,7 +361,39 @@ def init_session_state():
             st.session_state[k] = v
 
 
+inject_css()
 init_session_state()
+
+
+# =========================================================
+# AUTENTICAÇÃO GOOGLE
+# =========================================================
+def tela_login():
+    st.markdown("### Entre com sua conta Google")
+    st.button("Entrar com Google", on_click=st.login, use_container_width=True)
+
+
+def obter_user_id_logado():
+    if not st.user.is_logged_in:
+        return None
+
+    user_id = (
+        st.user.get("sub")
+        or st.user.get("email")
+        or st.user.get("name")
+    )
+    return str(user_id)
+
+
+if not st.user.is_logged_in:
+    tela_login()
+    st.stop()
+
+USER_ID = obter_user_id_logado()
+st.session_state.user_id = USER_ID
+
+st.write(f"Usuário logado: {USER_ID}")
+st.write("Iniciando interface principal")
 
 
 # =========================================================
@@ -404,34 +401,6 @@ init_session_state()
 # =========================================================
 def get_conn():
     return sqlite3.connect(DB_PATH, check_same_thread=False)
-
-
-def get_or_create_user_id():
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    user_file = os.path.join(UPLOAD_DIR, ".local_user_id")
-
-    if st.session_state.get("user_id"):
-        return st.session_state.user_id
-
-    if os.path.exists(user_file):
-        try:
-            with open(user_file, "r", encoding="utf-8") as f:
-                uid = f.read().strip()
-                if uid:
-                    st.session_state.user_id = uid
-                    return uid
-        except Exception:
-            pass
-
-    uid = str(uuid.uuid4())
-    try:
-        with open(user_file, "w", encoding="utf-8") as f:
-            f.write(uid)
-    except Exception:
-        pass
-
-    st.session_state.user_id = uid
-    return uid
 
 
 def init_db():
@@ -474,7 +443,6 @@ def init_db():
 
 init_db()
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-USER_ID = get_or_create_user_id()
 
 
 def list_conversations():
@@ -733,12 +701,6 @@ def limpar_texto(txt: str) -> str:
 
 def tokenizer_basico(txt: str) -> List[str]:
     return re.findall(r"[a-zA-ZÀ-ÿ0-9_]+", (txt or "").lower())
-
-
-def escapar_latex_problematico(texto: str) -> str:
-    if not texto:
-        return ""
-    return texto.replace("$", r"\$")
 
 
 def render_texto_stream_seguro(container, texto: str, bubble_class: str = "assistant-bubble"):
