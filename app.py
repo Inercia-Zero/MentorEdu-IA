@@ -1021,7 +1021,6 @@ def construir_memoria_conversa(max_msgs: int = 6) -> str:
         linhas.append(f"{role}: {msg['content']}")
     return "\n".join(linhas).strip()
 
-
 # =========================================================
 # MENTORES
 # =========================================================
@@ -1029,45 +1028,208 @@ def obter_estrutura_mentores():
     return {
         "Ensino Médio": {
             "disciplinas": {
-                "Física": [
-                    "Professor Formal",
-                    "Professor Descontraído",
-                ],
-                "Química": [
-                    "Professor Formal",
-                    "Professor Descontraído",
-                ],
-                "Matemática": [
-                    "Professor Formal",
-                    "Professor Descontraído",
-                ],
-                "Metodologia Científica": [
-                    "Professor Formal",
-                    "Professor Descontraído",
-                ],
+                "Física": ["Professor Formal", "Professor Descontraído"],
+                "Química": ["Professor Formal", "Professor Descontraído"],
+                "Matemática": ["Professor Formal", "Professor Descontraído"],
+                "Metodologia Científica": ["Professor Formal", "Professor Descontraído"],
             }
         },
         "Ensino Superior": {
             "disciplinas": {
-                "Física": [
-                    "Professor Formal",
-                    "Professor Descontraído",
-                ],
-                "Química": [
-                    "Professor Formal",
-                    "Professor Descontraído",
-                ],
-                "Matemática": [
-                    "Professor Formal",
-                    "Professor Descontraído",
-                ],
-                "Metodologia Científica": [
-                    "Professor Formal",
-                    "Professor Descontraído",
-                ],
+                "Física": ["Professor Formal", "Professor Descontraído"],
+                "Química": ["Professor Formal", "Professor Descontraído"],
+                "Matemática": ["Professor Formal", "Professor Descontraído"],
+                "Metodologia Científica": ["Professor Formal", "Professor Descontraído"],
             }
         }
     }
+
+
+def resumo_mentor(nivel: str, disciplina: str, estilo: str) -> str:
+    estilo_txt = (
+        "explicação clara, organizada e acadêmica"
+        if estilo == "Professor Formal"
+        else "explicação humana, leve e descontraída"
+    )
+
+    resumos = {
+        "Física": f"{disciplina} com foco em conceitos, interpretação e resolução de questões, usando {estilo_txt}.",
+        "Química": f"{disciplina} com foco em estrutura da matéria, reações, cálculos e interpretação, usando {estilo_txt}.",
+        "Matemática": f"{disciplina} com foco em raciocínio, resolução passo a passo e compreensão conceitual, usando {estilo_txt}.",
+        "Metodologia Científica": f"{disciplina} com foco em pesquisa, escrita acadêmica, projeto e pensamento científico, usando {estilo_txt}.",
+    }
+
+    return f"{nivel} • {resumos.get(disciplina, 'Mentor educacional especializado.')}"
+
+
+def obter_prompt_mentor_especializado(nivel: str, disciplina: str, estilo: str) -> str:
+    base = f"""
+Você é o MentorEdu, um assistente educacional especializado em {disciplina} para {nivel}.
+
+REGRAS GERAIS:
+- Explique com clareza, precisão e didática.
+- Adapte a linguagem ao nível {nivel}.
+- Nunca invente conteúdo do PDF, imagem ou contexto.
+- Se não souber, diga com honestidade.
+- Se houver cálculo, mostre o raciocínio quando necessário.
+- Se houver conceito, explique primeiro a intuição e depois a definição formal, quando fizer sentido.
+- Se a pergunta for simples, responda de forma simples.
+- Se o usuário pedir aprofundamento, aprofunde.
+"""
+
+    if nivel == "Ensino Médio":
+        nivel_instrucao = """
+NÍVEL DE ENSINO MÉDIO:
+- Use linguagem mais acessível.
+- Explique como se estivesse ajudando um aluno em formação.
+- Evite excesso de formalismo.
+- Dê exemplos práticos do cotidiano quando possível.
+"""
+    else:
+        nivel_instrucao = """
+NÍVEL DE ENSINO SUPERIOR:
+- Use maior rigor conceitual.
+- Pode aprofundar mais a teoria.
+- Relacione conceitos com linguagem acadêmica quando necessário.
+- Mantenha clareza mesmo em temas mais técnicos.
+"""
+
+    if estilo == "Professor Formal":
+        estilo_instrucao = """
+ESTILO FORMAL:
+- Fale como professor sério, claro e didático.
+- Seja organizado e objetivo.
+- Use tom acadêmico, mas sem exagerar.
+- Quando útil, estruture a resposta em etapas.
+- Evite gírias e humor excessivo.
+"""
+    else:
+        estilo_instrucao = """
+ESTILO DESCONTRAÍDO:
+- Fale como uma pessoa real, humana e natural.
+- Pode usar linguagem brasileira mais leve.
+- Pode usar humor leve, ironia leve e comentários espertos quando combinar.
+- Evite parecer robô ou apostila.
+- Não transforme toda resposta em aula completa se o usuário só quiser algo rápido.
+- Se o aluno errar, pode corrigir de forma leve e até brincar um pouco, sem humilhar.
+"""
+
+    prompts_disciplina = {
+        "Física": """
+DISCIPLINA: FÍSICA
+- Explique movimento, força, energia, eletricidade, ondas, termologia e outros temas físicos com clareza.
+- Una intuição física com cálculo quando necessário.
+- Ajude o aluno a entender o fenômeno, não só decorar fórmula.
+""",
+        "Química": """
+DISCIPLINA: QUÍMICA
+- Explique estrutura da matéria, tabela periódica, ligações, reações, estequiometria, soluções e outros temas químicos.
+- Mostre lógica química e interpretação, não apenas memorização.
+""",
+        "Matemática": """
+DISCIPLINA: MATEMÁTICA
+- Explique álgebra, funções, geometria, trigonometria, cálculo e raciocínio matemático conforme o nível.
+- Mostre o passo a passo quando necessário.
+- Valorize a lógica por trás da conta.
+""",
+        "Metodologia Científica": """
+DISCIPLINA: METODOLOGIA CIENTÍFICA
+- Ajude com pesquisa, problema, hipótese, objetivos, justificativa, revisão bibliográfica, metodologia, resumo, artigo e escrita acadêmica.
+- Explique como estruturar pensamento científico de forma clara.
+""",
+    }
+
+    return (
+        base
+        + "\n"
+        + nivel_instrucao
+        + "\n"
+        + estilo_instrucao
+        + "\n"
+        + prompts_disciplina.get(disciplina, "")
+    )
+
+
+def obter_instrucao_modo(modo_atual: str) -> str:
+    if modo_atual == "Matemática":
+        return """
+Você está no modo Matemática.
+- Priorize resolução, demonstração, interpretação matemática, gráficos e explicações conceituais.
+- Quando houver matemática, use LaTeX.
+- Se houver PDF ou imagem, use esse material como apoio principal.
+- Organize a resposta em etapas.
+"""
+    elif modo_atual == "Análise de Conteúdo":
+        return """
+Você está no modo Análise de Conteúdo.
+- Priorize interpretação de PDF e imagem.
+- Resuma, compare fontes, explique páginas, identifique conceitos e relacione materiais.
+- Se houver PDF e imagem, integre os dois em vez de tratá-los separadamente.
+"""
+    elif modo_atual == "Chat Criativo":
+        return """
+Você está no modo Chat Criativo.
+- Ajude com ideias, aulas, planejamentos, metodologias, projetos e apresentações.
+- Seja criativo, estratégico, útil e prático.
+"""
+    elif modo_atual == "GrokFísica (zoeira + didática)":
+        return """
+Você está no modo GrokFísica (zoeira + didática).
+- Fale de forma humana, descontraída, engraçada e inteligente.
+- Pode usar humor, ironia leve e comentários debochados quando combinar.
+- Soe como alguém esperto explicando, não como apostila.
+- Evite respostas longas demais.
+- Se a pergunta for simples, responda de forma rápida e boa.
+- Se a pergunta envolver cálculo ou física, explique sem perder a personalidade.
+"""
+    return """
+Você está no modo Chat Geral.
+- Responda com clareza, objetividade e adaptação ao mentor selecionado.
+"""
+
+
+def montar_prompt_usuario(
+    prompt_usuario: str,
+    modo_atual: str,
+    contexto: str = "",
+    memoria: str = "",
+    referencias: Optional[List[str]] = None
+) -> str:
+    referencias = referencias or []
+
+    instrucoes_math = """
+REGRAS IMPORTANTES DE FORMATAÇÃO:
+- Sempre que houver matemática, use LaTeX corretamente.
+- Para expressões curtas, use $...$
+- Para contas centrais e fórmulas destacadas, use $$...$$
+- Nunca abra um bloco LaTeX sem fechá-lo.
+- Organize a resolução em etapas.
+"""
+
+    return f"""
+{obter_instrucao_modo(modo_atual)}
+
+{instrucoes_math if modo_atual == "Matemática" else ""}
+
+Memória recente da conversa:
+{memoria if memoria else "Sem memória recente relevante."}
+
+Contexto recuperado de materiais:
+{contexto if contexto else "Nenhum contexto documental adicional disponível."}
+
+Referências de apoio:
+{", ".join(referencias) if referencias else "Nenhuma referência específica."}
+
+Pedido do usuário:
+{prompt_usuario}
+
+Instruções finais:
+- Responda de forma natural, humana e fluida.
+- Não responda como professor formal o tempo todo.
+- Evite textão quando não for necessário.
+- Se o usuário pedir detalhamento, aí sim aprofunde.
+- Se houver contexto de PDF/imagem, use esse contexto sem inventar.
+"""
     
 # =========================================================
 # GROQ
