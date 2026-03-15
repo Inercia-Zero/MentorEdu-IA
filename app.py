@@ -1804,25 +1804,24 @@ with st.sidebar:
     )
 
     prompt_sistema_ativo = obter_prompt_mentor_especializado(
-        categoria=categoria_real,
-        subgrupo=periodo_escolhido,
-        mentor=mentor_escolhido
-    )
+    categoria=categoria_real,
+    subgrupo=periodo_escolhido,
+    mentor=mentor_escolhido
+)
 
-    st.markdown("---")
-    modo = st.selectbox(
-        "Modo de trabalho",
-        [
-            "Chat Geral",
-            "Análise de Conteúdo",
-            "Matemática",
-            "Chat Criativo",
-        ],
-    )
+modo = st.selectbox(
+    "Modo de trabalho",
+    [
+        "Chat Geral",
+        "Análise de Conteúdo",
+        "Matemática",
+        "Chat Criativo",
+        "GrokFísica (zoeira + didática)"
+    ],
+)
 
-    if categoria_real == "Institucional":
-        st.caption("Mentor voltado para orientação acadêmica e institucional geral.")
-
+if categoria_real == "Institucional":
+    st.caption("Mentor voltado para orientação acadêmica e institucional geral.")
     if modo == "Análise de Conteúdo":
         st.info("Interpreta PDF e imagem de forma integrada.")
     elif modo == "Matemática":
