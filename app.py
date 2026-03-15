@@ -1221,7 +1221,57 @@ Você está no modo GrokFísica (zoeira + didática).
 Você está no modo Chat Geral.
 - Responda com clareza, objetividade e adaptação ao mentor selecionado.
 """
+def montar_prompt_usuario(
+    prompt_usuario: str,
+    modo_atual: str,
+    contexto: str = "",
+    memoria: str = "",
+    referencias: Optional[List[str]] = None
+) -> str:
 
+    referencias = referencias or []
+
+    instrucoes_math = """
+REGRAS IMPORTANTES DE FORMATAÇÃO:
+- Sempre que houver matemática, use LaTeX corretamente.
+- Para expressões curtas, use $...$
+- Para contas centrais e fórmulas destacadas, use $$...$$
+- Nunca abra um bloco LaTeX sem fechá-lo.
+- Organize a resolução em etapas:
+  1. Ideia
+  2. Desenvolvimento
+  3. Resultado
+"""
+
+    return f"""
+{obter_instrucao_modo(modo_atual)}
+
+{instrucoes_math if modo_atual == "Matemática" else ""}
+
+Memória recente da conversa:
+{memoria if memoria else "Sem memória recente relevante."}
+
+Contexto recuperado de materiais:
+{contexto if contexto else "Nenhum contexto documental adicional disponível."}
+
+Referências de apoio:
+{", ".join(referencias) if referencias else "Nenhuma referência específica."}
+
+Pergunta do usuário:
+{prompt_usuario}
+
+INSTRUÇÕES FINAIS PARA O ASSISTENTE:
+
+- Use o contexto documental quando ele for relevante.
+- Não invente informações que não estejam no material.
+- Se o material não tiver a resposta completa, deixe isso claro.
+- Explique de forma humana, didática e natural.
+- Sempre que possível organize a resposta em:
+  • ideia principal  
+  • passo a passo  
+  • conclusão
+"""
+    
 # =========================================================
 # GROQ
 # =========================================================
