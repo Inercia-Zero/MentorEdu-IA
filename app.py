@@ -1775,93 +1775,30 @@ with st.sidebar:
             st.rerun()
         else:
             st.warning("Marque a confirmação antes de apagar.")
+st.markdown("---")
+st.markdown("### Estado da sessão")
 
-    st.markdown("---")
-    st.markdown("### Escolha seu Mentor")
+conv = get_conversation(st.session_state.current_conversation_id)
+pdf_name = conv[5] if conv else None
+image_name = conv[7] if conv else None
 
-    st.markdown(
-        """
-        <div class="folder-hint">
-            Escolha o <b>nível de ensino</b>, depois a <b>disciplina</b> e por fim o <b>estilo do professor</b>.
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    estrutura = obter_estrutura_mentores()
-
-    nivel_escolhido = st.radio(
-        "Nível de ensino",
-        ["Ensino Médio", "Ensino Superior"]
-    )
-
-    disciplinas = list(estrutura[nivel_escolhido]["disciplinas"].keys())
-    disciplina_escolhida = st.selectbox("Disciplina", disciplinas)
-
-    estilos = estrutura[nivel_escolhido]["disciplinas"][disciplina_escolhida]
-    estilo_escolhido = st.radio("Estilo do professor", estilos)
-
-    st.markdown(
-        f"""
-        <div class="mentor-card">
-            <h4>{disciplina_escolhida} • {estilo_escolhido}</h4>
-            <p>{resumo_mentor(nivel_escolhido, disciplina_escolhida, estilo_escolhido)}</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    prompt_sistema_ativo = obter_prompt_mentor_especializado(
-        nivel=nivel_escolhido,
-        disciplina=disciplina_escolhida,
-        estilo=estilo_escolhido
-    )
-
-modo = st.selectbox(
-    "Modo de trabalho",
-    [
-        "Chat Geral",
-        "Análise de Conteúdo",
-        "Matemática",
-        "Chat Criativo",
-        "GrokFísica (zoeira + didática)"
-    ],
+st.markdown(
+    f"""
+    <div class="sidebar-kpi">
+        <div><b>Perguntas</b></div>
+        <div>{st.session_state.contador_perguntas}/{MAX_PERGUNTAS_SESSAO}</div>
+    </div>
+    <div class="sidebar-kpi">
+        <div><b>PDF ativo</b></div>
+        <div>{pdf_name if pdf_name else 'Nenhum'}</div>
+    </div>
+    <div class="sidebar-kpi">
+        <div><b>Imagem ativa</b></div>
+        <div>{image_name if image_name else 'Nenhuma'}</div>
+    </div>
+    """,
+    unsafe_allow_html=True
 )
-
-if categoria_real == "Institucional":
-    st.caption("Mentor voltado para orientação acadêmica e institucional geral.")
-    if modo == "Análise de Conteúdo":
-        st.info("Interpreta PDF e imagem de forma integrada.")
-    elif modo == "Matemática":
-        st.info("Ideal para exercícios, fotos de questões, PDF matemático, gráficos e fórmulas.")
-    elif modo == "Chat Criativo":
-        st.info("Use para projetos, aulas, metodologias e desenvolvimento de ideias.")
-
-    st.markdown("---")
-    st.markdown("### Estado da sessão")
-
-    conv = get_conversation(st.session_state.current_conversation_id)
-    pdf_name = conv[5] if conv else None
-    image_name = conv[7] if conv else None
-
-    st.markdown(
-        f"""
-        <div class="sidebar-kpi">
-            <div><b>Perguntas</b></div>
-            <div>{st.session_state.contador_perguntas}/{MAX_PERGUNTAS_SESSAO}</div>
-        </div>
-        <div class="sidebar-kpi">
-            <div><b>PDF ativo</b></div>
-            <div>{pdf_name if pdf_name else 'Nenhum'}</div>
-        </div>
-        <div class="sidebar-kpi">
-            <div><b>Imagem ativa</b></div>
-            <div>{image_name if image_name else 'Nenhuma'}</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
 
 # =========================================================
 # CABEÇALHO
@@ -1882,7 +1819,7 @@ st.markdown(
                     <span class="if-chip">PDF + Imagem</span>
                     <span class="if-chip">Ensino Superior</span>
                     <span class="if-chip">Iniciação Científica</span>
-                </div>
+                </div>/
             </div>
         </div>
     </div>
