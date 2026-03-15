@@ -1778,58 +1778,44 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### Escolha seu Mentor")
+
     st.markdown(
         """
         <div class="folder-hint">
-            Navegue pelas <b>pastas</b>, escolha a área e depois selecione o professor especializado.
+            Escolha o <b>nível de ensino</b>, depois a <b>disciplina</b> e por fim o <b>estilo do professor</b>.
         </div>
         """,
         unsafe_allow_html=True
     )
 
     estrutura = obter_estrutura_mentores()
-    categoria_mentor = st.radio(
-        "Pastas",
-        [
-            "📁 Ensino Superior",
-            "📁 Institucional",
-            "📁 Mentores de Conversa",
-        ],
+
+    nivel_escolhido = st.radio(
+        "Nível de ensino",
+        ["Ensino Médio", "Ensino Superior"]
     )
 
-    categoria_mapa = {
-        "📁 Ensino Superior": "Ensino Superior",
-        "📁 Institucional": "Institucional",
-        "📁 Mentores de Conversa": "Mentores de Conversa",
-    }
-    categoria_real = categoria_mapa[categoria_mentor]
+    disciplinas = list(estrutura[nivel_escolhido]["disciplinas"].keys())
+    disciplina_escolhida = st.selectbox("Disciplina", disciplinas)
 
-    periodo_escolhido = None
-
-    if categoria_real == "Ensino Superior":
-        periodos = list(estrutura["Ensino Superior"]["periodos"].keys())
-        periodo_escolhido = st.selectbox("📂 Período", periodos)
-        mentor_opcoes = estrutura["Ensino Superior"]["periodos"][periodo_escolhido]
-    else:
-        mentor_opcoes = estrutura[categoria_real]["disciplinas"]
-
-    mentor_escolhido = st.radio("Professor / Mentor", mentor_opcoes)
+    estilos = estrutura[nivel_escolhido]["disciplinas"][disciplina_escolhida]
+    estilo_escolhido = st.radio("Estilo do professor", estilos)
 
     st.markdown(
         f"""
         <div class="mentor-card">
-            <h4>{mentor_escolhido}</h4>
-            <p>{resumo_mentor(mentor_escolhido)}</p>
+            <h4>{disciplina_escolhida} • {estilo_escolhido}</h4>
+            <p>{resumo_mentor(nivel_escolhido, disciplina_escolhida, estilo_escolhido)}</p>
         </div>
         """,
         unsafe_allow_html=True
     )
 
     prompt_sistema_ativo = obter_prompt_mentor_especializado(
-    categoria=categoria_real,
-    subgrupo=periodo_escolhido,
-    mentor=mentor_escolhido
-)
+        nivel=nivel_escolhido,
+        disciplina=disciplina_escolhida,
+        estilo=estilo_escolhido
+    )
 
 modo = st.selectbox(
     "Modo de trabalho",
