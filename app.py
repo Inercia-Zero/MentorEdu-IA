@@ -1024,27 +1024,36 @@ def construir_memoria_conversa(max_msgs: int = 6) -> str:
 # =========================================================
 # MENTORES
 # =========================================================
-def obter_estrutura_mentores():
-    return {
-        "Ensino Médio": {
-            "disciplinas": {
-                "Física": ["Professor Formal", "Professor Descontraído"],
-                "Química": ["Professor Formal", "Professor Descontraído"],
-                "Matemática": ["Professor Formal", "Professor Descontraído"],
-                "Metodologia Científica": ["Professor Formal", "Professor Descontraído"],
-            }
-        },
-        "Ensino Superior": {
-            "disciplinas": {
-                "Física": ["Professor Formal", "Professor Descontraído"],
-                "Química": ["Professor Formal", "Professor Descontraído"],
-                "Matemática": ["Professor Formal", "Professor Descontraído"],
-                "Metodologia Científica": ["Professor Formal", "Professor Descontraído"],
-            }
-        }
+def resumo_mentor(nivel: str, disciplina: str, estilo: str) -> str:
+
+    descricoes = {
+
+        "Didático":
+            "Explica passo a passo com linguagem simples e exemplos claros.",
+
+        "Feynman":
+            "Explica conceitos complexos de forma extremamente simples usando analogias.",
+
+        "Vestibular":
+            "Foco em resolução de questões e estratégias para provas.",
+
+        "Professor":
+            "Explicação estruturada como em uma aula universitária.",
+
+        "Cientista":
+            "Abordagem técnica e conceitual com maior rigor científico.",
+
+        "Socrático":
+            "Estimula o raciocínio fazendo perguntas que levam à resposta.",
+
+        "Orientador de TCC":
+            "Ajuda em pesquisa, metodologia científica e estrutura acadêmica.",
+
+        "GrokFísica":
+            "Explica física com humor leve e analogias divertidas."
     }
 
-
+    return descricoes.get(estilo, "Mentor educacional especializado.")
 def resumo_mentor(nivel: str, disciplina: str, estilo: str) -> str:
     estilo_txt = (
         "explicação clara, organizada e acadêmica"
