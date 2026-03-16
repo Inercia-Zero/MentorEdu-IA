@@ -1699,20 +1699,24 @@ elif st.session_state.current_conversation_id is None:
 # SIDEBAR
 # =========================================================
 with st.sidebar:
+
     if os.path.exists(IF_LOGO):
         st.image(IF_LOGO, use_container_width=True)
 
     st.markdown("### Conversas")
 
     conv_rows = list_conversations()
+
     conv_map = {
         f"{formatar_conversation_label(r)} • #{r[0]}": r[0]
         for r in conv_rows
     }
+
     conv_keys = list(conv_map.keys())
     conv_ids = list(conv_map.values())
 
     current_id = st.session_state.current_conversation_id
+
     if current_id not in conv_ids and conv_ids:
         current_id = conv_ids[0]
 
@@ -1724,6 +1728,7 @@ with st.sidebar:
         escolhido_id = create_conversation()
 
     col_a, col_b = st.columns(2)
+
     with col_a:
         if st.button("Nova conversa", use_container_width=True):
             novo_id = create_conversation()
@@ -1737,9 +1742,13 @@ with st.sidebar:
             carregar_conversa_no_estado(escolhido_id)
             st.rerun()
 
-if escolhido_id != st.session_state.current_conversation_id:
-    carregar_conversa_no_estado(escolhido_id)
-    st.rerun()
+    if escolhido_id != st.session_state.current_conversation_id:
+        carregar_conversa_no_estado(escolhido_id)
+        st.rerun()
+
+    # =====================================================
+    # GERENCIAR CONVERSA
+    # =====================================================
 
     st.markdown("---")
     st.markdown("### Gerenciar conversa")
@@ -1748,6 +1757,7 @@ if escolhido_id != st.session_state.current_conversation_id:
     titulo_atual = conv_atual[1] if conv_atual else ""
 
     novo_titulo = st.text_input("Renomear conversa", value=titulo_atual)
+
     if st.button("Salvar nome", use_container_width=True):
         if novo_titulo.strip():
             rename_conversation(st.session_state.current_conversation_id, novo_titulo)
@@ -1758,23 +1768,31 @@ if escolhido_id != st.session_state.current_conversation_id:
         value=st.session_state.confirm_delete
     )
 
-if st.button("Apagar conversa atual", use_container_width=True):
-    if st.session_state.confirm_delete:
-        apagar_id = st.session_state.current_conversation_id
-        delete_conversation(apagar_id)
-        resetar_sessao_visual()
+    if st.button("Apagar conversa atual", use_container_width=True):
 
-        restantes = list_conversations()
-        if restantes:
-            novo_atual = restantes[0][0]
+        if st.session_state.confirm_delete:
+
+            apagar_id = st.session_state.current_conversation_id
+            delete_conversation(apagar_id)
+            resetar_sessao_visual()
+
+            restantes = list_conversations()
+
+            if restantes:
+                novo_atual = restantes[0][0]
+            else:
+                novo_atual = create_conversation()
+
+            st.session_state.current_conversation_id = novo_atual
+            carregar_conversa_no_estado(novo_atual)
+            st.rerun()
+
         else:
-            novo_atual = create_conversation()
+            st.warning("Marque a confirmação antes de apagar.")
 
-        st.session_state.current_conversation_id = novo_atual
-        carregar_conversa_no_estado(novo_atual)
-        st.rerun()
-    else:
-        st.warning("Marque a confirmação antes de apagar.")
+    # =====================================================
+    # ESCOLHA DO MENTOR
+    # =====================================================
 
     st.markdown("---")
     st.markdown("### Escolha seu Mentor")
@@ -1782,7 +1800,7 @@ if st.button("Apagar conversa atual", use_container_width=True):
     st.markdown(
         """
         <div class="folder-hint">
-            Escolha o <b>nível de ensino</b>, depois a <b>disciplina</b> e por fim o <b>estilo do professor</b>.
+        Escolha o <b>nível de ensino</b>, depois a <b>disciplina</b> e por fim o <b>estilo do professor</b>.
         </div>
         """,
         unsafe_allow_html=True
@@ -1796,10 +1814,18 @@ if st.button("Apagar conversa atual", use_container_width=True):
     )
 
     disciplinas = list(estrutura[nivel_escolhido]["disciplinas"].keys())
-    disciplina_escolhida = st.selectbox("Disciplina", disciplinas)
+
+    disciplina_escolhida = st.selectbox(
+        "Disciplina",
+        disciplinas
+    )
 
     estilos = estrutura[nivel_escolhido]["disciplinas"][disciplina_escolhida]
-    estilo_escolhido = st.radio("Estilo do professor", estilos)
+
+    estilo_escolhido = st.radio(
+        "Estilo do professor",
+        estilos
+    )
 
     st.markdown(
         f"""
@@ -1828,10 +1854,15 @@ if st.button("Apagar conversa atual", use_container_width=True):
         ],
     )
 
+    # =====================================================
+    # ESTADO DA SESSÃO
+    # =====================================================
+
     st.markdown("---")
     st.markdown("### Estado da sessão")
 
     conv = get_conversation(st.session_state.current_conversation_id)
+
     pdf_name = conv[5] if conv else None
     image_name = conv[7] if conv else None
 
@@ -1841,10 +1872,12 @@ if st.button("Apagar conversa atual", use_container_width=True):
             <div><b>Perguntas</b></div>
             <div>{st.session_state.contador_perguntas}/{MAX_PERGUNTAS_SESSAO}</div>
         </div>
+
         <div class="sidebar-kpi">
             <div><b>PDF ativo</b></div>
             <div>{pdf_name if pdf_name else 'Nenhum'}</div>
         </div>
+
         <div class="sidebar-kpi">
             <div><b>Imagem ativa</b></div>
             <div>{image_name if image_name else 'Nenhuma'}</div>
@@ -1852,46 +1885,6 @@ if st.button("Apagar conversa atual", use_container_width=True):
         """,
         unsafe_allow_html=True
     )
-        if st.session_state.confirm_delete:
-            apagar_id = st.session_state.current_conversation_id
-            delete_conversation(apagar_id)
-            resetar_sessao_visual()
-
-            restantes = list_conversations()
-            if restantes:
-                novo_atual = restantes[0][0]
-            else:
-                novo_atual = create_conversation()
-
-            st.session_state.current_conversation_id = novo_atual
-            carregar_conversa_no_estado(novo_atual)
-            st.rerun()
-        else:
-            st.warning("Marque a confirmação antes de apagar.")
-st.markdown("---")
-st.markdown("### Estado da sessão")
-
-conv = get_conversation(st.session_state.current_conversation_id)
-pdf_name = conv[5] if conv else None
-image_name = conv[7] if conv else None
-
-st.markdown(
-    f"""
-    <div class="sidebar-kpi">
-        <div><b>Perguntas</b></div>
-        <div>{st.session_state.contador_perguntas}/{MAX_PERGUNTAS_SESSAO}</div>
-    </div>
-    <div class="sidebar-kpi">
-        <div><b>PDF ativo</b></div>
-        <div>{pdf_name if pdf_name else 'Nenhum'}</div>
-    </div>
-    <div class="sidebar-kpi">
-        <div><b>Imagem ativa</b></div>
-        <div>{image_name if image_name else 'Nenhuma'}</div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
 
 # =========================================================
 # CABEÇALHO
