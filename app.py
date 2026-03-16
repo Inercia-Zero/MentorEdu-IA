@@ -1737,9 +1737,9 @@ with st.sidebar:
             carregar_conversa_no_estado(escolhido_id)
             st.rerun()
 
-        if escolhido_id != st.session_state.current_conversation_id:
-        carregar_conversa_no_estado(escolhido_id)
-        st.rerun()
+if escolhido_id != st.session_state.current_conversation_id:
+    carregar_conversa_no_estado(escolhido_id)
+    st.rerun()
 
     st.markdown("---")
     st.markdown("### Gerenciar conversa")
