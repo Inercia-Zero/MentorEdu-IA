@@ -1843,27 +1843,8 @@ with st.sidebar:
         """,
         unsafe_allow_html=True
     )
+    
 
-   estrutura = obter_estrutura_mentores()
-
-    nivel_escolhido = st.radio(
-        "Nível de ensino",
-        ["Ensino Médio", "Ensino Superior"]
-    )
-
-    disciplinas = list(estrutura[nivel_escolhido]["disciplinas"].keys())
-
-    disciplina_escolhida = st.selectbox(
-        "Disciplina",
-        disciplinas
-    )
-
-    estilos = estrutura[nivel_escolhido]["disciplinas"][disciplina_escolhida]
-
-    estilo_escolhido = st.radio(
-        "Estilo do professor",
-        estilos
-    )
 
     st.markdown(
         f"""
