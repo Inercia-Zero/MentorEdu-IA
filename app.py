@@ -1740,7 +1740,19 @@ with st.sidebar:
     if escolhido_id != st.session_state.current_conversation_id:
         carregar_conversa_no_estado(escolhido_id)
         st.rerun()
+else:
+    st.warning("Marque a confirmação antes de apagar.")
 
+modo = st.selectbox(
+    "Modo de trabalho",
+    [
+        "Chat Geral",
+        "Análise de Conteúdo",
+        "Matemática",
+        "Chat Criativo",
+        "GrokFísica (zoeira + didática)"
+    ],
+)
     st.markdown("---")
     st.markdown("### Gerenciar conversa")
 
