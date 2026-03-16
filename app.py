@@ -1897,31 +1897,26 @@ conv = get_conversation(st.session_state.current_conversation_id)
 
 pdf_name = conv[5] if conv else None
 image_name = conv[7] if conv else None
-   
-    conv = get_conversation(st.session_state.current_conversation_id)
 
-    pdf_name = conv[5] if conv else None
-    image_name = conv[7] if conv else None
+st.markdown(
+    f"""
+    <div class="sidebar-kpi">
+        <div><b>Perguntas</b></div>
+        <div>{st.session_state.contador_perguntas}/{MAX_PERGUNTAS_SESSAO}</div>
+    </div>
 
-    st.markdown(
-        f"""
-        <div class="sidebar-kpi">
-            <div><b>Perguntas</b></div>
-            <div>{st.session_state.contador_perguntas}/{MAX_PERGUNTAS_SESSAO}</div>
-        </div>
+    <div class="sidebar-kpi">
+        <div><b>PDF ativo</b></div>
+        <div>{pdf_name if pdf_name else 'Nenhum'}</div>
+    </div>
 
-        <div class="sidebar-kpi">
-            <div><b>PDF ativo</b></div>
-            <div>{pdf_name if pdf_name else 'Nenhum'}</div>
-        </div>
-
-        <div class="sidebar-kpi">
-            <div><b>Imagem ativa</b></div>
-            <div>{image_name if image_name else 'Nenhuma'}</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    <div class="sidebar-kpi">
+        <div><b>Imagem ativa</b></div>
+        <div>{image_name if image_name else 'Nenhuma'}</div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # =========================================================
 # CABEÇALHO
