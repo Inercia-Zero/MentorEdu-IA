@@ -1844,7 +1844,7 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-    estrutura = obter_estrutura_mentores()
+   estrutura = obter_estrutura_mentores()
 
     nivel_escolhido = st.radio(
         "Nível de ensino",
