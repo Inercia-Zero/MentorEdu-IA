@@ -2311,3 +2311,4 @@ st.markdown(
     "<div class='footer-note'>Projeto Inércia Zero • Licenciatura em Física • Instituto Federal do Ceará</div>",
     unsafe_allow_html=True,
 )
+
