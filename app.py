@@ -1024,51 +1024,39 @@ def construir_memoria_conversa(max_msgs: int = 6) -> str:
 # =========================================================
 # MENTORES
 # =========================================================
-def resumo_mentor(nivel: str, disciplina: str, estilo: str) -> str:
+def obter_estrutura_mentores():
+    return {
+        "Ensino Médio": {
+            "disciplinas": {
+                "Física": ["Didático", "Feynman", "GrokFísica"],
+                "Química": ["Didático", "Vestibular"],
+                "Matemática": ["Didático", "Feynman", "Vestibular"],
+                "Metodologia Científica": ["Professor", "Socrático"],
+            }
+        },
+        "Ensino Superior": {
+            "disciplinas": {
+                "Física": ["Professor", "Cientista", "Feynman"],
+                "Química": ["Professor", "Cientista"],
+                "Matemática": ["Professor", "Cientista"],
+                "Metodologia Científica": ["Professor", "Orientador de TCC"],
+            }
+        }
+    }
 
+
+def resumo_mentor(nivel: str, disciplina: str, estilo: str) -> str:
     descricoes = {
-
-        "Didático":
-            "Explica passo a passo com linguagem simples e exemplos claros.",
-
-        "Feynman":
-            "Explica conceitos complexos de forma extremamente simples usando analogias.",
-
-        "Vestibular":
-            "Foco em resolução de questões e estratégias para provas.",
-
-        "Professor":
-            "Explicação estruturada como em uma aula universitária.",
-
-        "Cientista":
-            "Abordagem técnica e conceitual com maior rigor científico.",
-
-        "Socrático":
-            "Estimula o raciocínio fazendo perguntas que levam à resposta.",
-
-        "Orientador de TCC":
-            "Ajuda em pesquisa, metodologia científica e estrutura acadêmica.",
-
-        "GrokFísica":
-            "Explica física com humor leve e analogias divertidas."
+        "Didático": "Explica passo a passo com linguagem simples e exemplos claros.",
+        "Feynman": "Explica conceitos complexos de forma extremamente simples usando analogias.",
+        "Vestibular": "Foco em resolução de questões e estratégias para provas.",
+        "Professor": "Explicação estruturada como em uma aula universitária.",
+        "Cientista": "Abordagem técnica e conceitual com maior rigor científico.",
+        "Socrático": "Estimula o raciocínio fazendo perguntas que levam à resposta.",
+        "Orientador de TCC": "Ajuda em pesquisa, metodologia científica e estrutura acadêmica.",
+        "GrokFísica": "Explica física com humor leve e analogias divertidas.",
     }
-
-    return descricoes.get(estilo, "Mentor educacional especializado.")
-def resumo_mentor(nivel: str, disciplina: str, estilo: str) -> str:
-    estilo_txt = (
-        "explicação clara, organizada e acadêmica"
-        if estilo == "Professor Formal"
-        else "explicação humana, leve e descontraída"
-    )
-
-    resumos = {
-        "Física": f"{disciplina} com foco em conceitos, interpretação e resolução de questões, usando {estilo_txt}.",
-        "Química": f"{disciplina} com foco em estrutura da matéria, reações, cálculos e interpretação, usando {estilo_txt}.",
-        "Matemática": f"{disciplina} com foco em raciocínio, resolução passo a passo e compreensão conceitual, usando {estilo_txt}.",
-        "Metodologia Científica": f"{disciplina} com foco em pesquisa, escrita acadêmica, projeto e pensamento científico, usando {estilo_txt}.",
-    }
-
-    return f"{nivel} • {resumos.get(disciplina, 'Mentor educacional especializado.')}"
+    return f"{nivel} • {disciplina} • {descricoes.get(estilo, 'Mentor educacional especializado.')}"
 
 
 def obter_prompt_mentor_especializado(nivel: str, disciplina: str, estilo: str) -> str:
@@ -1077,42 +1065,12 @@ Você é o MentorEdu, um assistente educacional especializado em {disciplina} pa
 
 Seu papel é ajudar estudantes a aprender de forma clara, humana e didática.
 
-ESTILO DE RESPOSTA:
-
-• Seja natural e conversacional.
-• Evite respostas robóticas ou excessivamente formais.
-• Explique conceitos como um professor paciente.
-• Use exemplos simples sempre que possível.
-• Priorize clareza em vez de complexidade.
-
 REGRAS IMPORTANTES:
-
 - Nunca invente conteúdo do PDF ou da imagem.
 - Se não souber algo, diga com honestidade.
 - Se houver cálculo, mostre o raciocínio passo a passo.
 - Se houver conceito, explique primeiro a intuição e depois a definição formal.
-
-ESTRUTURA DAS RESPOSTAS ACADÊMICAS:
-
-Sempre que explicar algo siga este formato:
-
-1️⃣ Ideia principal  
-2️⃣ Explicação simples  
-3️⃣ Exemplo prático  
-4️⃣ Conclusão
-
-COMPORTAMENTO EM CONVERSA:
-
-Se o usuário disser algo curto como:
-"ok", "entendi", "tudo bem", "sim"
-
-Responda de forma natural e ofereça ajuda para estudar algo.
-
-Exemplo:
-
-"Perfeito! 😄 Se quiser estudar algum tema ou tirar uma dúvida, é só me falar."
-
-Seu objetivo é fazer o aluno realmente entender o conteúdo, não apenas responder.
+- Priorize clareza em vez de complexidade.
 """
 
     if nivel == "Ensino Médio":
@@ -1132,25 +1090,52 @@ NÍVEL DE ENSINO SUPERIOR:
 - Mantenha clareza mesmo em temas mais técnicos.
 """
 
-    if estilo == "Professor Formal":
-        estilo_instrucao = """
-ESTILO FORMAL:
-- Fale como professor sério, claro e didático.
-- Seja organizado e objetivo.
-- Use tom acadêmico, mas sem exagerar.
-- Quando útil, estruture a resposta em etapas.
-- Evite gírias e humor excessivo.
+    estilos_instrucao = {
+        "Didático": """
+ESTILO DIDÁTICO:
+- Explique passo a passo.
+- Use linguagem simples.
+- Use exemplos claros.
+""",
+        "Feynman": """
+ESTILO FEYNMAN:
+- Explique como se estivesse ensinando alguém que nunca viu o assunto.
+- Use analogias do cotidiano.
+- Simplifique sem perder a precisão.
+""",
+        "Vestibular": """
+ESTILO VESTIBULAR:
+- Foque no que mais cai em provas.
+- Mostre atalhos e estratégias de resolução.
+- Seja objetivo e treinável.
+""",
+        "Professor": """
+ESTILO PROFESSOR:
+- Explique como um professor em sala de aula.
+- Seja organizado, claro e progressivo.
+""",
+        "Cientista": """
+ESTILO CIENTISTA:
+- Use maior rigor conceitual.
+- Destaque relações teóricas e precisão científica.
+""",
+        "Socrático": """
+ESTILO SOCRÁTICO:
+- Estimule o raciocínio com perguntas.
+- Não entregue tudo de imediato se for melhor conduzir o aluno.
+""",
+        "Orientador de TCC": """
+ESTILO ORIENTADOR DE TCC:
+- Ajude com pesquisa, escrita acadêmica, metodologia e estruturação científica.
+- Oriente com clareza e organização.
+""",
+        "GrokFísica": """
+ESTILO GROKFÍSICA:
+- Explique com tom humano, leve e inteligente.
+- Pode usar humor e analogias divertidas quando combinar.
+- Não perca a precisão do conteúdo.
 """
-    else:
-        estilo_instrucao = """
-ESTILO DESCONTRAÍDO:
-- Fale como uma pessoa real, humana e natural.
-- Pode usar linguagem brasileira mais leve.
-- Pode usar humor leve, ironia leve e comentários espertos quando combinar.
-- Evite parecer robô ou apostila.
-- Não transforme toda resposta em aula completa se o usuário só quiser algo rápido.
-- Se o aluno errar, pode corrigir de forma leve e até brincar um pouco, sem humilhar.
-"""
+    }
 
     prompts_disciplina = {
         "Física": """
@@ -1182,7 +1167,7 @@ DISCIPLINA: METODOLOGIA CIENTÍFICA
         + "\n"
         + nivel_instrucao
         + "\n"
-        + estilo_instrucao
+        + estilos_instrucao.get(estilo, "")
         + "\n"
         + prompts_disciplina.get(disciplina, "")
     )
@@ -1263,9 +1248,8 @@ Pedido do usuário:
 
 Instruções finais:
 - Responda de forma natural, humana e fluida.
-- Não responda como professor formal o tempo todo.
 - Evite textão quando não for necessário.
-- Se o usuário pedir detalhamento, aí sim aprofunde.
+- Se o usuário pedir detalhamento, aprofunde.
 - Se houver contexto de PDF/imagem, use esse contexto sem inventar.
 """
     
@@ -1828,7 +1812,7 @@ with st.sidebar:
         else:
             st.warning("Marque a confirmação antes de apagar.")
 
-   # =========================================================
+# =========================================================
 # ESCOLHA DO MENTOR
 # =========================================================
 
@@ -1901,13 +1885,19 @@ st.markdown("---")
 # =========================================================
 # CABEÇALHO
 # =========================================================
-    # =====================================================
-    # ESTADO DA SESSÃO
-    # =====================================================
 
-    st.markdown("---")
-    st.markdown("### Estado da sessão")
+# =====================================================
+# ESTADO DA SESSÃO
+# =====================================================
 
+st.markdown("---")
+st.markdown("### Estado da sessão")
+
+conv = get_conversation(st.session_state.current_conversation_id)
+
+pdf_name = conv[5] if conv else None
+image_name = conv[7] if conv else None
+   
     conv = get_conversation(st.session_state.current_conversation_id)
 
     pdf_name = conv[5] if conv else None
