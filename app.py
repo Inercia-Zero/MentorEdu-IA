@@ -2096,7 +2096,7 @@ for msg in st.session_state.chat:
 # CHAT INPUT
 # =========================================================
 placeholder_text = "Digite sua pergunta..."
-if modo == "Análise de Conteúdo":
+if modo_atual == "Análise de Conteúdo":
     placeholder_text = "Ex.: explique esta imagem, resuma este PDF, relacione a imagem com o material"
 elif modo == "Matemática":
     placeholder_text = "Ex.: resolva a questão, use o PDF, interprete a imagem, faça o gráfico de x^2 - 4"
