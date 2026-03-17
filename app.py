@@ -400,7 +400,7 @@ if not st.user.is_logged_in:
     </div>
     """, unsafe_allow_html=True)
 
-    if st.button("Continuar com Google", use_container_width=True):
+if st.button("Continuar com Google", use_container_width=True):
     st.login()
     st.markdown(
         "<p style='text-align:center;color:#94a3b8;font-size:.8rem;margin-top:1rem;'>Ao continuar, você concorda com os termos de uso</p>",
