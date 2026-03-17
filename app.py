@@ -1808,6 +1808,7 @@ with st.sidebar:
     # =========================================================
     # ESCOLHA DO MENTOR
     # =========================================================
+with st.sidebar:
     st.markdown("---")
     st.markdown("### Escolha seu Mentor")
 
