@@ -364,37 +364,53 @@ def init_session_state():
 inject_css()
 init_session_state()
 
-
 # =========================================================
-# AUTENTICAÇÃO GOOGLE
+# LOGIN
 # =========================================================
-def tela_login():
-    st.markdown("### Entre com sua conta Google")
-    st.button("Entrar com Google", on_click=st.login, use_container_width=True)
-
-
-def obter_user_id_logado():
-    if not st.user.is_logged_in:
-        return None
-
-    user_id = (
-        st.user.get("sub")
-        or st.user.get("email")
-        or st.user.get("name")
-    )
-    return str(user_id)
-
-
 if not st.user.is_logged_in:
-    tela_login()
+    st.markdown("""
+    <style>
+    .login-card {
+        max-width: 420px;
+        margin: 12vh auto;
+        padding: 2rem;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        text-align: center;
+    }
+    .login-title {
+        font-size: 1.8rem;
+        font-weight: 800;
+        margin-bottom: .5rem;
+        color: #16a34a;
+    }
+    .login-sub {
+        color: #64748b;
+        font-size: .95rem;
+        margin-bottom: 1.5rem;
+    }
+    </style>
+
+    <div class="login-card">
+        <div class="login-title">MentorEdu</div>
+        <div class="login-sub">
+            Plataforma acadêmica inteligente para estudos e análise de conteúdo
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if st.button("Continuar com Google", use_container_width=True):
+        st.login("google")
+
+    st.markdown(
+        "<p style='text-align:center;color:#94a3b8;font-size:.8rem;margin-top:1rem;'>Ao continuar, você concorda com os termos de uso</p>",
+        unsafe_allow_html=True
+    )
+
     st.stop()
-
-USER_ID = obter_user_id_logado()
+USER_ID = st.user.get("sub") or st.user.get("email")
 st.session_state.user_id = USER_ID
-
-st.write(f"Usuário logado: {USER_ID}")
-st.write("Iniciando interface principal")
-
 
 # =========================================================
 # SQLITE
@@ -1723,6 +1739,18 @@ elif st.session_state.current_conversation_id is None:
 # SIDEBAR
 # =========================================================
 with st.sidebar:
+    if st.user.is_logged_in:
+        st.markdown("### 👤 Conta")
+
+        nome = st.user.name.split()[0] if st.user.name else "Usuário"
+        st.markdown(f"**{nome}**")
+        st.caption(getattr(st.user, "email", ""))
+
+        if st.button("Sair", use_container_width=True):
+            st.logout()
+
+        st.markdown("---")
+
     if os.path.exists(IF_LOGO):
         st.image(IF_LOGO, use_container_width=True)
 
