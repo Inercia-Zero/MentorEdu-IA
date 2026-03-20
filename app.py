@@ -374,18 +374,32 @@ def tela_login():
 
 
 def obter_user_id_logado():
-    if not st.user.is_logged_in:
+    try:
+        if not getattr(st.user, "is_logged_in", False):
+            return None
+
+        user_id = (
+            getattr(st.user, "id", None)
+            or getattr(st.user, "email", None)
+            or getattr(st.user, "name", None)
+        )
+
+        return str(user_id) if user_id else None
+
+    except Exception:
         return None
 
-    user_id = (
-        st.user.get("sub")
-        or st.user.get("email")
-        or st.user.get("name")
-    )
-    return str(user_id)
+
+# Verificação segura de login
+user_logged_in = False
+
+try:
+    user_logged_in = bool(getattr(st.user, "is_logged_in", False))
+except Exception:
+    user_logged_in = False
 
 
-if not st.user.is_logged_in:
+if not user_logged_in:
     tela_login()
     st.stop()
 
