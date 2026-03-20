@@ -1697,18 +1697,6 @@ elif st.session_state.current_conversation_id is None:
 # SIDEBAR
 # =========================================================
 with st.sidebar:
-    if st.user.is_logged_in:
-        st.markdown("### 👤 Conta")
-
-        nome = st.user.name.split()[0] if st.user.name else "Usuário"
-        st.markdown(f"**{nome}**")
-        st.caption(getattr(st.user, "email", ""))
-
-        if st.button("Sair", use_container_width=True):
-            st.logout()
-
-        st.markdown("---")
-
     if os.path.exists(IF_LOGO):
         st.image(IF_LOGO, use_container_width=True)
 
