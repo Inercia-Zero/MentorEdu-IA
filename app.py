@@ -1697,87 +1697,98 @@ elif st.session_state.current_conversation_id is None:
 # SIDEBAR
 # =========================================================
 with st.sidebar:
-    if os.path.exists(IF_LOGO):
-        st.image(IF_LOGO, use_container_width=True)
 
-    st.markdown("### Conversas")
+    st.markdown("### Escolha seu Mentor")
+    st.caption("Escolha o nível de ensino, depois a disciplina e por fim o estilo do professor.")
 
-    conv_rows = list_conversations()
+    estrutura_mentores = obter_estrutura_mentores()
 
-    conv_map = {
-        f"{formatar_conversation_label(r)} • #{r[0]}": r[0]
-        for r in conv_rows
-    }
+    # =========================
+    # NÍVEL DE ENSINO
+    # =========================
+    niveis = list(estrutura_mentores.keys())
 
-    conv_keys = list(conv_map.keys())
-    conv_ids = list(conv_map.values())
+    nivel_default = st.session_state.get("nivel_ensino", niveis[0])
+    nivel_idx = niveis.index(nivel_default) if nivel_default in niveis else 0
 
-    current_id = st.session_state.current_conversation_id
+    nivel = st.radio("Nível de ensino", niveis, index=nivel_idx)
+    st.session_state.nivel_ensino = nivel
 
-    if current_id not in conv_ids and conv_ids:
-        current_id = conv_ids[0]
+    # =========================
+    # DISCIPLINA
+    # =========================
+    disciplinas = list(estrutura_mentores[nivel]["disciplinas"].keys())
 
-    if conv_keys:
-        idx = conv_ids.index(current_id)
-        escolhido_key = st.selectbox("Selecione a conversa", conv_keys, index=idx)
-        escolhido_id = conv_map[escolhido_key]
-    else:
-        escolhido_id = create_conversation()
+    disc_default = st.session_state.get("disciplina", disciplinas[0])
+    disc_idx = disciplinas.index(disc_default) if disc_default in disciplinas else 0
 
-    col_a, col_b = st.columns(2)
+    disciplina = st.selectbox("Disciplina", disciplinas, index=disc_idx)
+    st.session_state.disciplina = disciplina
 
-    with col_a:
-        if st.button("Nova conversa", use_container_width=True):
-            novo_id = create_conversation()
-            st.session_state.current_conversation_id = novo_id
-            resetar_sessao_visual()
-            carregar_conversa_no_estado(novo_id)
-            st.rerun()
+    # =========================
+    # ESTILO DO PROFESSOR
+    # =========================
+    estilos = estrutura_mentores[nivel]["disciplinas"][disciplina]
 
-    with col_b:
-        if st.button("Recarregar", use_container_width=True):
-            carregar_conversa_no_estado(escolhido_id)
-            st.rerun()
+    estilo_default = st.session_state.get("estilo_professor", estilos[0])
+    estilo_idx = estilos.index(estilo_default) if estilo_default in estilos else 0
 
-    if escolhido_id != st.session_state.current_conversation_id:
-        carregar_conversa_no_estado(escolhido_id)
-        st.rerun()
+    estilo = st.radio("Estilo do professor", estilos, index=estilo_idx)
+    st.session_state.estilo_professor = estilo
+
+    # =========================
+    # MODO DE TRABALHO
+    # =========================
+    modos = [
+        "Análise de Conteúdo",
+        "Matemática",
+        "Chat Geral",
+        "Chat Criativo",
+        "GrokFísica (zoeira + didática)"
+    ]
+
+    modo_default = st.session_state.get("modo_trabalho", "Chat Geral")
+    modo_idx = modos.index(modo_default) if modo_default in modos else 0
+
+    modo = st.selectbox("Modo de trabalho", modos, index=modo_idx)
+    st.session_state.modo_trabalho = modo
 
     st.markdown("---")
-    st.markdown("### Gerenciar conversa")
 
-    conv_atual = get_conversation(st.session_state.current_conversation_id)
-    titulo_atual = conv_atual[1] if conv_atual else ""
-
-    novo_titulo = st.text_input("Renomear conversa", value=titulo_atual)
-
-    if st.button("Salvar nome", use_container_width=True):
-        if novo_titulo.strip():
-            rename_conversation(st.session_state.current_conversation_id, novo_titulo)
-            st.rerun()
-
-    st.session_state.confirm_delete = st.checkbox(
-        "Confirmar exclusão da conversa atual",
-        value=st.session_state.confirm_delete
+    # =========================
+    # RESUMO DO MENTOR
+    # =========================
+    prompt_sistema_ativo = obter_prompt_mentor_especializado(
+        nivel=nivel,
+        disciplina=disciplina,
+        estilo=estilo
     )
 
-    if st.button("Apagar conversa atual", use_container_width=True):
-        if st.session_state.confirm_delete:
-            apagar_id = st.session_state.current_conversation_id
-            delete_conversation(apagar_id)
-            resetar_sessao_visual()
+    resumo = resumo_mentor(nivel, disciplina, estilo)
 
-            restantes = list_conversations()
-            if restantes:
-                novo_atual = restantes[0][0]
-            else:
-                novo_atual = create_conversation()
+    st.markdown("### 📘 Mentor selecionado")
+    st.info(resumo)
 
-            st.session_state.current_conversation_id = novo_atual
-            carregar_conversa_no_estado(novo_atual)
-            st.rerun()
-        else:
-            st.warning("Marque a confirmação antes de apagar.")
+    # =========================
+    # ESTADO DA SESSÃO
+    # =========================
+    st.markdown("---")
+    st.markdown("### Estado da sessão")
+
+    perguntas = st.session_state.get("perguntas_count", 0)
+    st.metric("Perguntas", f"{perguntas}/30")
+
+    pdf_nome = st.session_state.get("pdf_nome")
+    if pdf_nome:
+        st.success(f"PDF ativo: {pdf_nome}")
+    else:
+        st.caption("PDF: Nenhum")
+
+    imagem_nome = st.session_state.get("imagem_nome")
+    if imagem_nome:
+        st.success(f"Imagem ativa: {imagem_nome}")
+    else:
+        st.caption("Imagem: Nenhuma")
 
     # =========================================================
     # ESCOLHA DO MENTOR
