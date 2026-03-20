@@ -1711,7 +1711,12 @@ with st.sidebar:
     nivel_default = st.session_state.get("nivel_ensino", niveis[0])
     nivel_idx = niveis.index(nivel_default) if nivel_default in niveis else 0
 
-    nivel = st.radio("Nível de ensino", niveis, index=nivel_idx)
+    nivel = st.radio(
+        "Nível de ensino",
+        niveis,
+        index=nivel_idx,
+        key="sidebar_nivel_ensino"
+    )
     st.session_state.nivel_ensino = nivel
 
     # =========================
@@ -1722,7 +1727,12 @@ with st.sidebar:
     disc_default = st.session_state.get("disciplina", disciplinas[0])
     disc_idx = disciplinas.index(disc_default) if disc_default in disciplinas else 0
 
-    disciplina = st.selectbox("Disciplina", disciplinas, index=disc_idx)
+    disciplina = st.selectbox(
+        "Disciplina",
+        disciplinas,
+        index=disc_idx,
+        key="sidebar_disciplina"
+    )
     st.session_state.disciplina = disciplina
 
     # =========================
@@ -1733,7 +1743,12 @@ with st.sidebar:
     estilo_default = st.session_state.get("estilo_professor", estilos[0])
     estilo_idx = estilos.index(estilo_default) if estilo_default in estilos else 0
 
-    estilo = st.radio("Estilo do professor", estilos, index=estilo_idx)
+    estilo = st.radio(
+        "Estilo do professor",
+        estilos,
+        index=estilo_idx,
+        key="sidebar_estilo_professor"
+    )
     st.session_state.estilo_professor = estilo
 
     # =========================
@@ -1750,7 +1765,12 @@ with st.sidebar:
     modo_default = st.session_state.get("modo_trabalho", "Chat Geral")
     modo_idx = modos.index(modo_default) if modo_default in modos else 0
 
-    modo = st.selectbox("Modo de trabalho", modos, index=modo_idx)
+    modo = st.selectbox(
+        "Modo de trabalho",
+        modos,
+        index=modo_idx,
+        key="sidebar_modo_trabalho"
+    )
     st.session_state.modo_trabalho = modo
 
     st.markdown("---")
