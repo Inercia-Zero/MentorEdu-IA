@@ -365,54 +365,6 @@ inject_css()
 init_session_state()
 
 # =========================================================
-# LOGIN
-# =========================================================
-if not st.user.is_logged_in:
-    st.markdown("""
-    <style>
-    .login-card {
-        max-width: 420px;
-        margin: 12vh auto;
-        padding: 2rem;
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-        text-align: center;
-    }
-    .login-title {
-        font-size: 1.8rem;
-        font-weight: 800;
-        margin-bottom: .5rem;
-        color: #16a34a;
-    }
-    .login-sub {
-        color: #64748b;
-        font-size: .95rem;
-        margin-bottom: 1.5rem;
-    }
-    </style>
-
-    <div class="login-card">
-        <div class="login-title">MentorEdu</div>
-        <div class="login-sub">
-            Plataforma acadêmica inteligente para estudos e análise de conteúdo
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-if st.button("Continuar com Google", use_container_width=True):
-    st.login("google")
-    
-    st.markdown(
-        "<p style='text-align:center;color:#94a3b8;font-size:.8rem;margin-top:1rem;'>Ao continuar, você concorda com os termos de uso</p>",
-        unsafe_allow_html=True
-    )
-
-    st.stop()
-USER_ID = st.user.get("sub") or st.user.get("email")
-st.session_state.user_id = USER_ID
-
-# =========================================================
 # SQLITE
 # =========================================================
 def get_conn():
