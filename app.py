@@ -41,121 +41,166 @@ def init_theme_state():
 
 def gerar_css_tema(tema: str) -> str:
     if tema == "Claro Creme":
-        return """
-        <style>
-            :root {
-                --bg: #f7f3ee;
-                --sidebar: #efe6dc;
-                --card: #fffdf9;
-                --card-2: #f8f1e8;
-                --line: #dccfc0;
-                --text: #3b312a;
-                --muted: #7a6d61;
-                --accent: #8a7768;
-                --accent-hover: #746252;
-                --badge: #f1e7dc;
-                --chip: #f7efe6;
-            }
+    return """
+    <style>
+        :root {
+            --bg: #f7f3ee;
+            --sidebar: #efe6dc;
+            --card: #fffdf9;
+            --card-2: #f8f1e8;
+            --line: #dccfc0;
+            --text: #3b312a;
+            --muted: #7a6d61;
+            --accent: #9a8676;
+            --accent-hover: #826f60;
+            --badge: #f1e7dc;
+            --chip: #f7efe6;
+        }
 
-            .stApp {
-                background: var(--bg);
-            }
+        .stApp {
+            background: var(--bg);
+        }
 
-            [data-testid="stSidebar"] {
-                background: var(--sidebar);
-                border-right: 1px solid var(--line);
-            }
+        [data-testid="stSidebar"] {
+            background: var(--sidebar);
+            border-right: 1px solid var(--line);
+        }
 
-            [data-testid="stSidebar"] * {
-                color: var(--text) !important;
-            }
+        [data-testid="stSidebar"] * {
+            color: var(--text) !important;
+        }
 
-            .hero-card,
-            .mentor-card,
-            .status-card,
-            .mini-card,
-            .status-inline,
-            .notice-box {
-                background: var(--card);
-                border: 1px solid var(--line);
-                border-radius: 18px;
-                box-shadow: 0 10px 26px rgba(92, 70, 48, 0.06);
-            }
+        .hero-card,
+        .mentor-card,
+        .status-card,
+        .mini-card,
+        .status-inline,
+        .notice-box {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            box-shadow: 0 10px 26px rgba(92, 70, 48, 0.06);
+        }
 
-            .folder-hint {
-                background: var(--card-2);
-                border: 1px solid var(--line);
-                border-radius: 14px;
-                color: var(--muted);
-            }
+        .folder-hint {
+            background: var(--card-2);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            color: var(--muted);
+        }
 
-            .project-badge {
-                display: inline-block;
-                background: var(--badge);
-                color: #6a5849;
-                border: 1px solid #d9c9b6;
-                padding: 6px 12px;
-                border-radius: 999px;
-                font-size: .88rem;
-                font-weight: 700;
-                margin-bottom: 10px;
-            }
+        .project-badge {
+            display: inline-block;
+            background: var(--badge);
+            color: #6a5849;
+            border: 1px solid #d9c9b6;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: .88rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
 
-            .main-title {
-                color: #2f2722;
-                font-size: 1.85rem;
-                font-weight: 800;
-                line-height: 1.1;
-                margin-bottom: 6px;
-            }
+        .main-title {
+            color: #2f2722;
+            font-size: 1.85rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 6px;
+        }
 
-            .subtitle,
-            .small-muted {
-                color: var(--muted) !important;
-            }
+        .subtitle,
+        .small-muted {
+            color: var(--muted) !important;
+        }
 
-            .chip-wrap {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-            }
+        .chip-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
 
-            .if-chip {
-                background: var(--chip);
-                border: 1px solid var(--line);
-                border-radius: 999px;
-                padding: 7px 12px;
-                color: var(--text);
-                font-size: .87rem;
-            }
+        .if-chip {
+            background: var(--chip);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 7px 12px;
+            color: var(--text);
+            font-size: .87rem;
+        }
 
-            .notice-box {
-                border-left: 4px solid #b59676;
-                color: var(--text);
-                padding: 12px 14px;
-                margin-bottom: 12px;
-            }
+        .notice-box {
+            border-left: 4px solid #b59676;
+            color: var(--text);
+            padding: 12px 14px;
+            margin-bottom: 12px;
+        }
 
-            .status-inline {
-                color: var(--text);
-                padding: 12px 14px;
-                margin-bottom: 10px;
-            }
+        .status-inline {
+            color: var(--text);
+            padding: 12px 14px;
+            margin-bottom: 10px;
+        }
 
-            .stButton > button {
-                background: #9a8676 !important;
-                color: #fffdfa !important;
-                border: 1px solid #9a8676 !important;
-                border-radius: 12px !important;
-                box-shadow: none !important;
-            }
+        .stButton > button {
+            background: #9a8676 !important;
+            color: #fffdfa !important;
+            border: 1px solid #9a8676 !important;
+            border-radius: 12px !important;
+            box-shadow: none !important;
+        }
 
-            .stButton > button:hover {
-                background: #826f60 !important;
-                border-color: #826f60 !important;
-            }
-        </style>
-        """
+        .stButton > button:hover {
+            background: #826f60 !important;
+            border-color: #826f60 !important;
+        }
+
+        .stTextInput input,
+        .stTextArea textarea,
+        .stSelectbox div[data-baseweb="select"] > div,
+        .stMultiSelect div[data-baseweb="select"] > div {
+            background: #fffaf5 !important;
+            color: var(--text) !important;
+            border: 1px solid var(--line) !important;
+        }
+
+        [data-testid="stChatInput"] {
+            background: #f6efe7 !important;
+            border-top: 1px solid var(--line) !important;
+        }
+
+        [data-testid="stChatInput"] textarea,
+        [data-testid="stChatInput"] input {
+            color: var(--text) !important;
+            background: transparent !important;
+        }
+
+        .stChatMessage {
+            background: transparent !important;
+        }
+
+        [data-testid="stChatMessageContent"] {
+            background: #fffaf5 !important;
+            color: var(--text) !important;
+            border: 1px solid var(--line) !important;
+            border-radius: 14px !important;
+        }
+
+        [data-testid="stExpander"] {
+            background: var(--card) !important;
+            border: 1px solid var(--line) !important;
+            border-radius: 14px !important;
+        }
+
+        [data-testid="stExpander"] * {
+            color: var(--text) !important;
+        }
+
+        p, span, label, div {
+            color: var(--text);
+        }
+    </style>
+    """
 
     return """
     <style>
