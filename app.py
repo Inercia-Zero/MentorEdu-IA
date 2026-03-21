@@ -1,7 +1,5 @@
 import os
 import re
-import io
-import html
 import uuid
 import sqlite3
 from datetime import datetime
@@ -16,8 +14,6 @@ from groq import Groq
 # CONFIGURAÇÃO GERAL
 # =========================================================
 st.set_page_config(
-
-    
     page_title="MentorEdu | Projeto Inércia Zero",
     page_icon="🎓",
     layout="wide",
@@ -91,13 +87,23 @@ def gerar_css_tema(tema: str) -> str:
             }
 
             .project-badge {
+                display: inline-block;
                 background: var(--badge);
                 color: #6c594c;
                 border: 1px solid #dac8b7;
+                padding: 6px 12px;
+                border-radius: 999px;
+                font-size: .88rem;
+                font-weight: 700;
+                margin-bottom: 10px;
             }
 
             .main-title {
                 color: #2f2722;
+                font-size: 1.85rem;
+                font-weight: 800;
+                line-height: 1.1;
+                margin-bottom: 6px;
             }
 
             .subtitle,
@@ -105,19 +111,32 @@ def gerar_css_tema(tema: str) -> str:
                 color: var(--muted) !important;
             }
 
+            .chip-wrap {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
             .if-chip {
                 background: var(--chip);
                 border: 1px solid var(--line);
+                border-radius: 999px;
+                padding: 7px 12px;
                 color: var(--text);
+                font-size: .87rem;
             }
 
             .notice-box {
                 border-left: 4px solid #b89a7c;
                 color: var(--text);
+                padding: 12px 14px;
+                margin-bottom: 12px;
             }
 
             .status-inline {
                 color: var(--text);
+                padding: 12px 14px;
+                margin-bottom: 10px;
             }
 
             .stButton > button {
@@ -184,13 +203,23 @@ def gerar_css_tema(tema: str) -> str:
         }
 
         .project-badge {
+            display: inline-block;
             background: var(--badge);
             color: #dfe5ed;
             border: 1px solid #2a313b;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: .88rem;
+            font-weight: 700;
+            margin-bottom: 10px;
         }
 
         .main-title {
             color: #f5f7fa;
+            font-size: 1.85rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 6px;
         }
 
         .subtitle,
@@ -198,19 +227,32 @@ def gerar_css_tema(tema: str) -> str:
             color: var(--muted) !important;
         }
 
+        .chip-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
         .if-chip {
             background: var(--chip);
             border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 7px 12px;
             color: var(--text);
+            font-size: .87rem;
         }
 
         .notice-box {
             border-left: 4px solid #d8dee6;
             color: var(--text);
+            padding: 12px 14px;
+            margin-bottom: 12px;
         }
 
         .status-inline {
             color: var(--text);
+            padding: 12px 14px;
+            margin-bottom: 10px;
         }
 
         .stButton > button {
@@ -228,169 +270,34 @@ def gerar_css_tema(tema: str) -> str:
         </style>
     """
 
+
 init_theme_state()
 st.markdown(gerar_css_tema(st.session_state.tema_visual), unsafe_allow_html=True)
 
 # =========================================================
 # LOGIN / AUTENTICAÇÃO
 # =========================================================
-# Mantido de forma compatível para você poder encaixar sua configuração atual
-# sem quebrar a estrutura do app. Se já usa st.login/st.user, preserve seu secrets.
 def exibir_bloco_login_sidebar():
     with st.sidebar:
         try:
+            st.markdown("### 👤 Conta")
             if hasattr(st, "user") and getattr(st.user, "is_logged_in", False):
                 nome = st.user.name.split()[0] if getattr(st.user, "name", None) else "Usuário"
-                st.markdown("### 👤 Conta")
                 st.markdown(f"**{nome}**")
                 email = getattr(st.user, "email", "")
                 if email:
                     st.caption(email)
                 if st.button("Sair", use_container_width=True, key="logout_btn"):
                     st.logout()
-                st.markdown("---")
             else:
-                st.markdown("### 👤 Conta")
                 st.caption("Entre com sua conta institucional para personalizar a experiência.")
                 if hasattr(st, "login"):
                     if st.button("Entrar com Google", use_container_width=True, key="login_btn"):
                         st.login()
-                    st.markdown("---")
+            st.markdown("---")
         except Exception:
-            # Não derruba o app caso o ambiente local não tenha auth configurado
             pass
 
-
-# =========================================================
-# ESTILO
-# =========================================================
-st.markdown(
-    """
-    <style>
-        :root {
-            --if-green: #1ea64b;
-            --if-green-dark: #13863a;
-            --bg-soft: #f5f7f8;
-            --card: #ffffff;
-            --line: #dfe6e9;
-            --text: #1f2937;
-            --muted: #6b7280;
-        }
-
-        .stApp {
-            background: #f3f5f7;
-        }
-
-        [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #f7f9fa 0%, #eef3f5 100%);
-            border-right: 1px solid #dde5e8;
-        }
-
-        .hero-card {
-            background: white;
-            border: 1px solid #e5ecef;
-            border-radius: 20px;
-            padding: 22px 24px;
-            box-shadow: 0 8px 24px rgba(0,0,0,.04);
-            margin-bottom: 14px;
-        }
-
-        .project-badge {
-            display: inline-block;
-            background: #e9f8ee;
-            color: var(--if-green-dark);
-            border: 1px solid #cfeeda;
-            padding: 6px 12px;
-            border-radius: 999px;
-            font-size: .88rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-
-        .main-title {
-            font-size: 2rem;
-            line-height: 1.1;
-            font-weight: 800;
-            color: #111827;
-            margin-bottom: 6px;
-        }
-
-        .subtitle {
-            color: #64748b;
-            font-size: .98rem;
-            margin-bottom: 14px;
-        }
-
-        .chip-wrap {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .if-chip {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 999px;
-            padding: 7px 12px;
-            color: #334155;
-            font-size: .87rem;
-        }
-
-        .mentor-card, .status-card, .service-card {
-            background: white;
-            border: 1px solid #e6edf0;
-            border-radius: 16px;
-            padding: 14px;
-            margin-top: 10px;
-            box-shadow: 0 4px 16px rgba(0,0,0,.03);
-        }
-
-        .folder-hint {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            color: #475569;
-            padding: 10px 12px;
-            border-radius: 12px;
-            font-size: .92rem;
-        }
-
-        .status-inline {
-            background: white;
-            border: 1px solid #e6edf0;
-            border-radius: 14px;
-            padding: 12px 14px;
-            margin-bottom: 10px;
-            color: #475569;
-        }
-
-        .section-title {
-            font-size: 1rem;
-            font-weight: 800;
-            color: #111827;
-            margin: 8px 0 8px 0;
-        }
-
-        .notice-box {
-            background: #fffef8;
-            border: 1px solid #f1e2a7;
-            border-left: 5px solid #d4b106;
-            border-radius: 14px;
-            padding: 12px 14px;
-            margin-bottom: 12px;
-            color: #5b4a00;
-        }
-
-        .quick-card {
-            background: white;
-            border: 1px solid #e6edf0;
-            border-radius: 16px;
-            padding: 14px;
-            min-height: 110px;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
 # =========================================================
 # BANCO DE DADOS
@@ -819,7 +726,15 @@ def bloco_servico_extra(servico: str) -> str:
     return regras.get(servico, "")
 
 
-def montar_prompt_usuario(pergunta: str, modo: str, servico: str, pdf_path: Optional[str], pdf_name: Optional[str], image_path: Optional[str], image_name: Optional[str]):
+def montar_prompt_usuario(
+    pergunta: str,
+    modo: str,
+    servico: str,
+    pdf_path: Optional[str],
+    pdf_name: Optional[str],
+    image_path: Optional[str],
+    image_name: Optional[str],
+):
     partes = [
         construir_contexto_institucional(),
         f"Modo selecionado: {modo}",
@@ -840,7 +755,9 @@ def montar_prompt_usuario(pergunta: str, modo: str, servico: str, pdf_path: Opti
     if image_path and os.path.exists(image_path):
         partes.append(f"Imagem ativa: {image_name}")
         partes.append(ler_imagem_resumo(image_path))
-        partes.append("Se a pergunta depender de leitura visual detalhada da imagem, responda com cautela e explicite qualquer limitação.")
+        partes.append(
+            "Se a pergunta depender de leitura visual detalhada da imagem, responda com cautela e explicite qualquer limitação."
+        )
 
     if modo == "Análise de Conteúdo":
         partes.append("Priorize resumo, interpretação, comparação e explicação do material anexado.")
@@ -885,7 +802,9 @@ def render_chat_input():
         )
         return payload
     except TypeError:
-        st.caption("Seu Streamlit não suporta anexo embutido no chat. Atualize para uma versão mais nova para usar o botão + dentro da caixa.")
+        st.caption(
+            "Seu Streamlit não suporta anexo embutido no chat. Atualize para uma versão mais nova para usar o botão + dentro da caixa."
+        )
         up = st.file_uploader("Anexe PDF ou imagem", type=["pdf", "png", "jpg", "jpeg"], label_visibility="collapsed")
         txt = st.chat_input("Digite sua pergunta...", key="fallback_chat_input")
         return {"text": txt, "files": [up] if up else []}
@@ -915,6 +834,7 @@ with st.sidebar:
         ["Escuro", "Claro Creme"],
         index=0 if st.session_state.tema_visual == "Escuro" else 1,
     )
+    st.markdown(gerar_css_tema(st.session_state.tema_visual), unsafe_allow_html=True)
     st.markdown("---")
 
     if os.path.exists(IF_LOGO):
@@ -926,6 +846,7 @@ with st.sidebar:
     conv_keys = list(conv_map.keys())
     conv_ids = list(conv_map.values())
     current_id = st.session_state.current_conversation_id
+
     if current_id not in conv_ids and conv_ids:
         current_id = conv_ids[0]
 
@@ -955,12 +876,14 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### Perfil institucional")
-    st.session_state.perfil_usuario = st.radio("Quem está usando?", ["Aluno", "Professor"], index=0 if st.session_state.perfil_usuario == "Aluno" else 1)
-    st.session_state.campus = st.selectbox(
-        "Campus / unidade",
-        ["IFCE - Geral", "Fortaleza", "Maracanaú", "Sobral", "Juazeiro do Norte", "Outro"],
-        index=["IFCE - Geral", "Fortaleza", "Maracanaú", "Sobral", "Juazeiro do Norte", "Outro"].index(st.session_state.campus) if st.session_state.campus in ["IFCE - Geral", "Fortaleza", "Maracanaú", "Sobral", "Juazeiro do Norte", "Outro"] else 0,
+    st.session_state.perfil_usuario = st.radio(
+        "Quem está usando?",
+        ["Aluno", "Professor"],
+        index=0 if st.session_state.perfil_usuario == "Aluno" else 1,
     )
+    campus_options = ["IFCE - Geral", "Fortaleza", "Maracanaú", "Sobral", "Juazeiro do Norte", "Outro"]
+    campus_index = campus_options.index(st.session_state.campus) if st.session_state.campus in campus_options else 0
+    st.session_state.campus = st.selectbox("Campus / unidade", campus_options, index=campus_index)
     st.session_state.curso = st.text_input("Curso", value=st.session_state.curso, placeholder="Ex.: Licenciatura em Física")
     st.session_state.turma = st.text_input("Turma / semestre", value=st.session_state.turma, placeholder="Ex.: 1º semestre / 2º ano B")
 
@@ -981,7 +904,7 @@ with st.sidebar:
 
     st.markdown(
         f"""
-        <div class="mentor-card">
+        <div class="mentor-card" style="padding:14px; margin-top:10px;">
             <h4 style="margin:0 0 6px 0;">{disciplina_escolhida} • {estilo_escolhido}</h4>
             <p style="margin:0;">{resumo_mentor(nivel_escolhido, disciplina_escolhida, estilo_escolhido)}</p>
         </div>
@@ -1008,22 +931,21 @@ with st.sidebar:
     conv = get_conversation(st.session_state.current_conversation_id)
     pdf_name = conv[5] if conv else None
     image_name = conv[7] if conv else None
-st.markdown(
-    f"""
-    <div class="hero-card" style="padding: 18px 22px; margin-bottom: 12px;">
-        <div style="text-align:center;">
-            <div class="project-badge">{PROJECT_NAME}</div>
-            <div class="main-title" style="font-size: 1.75rem; margin-top: 8px;">
-                {APP_NAME}
-            </div>
-            <div class="subtitle" style="margin-top: 6px;">
-                IA institucional para apoio a alunos e professores do IFCE.
-            </div>
+    st.markdown(
+        f"""
+        <div class="status-card" style="padding:14px; margin-top:10px;">
+            <div><b>Perguntas</b></div>
+            <div>{st.session_state.contador_perguntas}/{MAX_PERGUNTAS_SESSAO}</div>
+            <hr style="margin:10px 0; border:none; border-top:1px solid #2a313b;">
+            <div><b>PDF ativo</b></div>
+            <div>{pdf_name if pdf_name else 'Nenhum'}</div>
+            <hr style="margin:10px 0; border:none; border-top:1px solid #2a313b;">
+            <div><b>Imagem ativa</b></div>
+            <div>{image_name if image_name else 'Nenhuma'}</div>
         </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+        """,
+        unsafe_allow_html=True,
+    )
 
     if st.button("Limpar anexos da conversa", use_container_width=True):
         update_conversation_files(st.session_state.current_conversation_id, None, None, None, None)
@@ -1039,7 +961,10 @@ st.markdown(
         if novo_titulo.strip():
             rename_conversation(st.session_state.current_conversation_id, novo_titulo)
             st.rerun()
-    st.session_state.confirm_delete = st.checkbox("Confirmar exclusão da conversa atual", value=st.session_state.confirm_delete)
+    st.session_state.confirm_delete = st.checkbox(
+        "Confirmar exclusão da conversa atual",
+        value=st.session_state.confirm_delete,
+    )
     if st.button("Apagar conversa atual", use_container_width=True):
         if st.session_state.confirm_delete:
             apagar_id = st.session_state.current_conversation_id
@@ -1066,12 +991,12 @@ prompt_sistema_ativo = obter_prompt_mentor_especializado(
 
 st.markdown(
     f"""
-    <div class="hero-card">
+    <div class="hero-card" style="padding: 18px 22px; margin-bottom: 12px;">
         <div style="text-align:center;">
             <div class="project-badge">{PROJECT_NAME}</div>
             <div class="main-title">{APP_NAME}</div>
             <div class="subtitle">IA institucional para apoio a alunos e professores do IFCE.</div>
-            <div class="chip-wrap" style="justify-content:center;">
+            <div class="chip-wrap" style="justify-content:center; margin-top:10px;">
                 <span class="if-chip">Aluno + Professor</span>
                 <span class="if-chip">PDF + imagem</span>
                 <span class="if-chip">Planos e avaliações</span>
@@ -1095,15 +1020,21 @@ status_arquivo = f"📄 PDF ativo: {pdf_name}" if pdf_name else (f"🖼️ Image
 st.markdown(f"<div class='status-inline'><b>Status:</b> {status_arquivo}</div>", unsafe_allow_html=True)
 
 st.markdown("### Atalhos úteis")
-col1, col2, col3, col4 = st.columns(4)
-for col, texto in zip(
-    [col1, col2, col3, col4],
-    gerar_sugestoes_rapidas(st.session_state.perfil_usuario),
-):
-    with col:
-        if st.button(texto, use_container_width=True):
-            st.session_state.pending_prompt = texto
-            st.rerun()
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("Explicar conteúdo passo a passo", use_container_width=True):
+        st.session_state.pending_prompt = "Explique passo a passo o seguinte conteúdo: "
+        st.rerun()
+    if st.button("Resumir PDF em tópicos", use_container_width=True):
+        st.session_state.pending_prompt = "Resuma este material em tópicos claros para revisão: "
+        st.rerun()
+with col2:
+    if st.button("Montar plano de estudo", use_container_width=True):
+        st.session_state.pending_prompt = "Monte um plano de estudo objetivo sobre: "
+        st.rerun()
+    if st.button("Criar atividade ou lista", use_container_width=True):
+        st.session_state.pending_prompt = "Crie uma lista de exercícios sobre: "
+        st.rerun()
 
 with st.expander("Como usar o MentorEdu"):
     st.markdown(
@@ -1190,4 +1121,6 @@ if payload:
 # =========================================================
 # RODAPÉ
 # =========================================================
-st.caption("MentorEdu IFCE: interface focada no chat, com apoio institucional para alunos e professores e compatibilidade com seu fluxo de login.")
+st.caption(
+    "MentorEdu IFCE: interface focada no chat, com apoio institucional para alunos e professores e compatibilidade com seu fluxo de login."
+)
