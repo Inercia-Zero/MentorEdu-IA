@@ -243,6 +243,8 @@ def gerar_css_tema(tema: str) -> str:
         }
     </style>
     """
+init_theme_state()
+st.markdown(gerar_css_tema(st.session_state.tema_visual), unsafe_allow_html=True)
 
 # =========================================================
 # LOGIN / AUTENTICAÇÃO
@@ -922,6 +924,14 @@ elif st.session_state.current_conversation_id is None:
 exibir_bloco_login_sidebar()
 
 with st.sidebar:
+    st.markdown("### Aparência")
+    st.session_state.tema_visual = st.radio(
+        "Tema",
+        ["Escuro", "Claro Creme"],
+        index=0 if st.session_state.tema_visual == "Escuro" else 1,
+    )
+    st.markdown("---")
+
     if os.path.exists(IF_LOGO):
         st.image(IF_LOGO, use_container_width=True)
 
