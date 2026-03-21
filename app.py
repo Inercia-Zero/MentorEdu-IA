@@ -64,14 +64,17 @@ def gerar_css_tema(tema: str) -> str:
                 --chip-bg: #f6eee5;
             }
 
-            .stApp {
-                background: var(--bg-soft);
-                color: var(--text);
+            .stApp,
+            [data-testid="stAppViewContainer"],
+            [data-testid="stMain"],
+            [data-testid="stMainBlockContainer"] {
+                background: var(--bg-soft) !important;
+                color: var(--text) !important;
             }
 
-            [data-testid="stSidebar"] {
-                background: linear-gradient(180deg, var(--bg-sidebar) 0%, #e8ddcf 100%);
-                border-right: 1px solid var(--line);
+            section[data-testid="stSidebar"] {
+                background: linear-gradient(180deg, var(--bg-sidebar) 0%, #e8ddcf 100%) !important;
+                border-right: 1px solid var(--line) !important;
             }
 
             [data-testid="stSidebar"] * {
@@ -149,7 +152,7 @@ def gerar_css_tema(tema: str) -> str:
             .stCaption,
             .stMarkdown,
             p, li, span, div {
-                color: var(--text);
+                color: var(--text) !important;
             }
 
             [data-baseweb="popover"] * {
@@ -157,8 +160,8 @@ def gerar_css_tema(tema: str) -> str:
             }
 
             [data-testid="stChatInput"] {
-                background: rgba(255, 251, 246, 0.9);
-                border-top: 1px solid var(--line);
+                background: rgba(255, 251, 246, 0.9) !important;
+                border-top: 1px solid var(--line) !important;
             }
         </style>
         """
@@ -181,14 +184,17 @@ def gerar_css_tema(tema: str) -> str:
             --chip-bg: #0d1013;
         }
 
-        .stApp {
-            background: var(--bg-soft);
-            color: var(--text);
+        .stApp,
+        [data-testid="stAppViewContainer"],
+        [data-testid="stMain"],
+        [data-testid="stMainBlockContainer"] {
+            background: var(--bg-soft) !important;
+            color: var(--text) !important;
         }
 
-        [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, var(--bg-sidebar) 0%, #08090b 100%);
-            border-right: 1px solid var(--line);
+        section[data-testid="stSidebar"] {
+            background: linear-gradient(180deg, var(--bg-sidebar) 0%, #08090b 100%) !important;
+            border-right: 1px solid var(--line) !important;
         }
 
         [data-testid="stSidebar"] * {
@@ -268,7 +274,7 @@ def gerar_css_tema(tema: str) -> str:
         .stCaption,
         .stMarkdown,
         p, li, span, div {
-            color: var(--text);
+            color: var(--text) !important;
         }
 
         [data-baseweb="popover"] * {
@@ -276,8 +282,8 @@ def gerar_css_tema(tema: str) -> str:
         }
 
         [data-testid="stChatInput"] {
-            background: rgba(6, 7, 8, 0.94);
-            border-top: 1px solid var(--line);
+            background: rgba(6, 7, 8, 0.94) !important;
+            border-top: 1px solid var(--line) !important;
         }
     </style>
     """
