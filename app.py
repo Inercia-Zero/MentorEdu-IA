@@ -49,82 +49,78 @@ def gerar_css_tema(tema: str) -> str:
         return """
         <style>
             :root {
-                --bg-soft: #f6f0e8;
-                --bg-main: #f3ece3;
-                --bg-sidebar: #efe5d8;
-                --card: #fdfaf6;
-                --card-2: #f8f1e8;
-                --line: #ded1c1;
+                --bg: #f4ede4;
+                --sidebar: #eee3d5;
+                --card: #fbf7f2;
+                --card-2: #f7efe6;
+                --line: #ddd0c0;
                 --text: #3f342d;
                 --muted: #7a6b5d;
-                --accent: #8f7966;
-                --accent-2: #786452;
-                --chip-bg: #f6eee5;
-                --notice-bg: #faf3ea;
-                --shadow: 0 10px 24px rgba(94, 72, 50, 0.05);
+                --accent: #8e7865;
+                --accent-hover: #786452;
+                --badge: #efe3d6;
+                --chip: #f5ede4;
             }
 
-            .stApp,
-            [data-testid="stAppViewContainer"],
-            [data-testid="stMain"],
-            [data-testid="stMainBlockContainer"] {
-                background: var(--bg-main) !important;
-                color: var(--text) !important;
+            .stApp {
+                background: var(--bg);
             }
 
-            section[data-testid="stSidebar"],
             [data-testid="stSidebar"] {
-                background: linear-gradient(180deg, var(--bg-sidebar) 0%, #eadfce 100%) !important;
-                border-right: 1px solid var(--line) !important;
+                background: var(--sidebar);
+                border-right: 1px solid var(--line);
             }
 
-            [data-testid="stSidebar"] * {
-                color: var(--text) !important;
-            }
-
-            .hero-card, .mentor-card, .status-card, .mini-card, .status-inline {
-                background: var(--card) !important;
-                border: 1px solid var(--line) !important;
-                color: var(--text) !important;
-                box-shadow: var(--shadow) !important;
-                border-radius: 18px !important;
+            .hero-card,
+            .mentor-card,
+            .status-card,
+            .mini-card,
+            .status-inline,
+            .notice-box {
+                background: var(--card);
+                border: 1px solid var(--line);
+                border-radius: 18px;
+                box-shadow: 0 8px 24px rgba(80, 60, 40, 0.05);
             }
 
             .folder-hint {
-                background: var(--card-2) !important;
-                border: 1px solid var(--line) !important;
-                color: var(--muted) !important;
-                border-radius: 14px !important;
+                background: var(--card-2);
+                border: 1px solid var(--line);
+                border-radius: 14px;
+                color: var(--muted);
             }
 
             .project-badge {
-                background: #efe4d8 !important;
-                color: #6d594b !important;
-                border: 1px solid #dccab8 !important;
+                background: var(--badge);
+                color: #6c594c;
+                border: 1px solid #dac8b7;
             }
 
-            .main-title { color: #2f2722 !important; }
-            .subtitle, .small-muted { color: var(--muted) !important; }
+            .main-title {
+                color: #2f2722;
+            }
+
+            .subtitle,
+            .small-muted {
+                color: var(--muted) !important;
+            }
 
             .if-chip {
-                background: var(--chip-bg) !important;
-                border: 1px solid var(--line) !important;
-                color: var(--text) !important;
+                background: var(--chip);
+                border: 1px solid var(--line);
+                color: var(--text);
             }
 
             .notice-box {
-                background: var(--notice-bg) !important;
-                border: 1px solid #dac7b0 !important;
-                border-left: 4px solid #b79878 !important;
-                color: var(--text) !important;
+                border-left: 4px solid #b89a7c;
+                color: var(--text);
             }
 
             .status-inline {
-                background: var(--card) !important;
+                color: var(--text);
             }
 
-            .stButton > button,
-            .stDownloadButton > button {
+            .stButton > button {
                 background: var(--accent) !important;
                 color: #fffaf6 !important;
                 border: 1px solid var(--accent) !important;
@@ -132,38 +128,9 @@ def gerar_css_tema(tema: str) -> str:
                 box-shadow: none !important;
             }
 
-            .stButton > button:hover,
-            .stDownloadButton > button:hover {
-                background: var(--accent-2) !important;
-                border-color: var(--accent-2) !important;
-            }
-
-            .stTextInput input,
-            .stTextArea textarea,
-            .stSelectbox div[data-baseweb="select"] > div,
-            .stMultiSelect div[data-baseweb="select"] > div {
-                background: #fffcf8 !important;
-                color: var(--text) !important;
-                border: 1px solid var(--line) !important;
-                border-radius: 12px !important;
-            }
-
-            .stRadio label,
-            .stCheckbox label,
-            .stCaption,
-            .stMarkdown,
-            p, li, span, div {
-                color: var(--text) !important;
-            }
-
-            [data-baseweb="popover"] * {
-                color: var(--text) !important;
-            }
-
-            [data-testid="stChatInput"] {
-                background: rgba(255, 250, 244, 0.92) !important;
-                border-top: 1px solid var(--line) !important;
-                backdrop-filter: blur(12px) !important;
+            .stButton > button:hover {
+                background: var(--accent-hover) !important;
+                border-color: var(--accent-hover) !important;
             }
         </style>
         """
@@ -171,125 +138,95 @@ def gerar_css_tema(tema: str) -> str:
     return """
     <style>
         :root {
-            --bg-soft: #060708;
-            --bg-main: #0a0b0f;
-            --bg-sidebar: #07090c;
-            --card: #11141a;
-            --card-2: #0d1015;
-            --line: #1d232c;
+            --bg: #090b0f;
+            --sidebar: #0c1015;
+            --card: #12161d;
+            --card-2: #0f1319;
+            --line: #202733;
             --text: #e8edf3;
-            --muted: #94a0ae;
-            --accent: #d6dce3;
-            --accent-2: #bcc4cf;
-            --chip-bg: #0d1015;
-            --notice-bg: #10141a;
-            --shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
+            --muted: #97a3b0;
+            --accent: #171c24;
+            --accent-hover: #202733;
+            --badge: #11161d;
+            --chip: #10141b;
         }
 
-        .stApp,
-        [data-testid="stAppViewContainer"],
-        [data-testid="stMain"],
-        [data-testid="stMainBlockContainer"] {
-            background: var(--bg-main) !important;
-            color: var(--text) !important;
+        .stApp {
+            background: var(--bg);
         }
 
-        section[data-testid="stSidebar"],
         [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, var(--bg-sidebar) 0%, #050608 100%) !important;
-            border-right: 1px solid var(--line) !important;
+            background: var(--sidebar);
+            border-right: 1px solid var(--line);
         }
 
         [data-testid="stSidebar"] * {
             color: var(--text) !important;
         }
 
-        .hero-card, .mentor-card, .status-card, .mini-card, .status-inline {
-            background: var(--card) !important;
-            border: 1px solid var(--line) !important;
-            color: var(--text) !important;
-            box-shadow: var(--shadow) !important;
-            border-radius: 18px !important;
+        .hero-card,
+        .mentor-card,
+        .status-card,
+        .mini-card,
+        .status-inline,
+        .notice-box {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.25);
         }
 
         .folder-hint {
-            background: var(--card-2) !important;
-            border: 1px solid var(--line) !important;
-            color: var(--muted) !important;
-            border-radius: 14px !important;
+            background: var(--card-2);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            color: var(--muted);
         }
 
         .project-badge {
-            background: #10141b !important;
-            color: #dfe5ed !important;
-            border: 1px solid #232a33 !important;
+            background: var(--badge);
+            color: #dfe5ed;
+            border: 1px solid #2a313b;
         }
 
-        .main-title { color: #f5f7fa !important; }
-        .subtitle, .small-muted { color: var(--muted) !important; }
+        .main-title {
+            color: #f5f7fa;
+        }
+
+        .subtitle,
+        .small-muted {
+            color: var(--muted) !important;
+        }
 
         .if-chip {
-            background: var(--chip-bg) !important;
-            border: 1px solid var(--line) !important;
-            color: var(--text) !important;
+            background: var(--chip);
+            border: 1px solid var(--line);
+            color: var(--text);
         }
 
         .notice-box {
-            background: var(--notice-bg) !important;
-            border: 1px solid #252c35 !important;
-            border-left: 4px solid #d8dee6 !important;
-            color: var(--text) !important;
+            border-left: 4px solid #d8dee6;
+            color: var(--text);
         }
 
         .status-inline {
-            background: var(--card) !important;
+            color: var(--text);
         }
 
-        .stButton > button,
-        .stDownloadButton > button {
-            background: #15191f !important;
-            color: #edf1f5 !important;
+        .stButton > button {
+            background: var(--accent) !important;
+            color: #eef2f6 !important;
             border: 1px solid #2a313b !important;
             border-radius: 12px !important;
             box-shadow: none !important;
         }
 
-        .stButton > button:hover,
-        .stDownloadButton > button:hover {
-            background: #1b2027 !important;
+        .stButton > button:hover {
+            background: var(--accent-hover) !important;
             border-color: #39424d !important;
         }
-
-        .stTextInput input,
-        .stTextArea textarea,
-        .stSelectbox div[data-baseweb="select"] > div,
-        .stMultiSelect div[data-baseweb="select"] > div {
-            background: #0b0d12 !important;
-            color: var(--text) !important;
-            border: 1px solid var(--line) !important;
-            border-radius: 12px !important;
-        }
-
-        .stRadio label,
-        .stCheckbox label,
-        .stCaption,
-        .stMarkdown,
-        p, li, span, div {
-            color: var(--text) !important;
-        }
-
-        [data-baseweb="popover"] * {
-            color: var(--text) !important;
-        }
-
-        [data-testid="stChatInput"] {
-            background: rgba(8, 9, 12, 0.94) !important;
-            border-top: 1px solid var(--line) !important;
-            backdrop-filter: blur(12px) !important;
-        }
-    </style>
+        </style>
     """
-
 
 init_theme_state()
 st.markdown(gerar_css_tema(st.session_state.tema_visual), unsafe_allow_html=True)
@@ -1071,21 +1008,22 @@ with st.sidebar:
     conv = get_conversation(st.session_state.current_conversation_id)
     pdf_name = conv[5] if conv else None
     image_name = conv[7] if conv else None
-    st.markdown(
-        f"""
-        <div class="status-card">
-            <div><b>Perguntas</b></div>
-            <div>{st.session_state.contador_perguntas}/{MAX_PERGUNTAS_SESSAO}</div>
-            <hr style="margin:10px 0; border:none; border-top:1px solid #edf2f7;">
-            <div><b>PDF ativo</b></div>
-            <div>{pdf_name if pdf_name else 'Nenhum'}</div>
-            <hr style="margin:10px 0; border:none; border-top:1px solid #edf2f7;">
-            <div><b>Imagem ativa</b></div>
-            <div>{image_name if image_name else 'Nenhuma'}</div>
+st.markdown(
+    f"""
+    <div class="hero-card" style="padding: 18px 22px; margin-bottom: 12px;">
+        <div style="text-align:center;">
+            <div class="project-badge">{PROJECT_NAME}</div>
+            <div class="main-title" style="font-size: 1.75rem; margin-top: 8px;">
+                {APP_NAME}
+            </div>
+            <div class="subtitle" style="margin-top: 6px;">
+                IA institucional para apoio a alunos e professores do IFCE.
+            </div>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
     if st.button("Limpar anexos da conversa", use_container_width=True):
         update_conversation_files(st.session_state.current_conversation_id, None, None, None, None)
