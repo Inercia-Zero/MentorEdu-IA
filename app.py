@@ -41,118 +41,122 @@ def init_theme_state():
 
 
 def gerar_css_tema(tema: str) -> str:
-    if tema == "Claro Creme":
-        return """
-        <style>
-            :root {
-                --bg: #f4ede4;
-                --sidebar: #eee3d5;
-                --card: #fbf7f2;
-                --card-2: #f7efe6;
-                --line: #ddd0c0;
-                --text: #3f342d;
-                --muted: #7a6b5d;
-                --accent: #8e7865;
-                --accent-hover: #786452;
-                --badge: #efe3d6;
-                --chip: #f5ede4;
-            }
+if tema == "Claro Creme":
+    return """
+    <style>
+        :root {
+            --bg: #f7f3ee;
+            --sidebar: #efe6dc;
+            --card: #fffdf9;
+            --card-2: #f8f1e8;
+            --line: #dccfc0;
+            --text: #3b312a;
+            --muted: #7a6d61;
+            --accent: #8a7768;
+            --accent-hover: #746252;
+            --badge: #f1e7dc;
+            --chip: #f7efe6;
+        }
 
-            .stApp {
-                background: var(--bg);
-            }
+        .stApp {
+            background: var(--bg);
+        }
 
-            [data-testid="stSidebar"] {
-                background: var(--sidebar);
-                border-right: 1px solid var(--line);
-            }
+        [data-testid="stSidebar"] {
+            background: var(--sidebar);
+            border-right: 1px solid var(--line);
+        }
 
-            .hero-card,
-            .mentor-card,
-            .status-card,
-            .mini-card,
-            .status-inline,
-            .notice-box {
-                background: var(--card);
-                border: 1px solid var(--line);
-                border-radius: 18px;
-                box-shadow: 0 8px 24px rgba(80, 60, 40, 0.05);
-            }
+        [data-testid="stSidebar"] * {
+            color: var(--text) !important;
+        }
 
-            .folder-hint {
-                background: var(--card-2);
-                border: 1px solid var(--line);
-                border-radius: 14px;
-                color: var(--muted);
-            }
+        .hero-card,
+        .mentor-card,
+        .status-card,
+        .mini-card,
+        .status-inline,
+        .notice-box {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            box-shadow: 0 10px 26px rgba(92, 70, 48, 0.06);
+        }
 
-            .project-badge {
-                display: inline-block;
-                background: var(--badge);
-                color: #6c594c;
-                border: 1px solid #dac8b7;
-                padding: 6px 12px;
-                border-radius: 999px;
-                font-size: .88rem;
-                font-weight: 700;
-                margin-bottom: 10px;
-            }
+        .folder-hint {
+            background: var(--card-2);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            color: var(--muted);
+        }
 
-            .main-title {
-                color: #2f2722;
-                font-size: 1.85rem;
-                font-weight: 800;
-                line-height: 1.1;
-                margin-bottom: 6px;
-            }
+        .project-badge {
+            display: inline-block;
+            background: var(--badge);
+            color: #6a5849;
+            border: 1px solid #d9c9b6;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: .88rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
 
-            .subtitle,
-            .small-muted {
-                color: var(--muted) !important;
-            }
+        .main-title {
+            color: #2f2722;
+            font-size: 1.85rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 6px;
+        }
 
-            .chip-wrap {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-            }
+        .subtitle,
+        .small-muted {
+            color: var(--muted) !important;
+        }
 
-            .if-chip {
-                background: var(--chip);
-                border: 1px solid var(--line);
-                border-radius: 999px;
-                padding: 7px 12px;
-                color: var(--text);
-                font-size: .87rem;
-            }
+        .chip-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
 
-            .notice-box {
-                border-left: 4px solid #b89a7c;
-                color: var(--text);
-                padding: 12px 14px;
-                margin-bottom: 12px;
-            }
+        .if-chip {
+            background: var(--chip);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 7px 12px;
+            color: var(--text);
+            font-size: .87rem;
+        }
 
-            .status-inline {
-                color: var(--text);
-                padding: 12px 14px;
-                margin-bottom: 10px;
-            }
+        .notice-box {
+            border-left: 4px solid #b59676;
+            color: var(--text);
+            padding: 12px 14px;
+            margin-bottom: 12px;
+        }
 
-            .stButton > button {
-                background: var(--accent) !important;
-                color: #fffaf6 !important;
-                border: 1px solid var(--accent) !important;
-                border-radius: 12px !important;
-                box-shadow: none !important;
-            }
+        .status-inline {
+            color: var(--text);
+            padding: 12px 14px;
+            margin-bottom: 10px;
+        }
 
-            .stButton > button:hover {
-                background: var(--accent-hover) !important;
-                border-color: var(--accent-hover) !important;
-            }
-        </style>
-        """
+        .stButton > button {
+            background: #9a8676 !important;
+            color: #fffdfa !important;
+            border: 1px solid #9a8676 !important;
+            border-radius: 12px !important;
+            box-shadow: none !important;
+        }
+
+        .stButton > button:hover {
+            background: #826f60 !important;
+            border-color: #826f60 !important;
+        }
+    </style>
+    """
 
     return """
     <style>
