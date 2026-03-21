@@ -154,121 +154,122 @@ def gerar_css_tema(tema: str) -> str:
         </style>
         """
 
-return """
-<style>
-    :root {
-        --bg: #0d0f12;
-        --sidebar: #111317;
-        --card: #171a1f;
-        --card-2: #14171b;
-        --line: #2a2f36;
-        --text: #eceff3;
-        --muted: #9ca3af;
-        --accent: #1b1f25;
-        --accent-hover: #252a31;
-        --badge: #1a1e24;
-        --chip: #181c22;
-    }
+    return """
+    <style>
+        :root {
+            --bg: #0d0f12;
+            --sidebar: #111317;
+            --card: #171a1f;
+            --card-2: #14171b;
+            --line: #2a2f36;
+            --text: #eceff3;
+            --muted: #9ca3af;
+            --accent: #1b1f25;
+            --accent-hover: #252a31;
+            --badge: #1a1e24;
+            --chip: #181c22;
+        }
 
-    .stApp {
-        background: var(--bg);
-    }
+        .stApp {
+            background: var(--bg);
+        }
 
-    [data-testid="stSidebar"] {
-        background: var(--sidebar);
-        border-right: 1px solid var(--line);
-    }
+        [data-testid="stSidebar"] {
+            background: var(--sidebar);
+            border-right: 1px solid var(--line);
+        }
 
-    [data-testid="stSidebar"] * {
-        color: var(--text) !important;
-    }
+        [data-testid="stSidebar"] * {
+            color: var(--text) !important;
+        }
 
-    .hero-card,
-    .mentor-card,
-    .status-card,
-    .mini-card,
-    .status-inline,
-    .notice-box {
-        background: var(--card);
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
-    }
+        .hero-card,
+        .mentor-card,
+        .status-card,
+        .mini-card,
+        .status-inline,
+        .notice-box {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
+        }
 
-    .folder-hint {
-        background: var(--card-2);
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        color: var(--muted);
-    }
+        .folder-hint {
+            background: var(--card-2);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            color: var(--muted);
+        }
 
-    .project-badge {
-        display: inline-block;
-        background: var(--badge);
-        color: #e5e7eb;
-        border: 1px solid #303640;
-        padding: 6px 12px;
-        border-radius: 999px;
-        font-size: .88rem;
-        font-weight: 700;
-        margin-bottom: 10px;
-    }
+        .project-badge {
+            display: inline-block;
+            background: var(--badge);
+            color: #e5e7eb;
+            border: 1px solid #303640;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: .88rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
 
-    .main-title {
-        color: #f3f4f6;
-        font-size: 1.85rem;
-        font-weight: 800;
-        line-height: 1.1;
-        margin-bottom: 6px;
-    }
+        .main-title {
+            color: #f3f4f6;
+            font-size: 1.85rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 6px;
+        }
 
-    .subtitle,
-    .small-muted {
-        color: var(--muted) !important;
-    }
+        .subtitle,
+        .small-muted {
+            color: var(--muted) !important;
+        }
 
-    .chip-wrap {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
+        .chip-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
 
-    .if-chip {
-        background: var(--chip);
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        padding: 7px 12px;
-        color: var(--text);
-        font-size: .87rem;
-    }
+        .if-chip {
+            background: var(--chip);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 7px 12px;
+            color: var(--text);
+            font-size: .87rem;
+        }
 
-    .notice-box {
-        border-left: 4px solid #d1d5db;
-        color: var(--text);
-        padding: 12px 14px;
-        margin-bottom: 12px;
-    }
+        .notice-box {
+            border-left: 4px solid #d1d5db;
+            color: var(--text);
+            padding: 12px 14px;
+            margin-bottom: 12px;
+        }
 
-    .status-inline {
-        color: var(--text);
-        padding: 12px 14px;
-        margin-bottom: 10px;
-    }
+        .status-inline {
+            color: var(--text);
+            padding: 12px 14px;
+            margin-bottom: 10px;
+        }
 
-    .stButton > button {
-        background: var(--accent) !important;
-        color: #f3f4f6 !important;
-        border: 1px solid #343a43 !important;
-        border-radius: 12px !important;
-        box-shadow: none !important;
-    }
+        .stButton > button {
+            background: var(--accent) !important;
+            color: #f3f4f6 !important;
+            border: 1px solid #343a43 !important;
+            border-radius: 12px !important;
+            box-shadow: none !important;
+        }
 
-    .stButton > button:hover {
-        background: var(--accent-hover) !important;
-        border-color: #434a55 !important;
-    }
-</style>
-"""
+        .stButton > button:hover {
+            background: var(--accent-hover) !important;
+            border-color: #434a55 !important;
+        }
+    </style>
+    """
+
 
 init_theme_state()
 st.markdown(gerar_css_tema(st.session_state.tema_visual), unsafe_allow_html=True)
