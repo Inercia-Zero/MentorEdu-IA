@@ -11,29 +11,31 @@ from PIL import Image
 from groq import Groq
 
 # =========================================================
-# CONFIGURAÇÃO GERAL
+# CONFIG
 # =========================================================
 st.set_page_config(
-    page_title="MentorEdu | Projeto Inércia Zero",
+    page_title="MentorEdu IFCE",
     page_icon="🎓",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 APP_NAME = "MentorEdu IFCE"
-PROJECT_NAME = "Projeto Inércia Zero"
 IF_LOGO = "logo.png"
 DB_PATH = "mentoredu.db"
 UPLOAD_DIR = "uploads"
-
 MAX_PDF_MB = 15
 MAX_IMG_MB = 8
-MAX_PERGUNTAS_SESSAO = 30
+MAX_PERGUNTAS_SESSAO = 40
+PDF_CONTEXT_LIMIT = 6000
+CHAT_HISTORY_FOR_PROMPT = 6
+DEFAULT_MODEL = "llama-3.3-70b-versatile"
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+
 # =========================================================
-# TEMA / ESTILO
+# TEMA
 # =========================================================
 def init_theme_state():
     if "tema_visual" not in st.session_state:
@@ -45,330 +47,150 @@ def gerar_css_tema(tema: str) -> str:
         return """
         <style>
             :root {
-                --bg: #f7f3ee;
-                --bg-top: #f5efe7;
-                --sidebar: #efe6dc;
+                --bg: #f6f1ea;
+                --sidebar: #efe6db;
                 --card: #fffdf9;
-                --card-2: #f8f1e8;
-                --line: #dccfc0;
-                --text: #3b312a;
-                --muted: #7a6d61;
-                --accent: #9a8676;
-                --accent-hover: #826f60;
-                --badge: #f1e7dc;
-                --chip: #f7efe6;
+                --line: #d9ccbe;
+                --text: #332b25;
+                --muted: #75685d;
+                --primary: #6c8c55;
+                --primary-hover: #5d7949;
+                --chip: #f7efe5;
+                --user: #ebe3d8;
+                --assistant: #fffaf3;
             }
-
-            .stApp {
+            .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
                 background: var(--bg) !important;
             }
-
-            [data-testid="stAppViewContainer"] {
-                background: var(--bg) !important;
-            }
-
-            [data-testid="stMain"] {
-                background: var(--bg) !important;
-            }
-
-            [data-testid="stMainBlockContainer"] {
-                background: var(--bg) !important;
-            }
-
-            .main .block-container {
-                background: transparent !important;
-            }
-
-            header[data-testid="stHeader"] {
-                background: var(--bg-top) !important;
-                border-bottom: 1px solid var(--line) !important;
-            }
-
-            [data-testid="stToolbar"] {
-                background: transparent !important;
-            }
-
             [data-testid="stSidebar"] {
                 background: var(--sidebar) !important;
                 border-right: 1px solid var(--line) !important;
             }
-
             [data-testid="stSidebar"] * {
                 color: var(--text) !important;
             }
-
-            .hero-card,
-            .mentor-card,
-            .status-card,
-            .mini-card,
-            .status-inline,
-            .notice-box {
-                background: var(--card) !important;
-                border: 1px solid var(--line) !important;
-                border-radius: 18px !important;
-                box-shadow: 0 10px 26px rgba(92, 70, 48, 0.06) !important;
-            }
-
-            .folder-hint {
-                background: var(--card-2) !important;
-                border: 1px solid var(--line) !important;
-                border-radius: 14px !important;
-                color: var(--muted) !important;
-            }
-
-            .project-badge {
-                display: inline-block;
-                background: var(--badge) !important;
-                color: #6a5849 !important;
-                border: 1px solid #d9c9b6 !important;
-                padding: 6px 12px !important;
-                border-radius: 999px !important;
-                font-size: .88rem !important;
-                font-weight: 700 !important;
-                margin-bottom: 10px !important;
-            }
-
-            .main-title {
-                color: #2f2722 !important;
-                font-size: 1.85rem !important;
-                font-weight: 800 !important;
-                line-height: 1.1 !important;
-                margin-bottom: 6px !important;
-            }
-
-            .subtitle,
-            .small-muted {
-                color: var(--muted) !important;
-            }
-
-            .chip-wrap {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-            }
-
-            .if-chip {
-                background: var(--chip) !important;
-                border: 1px solid var(--line) !important;
-                border-radius: 999px !important;
-                padding: 7px 12px !important;
-                color: var(--text) !important;
-                font-size: .87rem !important;
-            }
-
-            .notice-box {
-                border-left: 4px solid #b59676 !important;
-                color: var(--text) !important;
-                padding: 12px 14px !important;
-                margin-bottom: 12px !important;
-            }
-
-            .status-inline {
-                color: var(--text) !important;
-                padding: 12px 14px !important;
-                margin-bottom: 10px !important;
-            }
-
-            .stButton > button {
-                background: #9a8676 !important;
-                color: #fffdfa !important;
-                border: 1px solid #9a8676 !important;
-                border-radius: 12px !important;
-                box-shadow: none !important;
-            }
-
-            .stButton > button:hover {
-                background: #826f60 !important;
-                border-color: #826f60 !important;
-            }
-
-            .stTextInput input,
-            .stTextArea textarea,
-            .stSelectbox div[data-baseweb="select"] > div,
-            .stMultiSelect div[data-baseweb="select"] > div {
-                background: #fffaf5 !important;
-                color: var(--text) !important;
-                border: 1px solid var(--line) !important;
-            }
-
-            [data-testid="stBottomBlockContainer"] {
-                background: var(--bg) !important;
-                border-top: 1px solid var(--line) !important;
-            }
-
-            [data-testid="stChatInputContainer"] {
-                background: var(--bg) !important;
-            }
-
-            [data-testid="stChatInputContainer"] > div {
-                background: #f6efe7 !important;
-                border-top: 1px solid var(--line) !important;
-            }
-
-            [data-testid="stChatInput"] {
-                background: #f6efe7 !important;
-                border-top: 1px solid var(--line) !important;
-            }
-
-            [data-testid="stChatInput"] > div {
-                background: #f6efe7 !important;
-            }
-
-            section[data-testid="stChatInput"] {
-                background: #f6efe7 !important;
-            }
-
-            [data-testid="stChatInput"] textarea,
-            [data-testid="stChatInput"] input {
-                background: #f6efe7 !important;
-                color: var(--text) !important;
-            }
-
-            [data-testid="stChatInput"] textarea::placeholder,
-            [data-testid="stChatInput"] input::placeholder {
-                color: var(--muted) !important;
-            }
-
-            .stChatMessage {
-                background: transparent !important;
-            }
-
             [data-testid="stChatMessageContent"] {
-                background: #fffaf5 !important;
+                color: var(--text) !important;
+                border-radius: 16px !important;
+                border: 1px solid var(--line) !important;
+            }
+            .stChatMessage:has([data-testid="chatAvatarIcon-user"]) [data-testid="stChatMessageContent"] {
+                background: var(--user) !important;
+            }
+            .stChatMessage:has([data-testid="chatAvatarIcon-assistant"]) [data-testid="stChatMessageContent"] {
+                background: var(--assistant) !important;
+            }
+            .panel-card {
+                background: var(--card);
+                border: 1px solid var(--line);
+                border-radius: 18px;
+                padding: 14px;
+                margin-bottom: 12px;
+            }
+            .small-muted { color: var(--muted) !important; }
+            .chip {
+                display: inline-block;
+                padding: 6px 10px;
+                border-radius: 999px;
+                background: var(--chip);
+                border: 1px solid var(--line);
+                font-size: .85rem;
+                margin: 3px 6px 3px 0;
+            }
+            .stButton > button {
+                background: var(--primary) !important;
+                color: white !important;
+                border: 1px solid var(--primary) !important;
+                border-radius: 12px !important;
+            }
+            .stButton > button:hover {
+                background: var(--primary-hover) !important;
+                border-color: var(--primary-hover) !important;
+            }
+            .stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"] > div {
+                background: #fffaf4 !important;
                 color: var(--text) !important;
                 border: 1px solid var(--line) !important;
-                border-radius: 14px !important;
             }
-
-            [data-testid="stExpander"] {
-                background: var(--card) !important;
-                border: 1px solid var(--line) !important;
-                border-radius: 14px !important;
-            }
-
-            [data-testid="stExpander"] * {
+            [data-testid="stChatInput"] textarea, [data-testid="stChatInput"] input {
                 color: var(--text) !important;
             }
-
-            p, span, label, div {
-                color: var(--text) !important;
-            }
+            p, span, div, label, li { color: var(--text) !important; }
         </style>
         """
 
     return """
     <style>
         :root {
-            --bg: #0d0f12;
-            --sidebar: #111317;
-            --card: #171a1f;
-            --card-2: #14171b;
-            --line: #2a2f36;
-            --text: #eceff3;
-            --muted: #9ca3af;
-            --accent: #1b1f25;
-            --accent-hover: #252a31;
-            --badge: #1a1e24;
-            --chip: #181c22;
+            --bg: #0d1117;
+            --sidebar: #111827;
+            --card: #151c24;
+            --line: #2a3441;
+            --text: #edf2f7;
+            --muted: #9aa7b6;
+            --primary: #3f8f5b;
+            --primary-hover: #34774b;
+            --chip: #18212b;
+            --user: #1b2530;
+            --assistant: #121923;
         }
-
-        .stApp {
-            background: var(--bg);
+        .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+            background: var(--bg) !important;
         }
-
         [data-testid="stSidebar"] {
-            background: var(--sidebar);
-            border-right: 1px solid var(--line);
+            background: var(--sidebar) !important;
+            border-right: 1px solid var(--line) !important;
         }
-
         [data-testid="stSidebar"] * {
             color: var(--text) !important;
         }
-
-        .hero-card,
-        .mentor-card,
-        .status-card,
-        .mini-card,
-        .status-inline,
-        .notice-box {
+        [data-testid="stChatMessageContent"] {
+            color: var(--text) !important;
+            border-radius: 16px !important;
+            border: 1px solid var(--line) !important;
+        }
+        .stChatMessage:has([data-testid="chatAvatarIcon-user"]) [data-testid="stChatMessageContent"] {
+            background: var(--user) !important;
+        }
+        .stChatMessage:has([data-testid="chatAvatarIcon-assistant"]) [data-testid="stChatMessageContent"] {
+            background: var(--assistant) !important;
+        }
+        .panel-card {
             background: var(--card);
             border: 1px solid var(--line);
             border-radius: 18px;
-            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
-        }
-
-        .folder-hint {
-            background: var(--card-2);
-            border: 1px solid var(--line);
-            border-radius: 14px;
-            color: var(--muted);
-        }
-
-        .project-badge {
-            display: inline-block;
-            background: var(--badge);
-            color: #e5e7eb;
-            border: 1px solid #303640;
-            padding: 6px 12px;
-            border-radius: 999px;
-            font-size: .88rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-
-        .main-title {
-            color: #f3f4f6;
-            font-size: 1.85rem;
-            font-weight: 800;
-            line-height: 1.1;
-            margin-bottom: 6px;
-        }
-
-        .subtitle,
-        .small-muted {
-            color: var(--muted) !important;
-        }
-
-        .chip-wrap {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .if-chip {
-            background: var(--chip);
-            border: 1px solid var(--line);
-            border-radius: 999px;
-            padding: 7px 12px;
-            color: var(--text);
-            font-size: .87rem;
-        }
-
-        .notice-box {
-            border-left: 4px solid #d1d5db;
-            color: var(--text);
-            padding: 12px 14px;
+            padding: 14px;
             margin-bottom: 12px;
         }
-
-        .status-inline {
-            color: var(--text);
-            padding: 12px 14px;
-            margin-bottom: 10px;
+        .small-muted { color: var(--muted) !important; }
+        .chip {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: var(--chip);
+            border: 1px solid var(--line);
+            font-size: .85rem;
+            margin: 3px 6px 3px 0;
         }
-
         .stButton > button {
-            background: var(--accent) !important;
-            color: #f3f4f6 !important;
-            border: 1px solid #343a43 !important;
+            background: var(--primary) !important;
+            color: white !important;
+            border: 1px solid var(--primary) !important;
             border-radius: 12px !important;
-            box-shadow: none !important;
         }
-
         .stButton > button:hover {
-            background: var(--accent-hover) !important;
-            border-color: #434a55 !important;
+            background: var(--primary-hover) !important;
+            border-color: var(--primary-hover) !important;
         }
+        .stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"] > div {
+            background: #101720 !important;
+            color: var(--text) !important;
+            border: 1px solid var(--line) !important;
+        }
+        [data-testid="stChatInput"] textarea, [data-testid="stChatInput"] input {
+            color: var(--text) !important;
+        }
+        p, span, div, label, li { color: var(--text) !important; }
     </style>
     """
 
@@ -376,33 +198,9 @@ def gerar_css_tema(tema: str) -> str:
 init_theme_state()
 st.markdown(gerar_css_tema(st.session_state.tema_visual), unsafe_allow_html=True)
 
-# =========================================================
-# LOGIN / AUTENTICAÇÃO
-# =========================================================
-def exibir_bloco_login_sidebar():
-    with st.sidebar:
-        try:
-            st.markdown("### 👤 Conta")
-            if hasattr(st, "user") and getattr(st.user, "is_logged_in", False):
-                nome = st.user.name.split()[0] if getattr(st.user, "name", None) else "Usuário"
-                st.markdown(f"**{nome}**")
-                email = getattr(st.user, "email", "")
-                if email:
-                    st.caption(email)
-                if st.button("Sair", use_container_width=True, key="logout_btn"):
-                    st.logout()
-            else:
-                st.caption("Entre com sua conta institucional para personalizar a experiência.")
-                if hasattr(st, "login"):
-                    if st.button("Entrar com Google", use_container_width=True, key="login_btn"):
-                        st.login()
-            st.markdown("---")
-        except Exception:
-            pass
-
 
 # =========================================================
-# BANCO DE DADOS
+# DB
 # =========================================================
 def get_conn():
     return sqlite3.connect(DB_PATH, check_same_thread=False)
@@ -443,6 +241,7 @@ def init_db():
 
 init_db()
 
+
 # =========================================================
 # SESSÃO
 # =========================================================
@@ -456,7 +255,6 @@ def init_session_state():
         "loaded_conversation_id": None,
         "confirm_delete": False,
         "contador_perguntas": 0,
-        "last_sources": [],
         "pending_prompt": None,
         "perfil_usuario": "Aluno",
         "campus": "IFCE - Geral",
@@ -469,6 +267,7 @@ def init_session_state():
 
 
 init_session_state()
+
 
 # =========================================================
 # CONVERSAS
@@ -598,8 +397,8 @@ def resetar_sessao_visual():
     st.session_state.db_texto_pdf = None
     st.session_state.pdf_nome = None
     st.session_state.img_nome = None
-    st.session_state.last_sources = []
     st.session_state.contador_perguntas = 0
+    st.session_state.confirm_delete = False
 
 
 def carregar_conversa_no_estado(conversation_id):
@@ -612,7 +411,6 @@ def carregar_conversa_no_estado(conversation_id):
     st.session_state.img_nome = image_name
     st.session_state.current_conversation_id = conversation_id
     st.session_state.loaded_conversation_id = conversation_id
-    st.session_state.last_sources = []
     st.session_state.confirm_delete = False
     if pdf_path and os.path.exists(pdf_path):
         st.session_state.db_texto_pdf = processar_pdf_from_path(pdf_path)
@@ -640,7 +438,7 @@ def carregar_cliente() -> Tuple[Optional[Groq], Optional[str]]:
     except Exception:
         chave = ""
     if not chave:
-        return None, "A chave GROQ_API_KEY não foi encontrada ou está vazia nos Secrets."
+        return None, "A chave GROQ_API_KEY não foi encontrada nos Secrets."
     try:
         return Groq(api_key=chave), None
     except Exception as e:
@@ -649,17 +447,18 @@ def carregar_cliente() -> Tuple[Optional[Groq], Optional[str]]:
 
 client, erro_cliente = carregar_cliente()
 
+
 # =========================================================
-# PERFIS / MENTORES / SERVIÇOS
+# CONFIG DIDÁTICA
 # =========================================================
 def obter_estrutura_mentores() -> Dict[str, Dict[str, List[str]]]:
     base = {
-        "Física": ["Didático", "Feynman", "GrokFísica"],
+        "Física": ["Didático", "Feynman", "Rigoroso"],
         "Química": ["Didático", "Vestibular", "Laboratório"],
         "Matemática": ["Didático", "Objetivo", "Rigoroso"],
         "Programação": ["Didático", "Prático", "Monitor"],
         "Redação": ["Didático", "Acadêmico", "Vestibular"],
-        "Metodologia Científica": ["Acadêmico", "Didático", "Orientador"],
+        "Metodologia Científica": ["Didático", "Acadêmico", "Orientador"],
     }
     return {
         "Ensino Médio": {"disciplinas": base},
@@ -690,7 +489,33 @@ def obter_servicos_por_perfil(perfil: str) -> List[str]:
 
 
 def resumo_mentor(nivel, disciplina, estilo):
-    return f"{nivel} • {disciplina} • {estilo}: explicação clara, progressiva e adaptada ao contexto do IFCE."
+    return f"{nivel} • {disciplina} • {estilo}: explicação curta, clara e focada no que realmente ajuda."
+
+
+def gerar_sugestoes_rapidas(perfil: str) -> List[str]:
+    if perfil == "Professor":
+        return [
+            "Monte um plano de aula de 50 minutos sobre MRU.",
+            "Crie uma rubrica simples para apresentação em grupo.",
+            "Escreva um aviso formal para a turma.",
+        ]
+    return [
+        "Explique função horária do espaço com exemplo.",
+        "Monte um plano de estudo para prova amanhã.",
+        "Resuma este PDF em tópicos para revisão.",
+    ]
+
+
+def formatar_historico_curto(chat: List[Dict[str, str]], limite: int = CHAT_HISTORY_FOR_PROMPT) -> str:
+    if not chat:
+        return ""
+    blocos = []
+    for msg in chat[-limite:]:
+        papel = "Usuário" if msg["role"] == "user" else "Assistente"
+        texto = (msg["content"] or "").strip()
+        if texto:
+            blocos.append(f"{papel}: {texto[:700]}")
+    return "\n".join(blocos)
 
 
 def construir_contexto_institucional() -> str:
@@ -699,76 +524,152 @@ def construir_contexto_institucional() -> str:
     curso = st.session_state.get("curso", "")
     turma = st.session_state.get("turma", "")
     return (
-        f"Contexto institucional: perfil={perfil}; instituição=IFCE; campus={campus}; "
-        f"curso={curso or 'não informado'}; turma={turma or 'não informada'}."
+        f"Perfil={perfil}; Instituição=IFCE; Campus={campus}; "
+        f"Curso={curso or 'não informado'}; Turma={turma or 'não informada'}."
     )
+
+
+def bloco_servico_extra(servico: str) -> str:
+    regras = {
+        "Planejamento de Aula": "Entregue em: objetivo, conteúdos, metodologia, recursos e avaliação.",
+        "Criar Lista de Exercícios": "Crie exercícios em ordem crescente de dificuldade.",
+        "Montar Avaliação": "Monte uma avaliação equilibrada e objetiva.",
+        "Gerar Rubrica": "Use critérios claros e níveis de desempenho.",
+        "Escrever Aviso Institucional": "Use linguagem formal e direta.",
+        "Estudo Guiado": "Entregue em etapas curtas, com metas realistas.",
+        "Preparação para Prova": "Comece pelo que mais cai e feche com revisão.",
+        "Correção de Redação": "Aponte pontos fortes, problemas e melhorias.",
+        "Dúvidas de Programação": "Explique erro, causa, correção e código final.",
+        "Resumo de PDF": "Resuma em tópicos, sem copiar trechos longos.",
+        "Resumir PDF/Plano": "Resuma em tópicos, com foco prático.",
+    }
+    return regras.get(servico, "")
 
 
 def obter_prompt_mentor_especializado(nivel, disciplina, estilo, perfil, servico):
-    base = (
-        f"Você é um assistente acadêmico institucional do IFCE. "
-        f"Atende principalmente o perfil {perfil}. "
-        f"Atue como mentor especializado em {disciplina} para {nivel}, com estilo {estilo}. "
-        "Responda sempre em português do Brasil, com clareza, organização e tom respeitoso. "
-        "Quando houver cálculo, mostre passos. Quando houver teoria, resuma ideias-chave antes de aprofundar. "
-        "Se o pedido envolver rotina escolar ou universitária, proponha passos concretos e realistas. "
-        "Não invente normas internas específicas do IFCE; quando algo institucional depender de regulamento local, deixe isso explícito. "
-        f"Serviço selecionado no momento: {servico}."
-    )
-
-    if perfil == "Professor":
-        base += " Dê suporte pedagógico, planejamento, avaliação, comunicação com turma e organização de aula."
-    else:
-        base += " Dê suporte a estudo, revisão, compreensão conceitual, organização acadêmica e desempenho em atividades."
-
-    if estilo == "Feynman":
-        base += " Simplifique ideias difíceis sem perder a precisão."
-    elif estilo == "GrokFísica":
-        base += " Use humor leve, mas mantenha o rigor conceitual."
-    elif estilo == "Rigoroso":
-        base += " Priorize precisão formal, definições e justificativas."
-    elif estilo == "Monitor":
-        base += " Responda como um monitor paciente e prático."
-
-    if servico == "Planejamento de Aula":
-        base += " Estruture objetivos, habilidades, metodologia, recursos e avaliação."
-    elif servico == "Criar Lista de Exercícios":
-        base += " Gere itens progressivos, do básico ao aplicado, com gabarito ao final quando pedido."
-    elif servico == "Montar Avaliação":
-        base += " Monte avaliação equilibrada com nível, critérios e distribuição de dificuldade."
-    elif servico == "Gerar Rubrica":
-        base += " Produza critérios claros, níveis de desempenho e descritores observáveis."
-    elif servico == "Estudo Guiado":
-        base += " Organize um roteiro de estudo por etapas, com metas e checkpoints."
-    elif servico == "Preparação para Prova":
-        base += " Priorize revisão estratégica, tópicos-chave, treino e gestão de tempo."
-    elif servico == "Correção de Redação":
-        base += " Avalie estrutura, coesão, argumentação, gramática e sugestões de melhoria."
-    elif servico == "Dúvidas de Programação":
-        base += " Explique o código, a lógica e os erros de forma prática e testável."
-
-    return base
-
-
-def gerar_sugestoes_rapidas(perfil: str) -> List[str]:
-    if perfil == "Professor":
-        return [
-            "Monte um plano de aula de 50 minutos sobre MRU para 1º ano.",
-            "Crie uma rubrica simples para seminário em grupo.",
-            "Escreva um aviso formal para a turma sobre entrega de atividade.",
-            "Gere 10 questões objetivas com gabarito sobre ligações químicas.",
-        ]
-    return [
-        "Explique função horária do espaço com exemplo.",
-        "Monte um plano de estudo para prova amanhã.",
-        "Resuma este PDF em tópicos para revisão.",
-        "Corrija meu raciocínio nesta questão passo a passo.",
+    partes = [
+        "Você é um mentor acadêmico do IFCE.",
+        "Responda sempre em português do Brasil.",
+        "Seja direto, claro e didático.",
+        "Evite introduções longas, repetições, autoexplicações e informações óbvias.",
+        "Prefira frases curtas e blocos organizados.",
+        "Quando a pergunta for simples, responda de forma simples.",
+        "Quando houver cálculo, mostre apenas os passos necessários.",
+        "Quando houver teoria, comece com a ideia principal e depois explique.",
+        "Não invente regras internas do IFCE.",
+        "Se não tiver certeza de algo institucional, diga isso claramente.",
+        "Formato preferido: resposta direta, explicação curta, exemplo breve se necessário.",
+        f"Contexto atual: perfil={perfil}; nível={nivel}; disciplina={disciplina}; estilo={estilo}; serviço={servico}.",
     ]
 
+    if estilo == "Feynman":
+        partes.append("Explique como se estivesse ensinando alguém inteligente que está vendo o assunto pela primeira vez.")
+    elif estilo == "Rigoroso":
+        partes.append("Priorize precisão conceitual e justificativas bem fundamentadas.")
+    elif estilo == "Monitor":
+        partes.append("Explique como um monitor paciente e prático.")
+    elif estilo == "Objetivo":
+        partes.append("Vá direto ao ponto.")
+    elif estilo == "Prático":
+        partes.append("Dê exemplos rápidos e úteis.")
+
+    extra = bloco_servico_extra(servico)
+    if extra:
+        partes.append(extra)
+
+    return " ".join(partes)
+
+
+def montar_prompt_usuario(
+    pergunta: str,
+    modo: str,
+    servico: str,
+    pdf_path: Optional[str],
+    pdf_name: Optional[str],
+    image_path: Optional[str],
+    image_name: Optional[str],
+):
+    partes = [
+        f"Contexto institucional: {construir_contexto_institucional()}",
+        f"Modo: {modo}",
+        f"Serviço: {servico}",
+    ]
+
+    historico = formatar_historico_curto(st.session_state.get("chat", []))
+    if historico:
+        partes.append("Histórico recente da conversa:\n" + historico)
+
+    partes.append("Pergunta atual:\n" + pergunta.strip())
+
+    if pdf_path and os.path.exists(pdf_path):
+        texto_pdf = st.session_state.get("db_texto_pdf")
+        if texto_pdf:
+            partes.append(f"PDF ativo: {pdf_name}")
+            partes.append("Use o PDF apenas se ele for relevante para responder.")
+            partes.append("Trecho do PDF:\n" + texto_pdf[:PDF_CONTEXT_LIMIT])
+
+    if image_path and os.path.exists(image_path):
+        partes.append(f"Imagem ativa: {image_name}")
+        partes.append(ler_imagem_resumo(image_path))
+        partes.append("Só comente a imagem se isso for necessário para a resposta.")
+
+    if modo == "Matemática":
+        partes.append("Resolva passo a passo e destaque a fórmula principal.")
+    elif modo == "Análise de Conteúdo":
+        partes.append("Priorize resumo, explicação e tópicos-chave.")
+    elif modo == "Chat Criativo":
+        partes.append("Pode ser um pouco mais criativo, mas continue útil e claro.")
+
+    return "\n\n".join(partes)
+
+
+def limpar_resposta(texto: str) -> str:
+    if not texto:
+        return "Não consegui gerar uma resposta útil."
+
+    texto = texto.strip()
+    texto = re.sub(r"\n{3,}", "\n\n", texto)
+
+    trocas = {
+        "Claro!": "",
+        "Com certeza!": "",
+        "Vamos lá!": "",
+        "Segue abaixo": "",
+        "Aqui está": "",
+    }
+    for origem, destino in trocas.items():
+        texto = texto.replace(origem, destino).strip()
+
+    return texto
+
+
+def gerar_resposta_groq(prompt_sistema: str, prompt_usuario: str) -> str:
+    if client is None:
+        return f"Não consegui iniciar a IA. {erro_cliente or ''}".strip()
+
+    try:
+        resp = client.chat.completions.create(
+            model=DEFAULT_MODEL,
+            messages=[
+                {"role": "system", "content": prompt_sistema},
+                {"role": "user", "content": prompt_usuario},
+            ],
+            temperature=0.35,
+            max_tokens=1100,
+        )
+        conteudo = resp.choices[0].message.content.strip()
+        return limpar_resposta(conteudo)
+    except Exception as e:
+        return f"Ocorreu um erro ao gerar a resposta: {e}"
+
 
 # =========================================================
-# PROCESSAMENTO DE ARQUIVOS
+# ARQUIVOS
 # =========================================================
+def tamanho_mb(uploaded_file) -> float:
+    return round(len(uploaded_file.getbuffer()) / (1024 * 1024), 2)
+
+
 def salvar_upload(uploaded_file) -> Tuple[str, str]:
     ext = os.path.splitext(uploaded_file.name)[1].lower()
     destino = os.path.join(UPLOAD_DIR, f"{uuid.uuid4().hex}{ext}")
@@ -783,7 +684,8 @@ def processar_pdf_from_path(pdf_path: str) -> Optional[str]:
         textos = []
         for page in reader.pages:
             txt = page.extract_text() or ""
-            if txt.strip():
+            txt = re.sub(r"\s+", " ", txt).strip()
+            if txt:
                 textos.append(txt)
         conteudo = "\n\n".join(textos).strip()
         return conteudo if conteudo else None
@@ -794,9 +696,9 @@ def processar_pdf_from_path(pdf_path: str) -> Optional[str]:
 def ler_imagem_resumo(image_path: str) -> str:
     try:
         img = Image.open(image_path)
-        return f"Imagem carregada com sucesso. Resolução: {img.size[0]}x{img.size[1]}. Formato: {img.format or 'desconhecido'}."
+        return f"Imagem carregada. Resolução: {img.size[0]}x{img.size[1]}. Formato: {img.format or 'desconhecido'}."
     except Exception:
-        return "Imagem carregada com sucesso."
+        return "Imagem carregada."
 
 
 def extrair_contexto_ativo(conversation_id):
@@ -806,93 +708,18 @@ def extrair_contexto_ativo(conversation_id):
     return conv[4], conv[5], conv[6], conv[7]
 
 
-# =========================================================
-# PROMPTS
-# =========================================================
-def pode_perguntar():
-    return st.session_state.contador_perguntas < MAX_PERGUNTAS_SESSAO
-
-
-def bloco_servico_extra(servico: str) -> str:
-    regras = {
-        "Planejamento de Aula": "Entregue em blocos: objetivo geral, objetivos específicos, conteúdos, metodologia, recursos e avaliação.",
-        "Criar Lista de Exercícios": "Monte exercícios graduais; se pertinente, inclua gabarito separado no final.",
-        "Montar Avaliação": "Distribua dificuldade e sinalize o que avalia em cada questão.",
-        "Gerar Rubrica": "Use tabela textual clara com critérios e níveis de desempenho.",
-        "Escrever Aviso Institucional": "Use linguagem formal, clara e respeitosa.",
-        "Estudo Guiado": "Entregue como roteiro de estudo em etapas curtas e realistas.",
-        "Preparação para Prova": "Comece pelo que mais cai, depois vá para treino e revisão final.",
-        "Correção de Redação": "Aponte pontos fortes, problemas e uma versão melhorada de trechos-chave.",
-        "Dúvidas de Programação": "Explique o erro, mostre a correção e justifique a mudança.",
-    }
-    return regras.get(servico, "")
-
-
-def montar_prompt_usuario(
-    pergunta: str,
-    modo: str,
-    servico: str,
-    pdf_path: Optional[str],
-    pdf_name: Optional[str],
-    image_path: Optional[str],
-    image_name: Optional[str],
-):
-    partes = [
-        construir_contexto_institucional(),
-        f"Modo selecionado: {modo}",
-        f"Serviço selecionado: {servico}",
-        f"Pergunta do usuário: {pergunta.strip()}",
-    ]
-
-    regra_extra = bloco_servico_extra(servico)
-    if regra_extra:
-        partes.append(regra_extra)
-
-    if pdf_path and os.path.exists(pdf_path):
-        texto_pdf = st.session_state.get("db_texto_pdf")
-        if texto_pdf:
-            partes.append(f"PDF ativo: {pdf_name}")
-            partes.append("Trecho do PDF para contexto:\n" + texto_pdf[:18000])
-
-    if image_path and os.path.exists(image_path):
-        partes.append(f"Imagem ativa: {image_name}")
-        partes.append(ler_imagem_resumo(image_path))
-        partes.append(
-            "Se a pergunta depender de leitura visual detalhada da imagem, responda com cautela e explicite qualquer limitação."
-        )
-
-    if modo == "Análise de Conteúdo":
-        partes.append("Priorize resumo, interpretação, comparação e explicação do material anexado.")
-    elif modo == "Matemática":
-        partes.append("Resolva passo a passo. Use LaTeX quando útil, com $...$ para inline e $$...$$ para destaque.")
-    elif modo == "Chat Criativo":
-        partes.append("Pode responder de forma mais criativa, porém ainda útil e informativa.")
-    elif modo == "GrokFísica (zoeira + didática)":
-        partes.append("Use humor leve, sem perder didática e correção conceitual.")
-
-    return "\n\n".join(partes)
-
-
-def gerar_resposta_groq(prompt_sistema: str, prompt_usuario: str) -> str:
-    if client is None:
-        return f"Não consegui iniciar a IA. {erro_cliente or ''}".strip()
-    try:
-        resp = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": prompt_sistema},
-                {"role": "user", "content": prompt_usuario},
-            ],
-            temperature=0.45,
-            max_tokens=1600,
-        )
-        return resp.choices[0].message.content.strip()
-    except Exception as e:
-        return f"Ocorreu um erro ao gerar a resposta: {e}"
+def validar_upload(uploaded_file) -> Optional[str]:
+    nome = uploaded_file.name.lower()
+    mb = tamanho_mb(uploaded_file)
+    if nome.endswith(".pdf") and mb > MAX_PDF_MB:
+        return f"O PDF excede o limite de {MAX_PDF_MB} MB."
+    if nome.endswith((".png", ".jpg", ".jpeg")) and mb > MAX_IMG_MB:
+        return f"A imagem excede o limite de {MAX_IMG_MB} MB."
+    return None
 
 
 # =========================================================
-# CHAT INPUT COM ANEXO
+# INPUT
 # =========================================================
 def render_chat_input():
     try:
@@ -904,12 +731,33 @@ def render_chat_input():
         )
         return payload
     except TypeError:
-        st.caption(
-            "Seu Streamlit não suporta anexo embutido no chat. Atualize para uma versão mais nova para usar o botão + dentro da caixa."
-        )
         up = st.file_uploader("Anexe PDF ou imagem", type=["pdf", "png", "jpg", "jpeg"], label_visibility="collapsed")
         txt = st.chat_input("Digite sua pergunta...", key="fallback_chat_input")
         return {"text": txt, "files": [up] if up else []}
+
+
+# =========================================================
+# LOGIN
+# =========================================================
+def exibir_bloco_login_sidebar():
+    try:
+        st.markdown("### 👤 Conta")
+        if hasattr(st, "user") and getattr(st.user, "is_logged_in", False):
+            nome = st.user.name.split()[0] if getattr(st.user, "name", None) else "Usuário"
+            st.markdown(f"**{nome}**")
+            email = getattr(st.user, "email", "")
+            if email:
+                st.caption(email)
+            if st.button("Sair", use_container_width=True, key="logout_btn"):
+                st.logout()
+        else:
+            st.caption("Faça login para personalizar a experiência.")
+            if hasattr(st, "login"):
+                if st.button("Entrar com Google", use_container_width=True, key="login_btn"):
+                    st.login()
+        st.markdown("---")
+    except Exception:
+        pass
 
 
 # =========================================================
@@ -924,6 +772,7 @@ elif st.session_state.current_conversation_id is None:
     st.session_state.current_conversation_id = rows[0][0]
     carregar_conversa_no_estado(rows[0][0])
 
+
 # =========================================================
 # SIDEBAR
 # =========================================================
@@ -937,12 +786,9 @@ with st.sidebar:
         index=0 if st.session_state.tema_visual == "Escuro" else 1,
         key="tema_radio",
     )
-
     if novo_tema != st.session_state.tema_visual:
         st.session_state.tema_visual = novo_tema
         st.rerun()
-
-    st.markdown("---")
 
     if os.path.exists(IF_LOGO):
         st.image(IF_LOGO, use_container_width=True)
@@ -966,16 +812,16 @@ with st.sidebar:
         st.session_state.current_conversation_id = escolhido_id
         carregar_conversa_no_estado(escolhido_id)
 
-    col_a, col_b = st.columns(2)
-    with col_a:
-        if st.button("Nova conversa", use_container_width=True):
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("Nova", use_container_width=True):
             novo_id = create_conversation()
             st.session_state.current_conversation_id = novo_id
             resetar_sessao_visual()
             carregar_conversa_no_estado(novo_id)
             st.rerun()
-    with col_b:
-        if st.button("Recarregar", use_container_width=True):
+    with c2:
+        if st.button("Atualizar", use_container_width=True):
             carregar_conversa_no_estado(escolhido_id)
             st.rerun()
 
@@ -983,138 +829,127 @@ with st.sidebar:
         carregar_conversa_no_estado(escolhido_id)
         st.rerun()
 
-    st.markdown("---")
-    st.markdown("### Perfil institucional")
-    st.session_state.perfil_usuario = st.radio(
-        "Quem está usando?",
-        ["Aluno", "Professor"],
-        index=0 if st.session_state.perfil_usuario == "Aluno" else 1,
-    )
+    with st.expander("Configuração didática", expanded=True):
+        st.session_state.perfil_usuario = st.radio(
+            "Quem está usando?",
+            ["Aluno", "Professor"],
+            index=0 if st.session_state.perfil_usuario == "Aluno" else 1,
+        )
 
-    campus_options = ["IFCE - Geral", "Fortaleza", "Maracanaú", "Sobral", "Juazeiro do Norte", "Outro"]
-    campus_index = campus_options.index(st.session_state.campus) if st.session_state.campus in campus_options else 0
-    st.session_state.campus = st.selectbox("Campus / unidade", campus_options, index=campus_index)
-    st.session_state.curso = st.text_input(
-        "Curso",
-        value=st.session_state.curso,
-        placeholder="Ex.: Licenciatura em Física",
-    )
-    st.session_state.turma = st.text_input(
-        "Turma / semestre",
-        value=st.session_state.turma,
-        placeholder="Ex.: 1º semestre / 2º ano B",
-    )
+        campus_options = ["IFCE - Geral", "Fortaleza", "Maracanaú", "Sobral", "Juazeiro do Norte", "Outro"]
+        campus_index = campus_options.index(st.session_state.campus) if st.session_state.campus in campus_options else 0
+        st.session_state.campus = st.selectbox("Campus", campus_options, index=campus_index)
+        st.session_state.curso = st.text_input("Curso", value=st.session_state.curso, placeholder="Ex.: Licenciatura em Física")
+        st.session_state.turma = st.text_input("Turma / semestre", value=st.session_state.turma, placeholder="Ex.: 1º semestre")
 
-    st.markdown("---")
-    st.markdown("### Escolha seu Mentor")
-    st.markdown(
-        "<div class='folder-hint'>Escolha o <b>nível</b>, a <b>disciplina</b>, o <b>estilo</b> e o <b>tipo de atendimento</b>.</div>",
-        unsafe_allow_html=True,
-    )
+        estrutura = obter_estrutura_mentores()
+        nivel_escolhido = st.radio("Nível", ["Ensino Médio", "Ensino Superior"])
+        disciplinas = list(estrutura[nivel_escolhido]["disciplinas"].keys())
+        disciplina_escolhida = st.selectbox("Disciplina", disciplinas)
+        estilos = estrutura[nivel_escolhido]["disciplinas"][disciplina_escolhida]
+        estilo_escolhido = st.selectbox("Estilo", estilos)
+        servicos = obter_servicos_por_perfil(st.session_state.perfil_usuario)
+        servico_escolhido = st.selectbox("Atendimento", servicos)
+        modo = st.selectbox("Modo", ["Chat Geral", "Análise de Conteúdo", "Matemática", "Chat Criativo"])
 
-    estrutura = obter_estrutura_mentores()
-    nivel_escolhido = st.radio("Nível de ensino", ["Ensino Médio", "Ensino Superior"])
-    disciplinas = list(estrutura[nivel_escolhido]["disciplinas"].keys())
-    disciplina_escolhida = st.selectbox("Disciplina", disciplinas)
-    estilos = estrutura[nivel_escolhido]["disciplinas"][disciplina_escolhida]
-    estilo_escolhido = st.radio("Estilo do professor", estilos)
-    servicos = obter_servicos_por_perfil(st.session_state.perfil_usuario)
-    servico_escolhido = st.selectbox("Tipo de atendimento", servicos)
+        st.markdown(
+            f"<div class='panel-card'><b>Mentor ativo</b><br>{resumo_mentor(nivel_escolhido, disciplina_escolhida, estilo_escolhido)}</div>",
+            unsafe_allow_html=True,
+        )
 
-    st.markdown(
-        f"""
-        <div class="mentor-card" style="padding:14px; margin-top:10px;">
-            <h4 style="margin:0 0 6px 0;">{disciplina_escolhida} • {estilo_escolhido}</h4>
-            <p style="margin:0;">{resumo_mentor(nivel_escolhido, disciplina_escolhida, estilo_escolhido)}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    with st.expander("Atalhos", expanded=False):
+        if st.button("Plano de aula", use_container_width=True):
+            st.session_state.pending_prompt = "Monte um plano de aula completo sobre: "
+        if st.button("Estudo guiado", use_container_width=True):
+            st.session_state.pending_prompt = "Monte um estudo guiado sobre: "
+        if st.button("Resumo do material", use_container_width=True):
+            st.session_state.pending_prompt = "Resuma este material em tópicos claros: "
 
-    modo = st.selectbox(
-        "Modo de trabalho",
-        ["Chat Geral", "Análise de Conteúdo", "Matemática", "Chat Criativo", "GrokFísica (zoeira + didática)"],
-    )
-
-    st.markdown("---")
-    st.markdown("### Ferramentas rápidas")
-    if st.button("Inserir prompt de plano de aula", use_container_width=True):
-        st.session_state.pending_prompt = "Monte um plano de aula completo sobre o tema abaixo, com objetivos, metodologia, recursos e avaliação: "
-    if st.button("Inserir prompt de estudo guiado", use_container_width=True):
-        st.session_state.pending_prompt = "Monte um estudo guiado com etapas, metas e revisão final sobre o conteúdo: "
-    if st.button("Inserir prompt de resumo institucional", use_container_width=True):
-        st.session_state.pending_prompt = "Resuma este material em linguagem clara, com tópicos, destaques e possíveis aplicações em sala: "
-
-    st.markdown("---")
-    st.markdown("### Estado da sessão")
     conv = get_conversation(st.session_state.current_conversation_id)
     pdf_name = conv[5] if conv else None
     image_name = conv[7] if conv else None
 
     st.markdown(
         f"""
-        <div class="status-card" style="padding:14px; margin-top:10px;">
-            <div><b>Perguntas</b></div>
-            <div>{st.session_state.contador_perguntas}/{MAX_PERGUNTAS_SESSAO}</div>
-            <hr style="margin:10px 0; border:none; border-top:1px solid #2a313b;">
-            <div><b>PDF ativo</b></div>
-            <div>{pdf_name if pdf_name else 'Nenhum'}</div>
-            <hr style="margin:10px 0; border:none; border-top:1px solid #2a313b;">
-            <div><b>Imagem ativa</b></div>
-            <div>{image_name if image_name else 'Nenhuma'}</div>
+        <div class='panel-card'>
+            <b>Sessão</b><br>
+            <span class='small-muted'>Perguntas:</span> {st.session_state.contador_perguntas}/{MAX_PERGUNTAS_SESSAO}<br>
+            <span class='small-muted'>PDF:</span> {pdf_name or 'Nenhum'}<br>
+            <span class='small-muted'>Imagem:</span> {image_name or 'Nenhuma'}
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    if st.button("Limpar anexos da conversa", use_container_width=True):
+    if st.button("Limpar anexos", use_container_width=True):
         update_conversation_files(st.session_state.current_conversation_id, None, None, None, None)
         carregar_conversa_no_estado(st.session_state.current_conversation_id)
         st.rerun()
 
-    st.markdown("---")
-    st.markdown("### Gerenciar conversa")
-    conv_atual = get_conversation(st.session_state.current_conversation_id)
-    titulo_atual = conv_atual[1] if conv_atual else ""
+    with st.expander("Gerenciar conversa", expanded=False):
+        conv_atual = get_conversation(st.session_state.current_conversation_id)
+        titulo_atual = conv_atual[1] if conv_atual else ""
+        novo_titulo = st.text_input("Renomear conversa", value=titulo_atual)
+        if st.button("Salvar nome", use_container_width=True):
+            if novo_titulo.strip():
+                rename_conversation(st.session_state.current_conversation_id, novo_titulo)
+                st.rerun()
 
-    novo_titulo = st.text_input("Renomear conversa", value=titulo_atual)
-    if st.button("Salvar nome", use_container_width=True):
-        if novo_titulo.strip():
-            rename_conversation(st.session_state.current_conversation_id, novo_titulo)
-            st.rerun()
+        st.session_state.confirm_delete = st.checkbox(
+            "Confirmar exclusão",
+            value=st.session_state.confirm_delete,
+        )
+        if st.button("Apagar conversa", use_container_width=True):
+            if st.session_state.confirm_delete:
+                apagar_id = st.session_state.current_conversation_id
+                delete_conversation(apagar_id)
+                resetar_sessao_visual()
+                restantes = list_conversations()
+                novo_atual = restantes[0][0] if restantes else create_conversation()
+                st.session_state.current_conversation_id = novo_atual
+                carregar_conversa_no_estado(novo_atual)
+                st.rerun()
+            else:
+                st.warning("Marque a confirmação antes de apagar.")
 
-    st.session_state.confirm_delete = st.checkbox(
-        "Confirmar exclusão da conversa atual",
-        value=st.session_state.confirm_delete,
-    )
-
-    if st.button("Apagar conversa atual", use_container_width=True):
-        if st.session_state.confirm_delete:
-            apagar_id = st.session_state.current_conversation_id
-            delete_conversation(apagar_id)
-            resetar_sessao_visual()
-            restantes = list_conversations()
-            novo_atual = restantes[0][0] if restantes else create_conversation()
-            st.session_state.current_conversation_id = novo_atual
-            carregar_conversa_no_estado(novo_atual)
-            st.rerun()
-        else:
-            st.warning("Marque a confirmação antes de apagar.")
-
-st.markdown(gerar_css_tema(st.session_state.tema_visual), unsafe_allow_html=True)
 
 # =========================================================
-# HISTÓRICO DO CHAT
+# CABEÇALHO
+# =========================================================
+st.markdown(
+    f"""
+    <div class='panel-card'>
+        <div style='font-size:1.35rem; font-weight:800;'>{APP_NAME}</div>
+        <div class='small-muted'>IA mais direta, mais didática e com menos informação desnecessária.</div>
+        <div style='margin-top:10px;'>
+            <span class='chip'>{st.session_state.perfil_usuario}</span>
+            <span class='chip'>{st.session_state.campus}</span>
+            <span class='chip'>{disciplina_escolhida}</span>
+            <span class='chip'>{servico_escolhido}</span>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+if st.session_state.pending_prompt:
+    st.info(f"Sugestão pronta: {st.session_state.pending_prompt}")
+
+
+# =========================================================
+# HISTÓRICO
 # =========================================================
 for msg in st.session_state.chat:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
+
 # =========================================================
-# ENTRADA DO USUÁRIO
+# GERAÇÃO
 # =========================================================
-if st.session_state.pending_prompt:
-    st.info(f"Sugestão pronta para usar: {st.session_state.pending_prompt}")
+def pode_perguntar():
+    return st.session_state.contador_perguntas < MAX_PERGUNTAS_SESSAO
+
 
 payload = render_chat_input()
 
@@ -1137,15 +972,21 @@ if payload:
 
     if arquivos:
         arq = arquivos[0]
-        destino, nome_original = salvar_upload(arq)
-        nome_lower = arq.name.lower()
-        if nome_lower.endswith(".pdf"):
-            st.session_state.db_texto_pdf = processar_pdf_from_path(destino)
-            st.session_state.pdf_nome = nome_original
-            update_conversation_files(conv_id, destino, nome_original, None, None)
-        elif nome_lower.endswith((".png", ".jpg", ".jpeg")):
-            st.session_state.img_nome = nome_original
-            update_conversation_files(conv_id, None, None, destino, nome_original)
+        erro_upload = validar_upload(arq)
+        if erro_upload:
+            st.warning(erro_upload)
+        else:
+            destino, nome_original = salvar_upload(arq)
+            nome_lower = arq.name.lower()
+            if nome_lower.endswith(".pdf"):
+                st.session_state.db_texto_pdf = processar_pdf_from_path(destino)
+                st.session_state.pdf_nome = nome_original
+                update_conversation_files(conv_id, destino, nome_original, None, None)
+                st.toast(f"PDF ativo: {nome_original}")
+            elif nome_lower.endswith((".png", ".jpg", ".jpeg")):
+                st.session_state.img_nome = nome_original
+                update_conversation_files(conv_id, None, None, destino, nome_original)
+                st.toast(f"Imagem ativa: {nome_original}")
 
     if prompt and prompt.strip():
         if not pode_perguntar():
@@ -1158,6 +999,15 @@ if payload:
             st.session_state.contador_perguntas += 1
 
             pdf_path, pdf_name, image_path, image_name = extrair_contexto_ativo(conv_id)
+
+            prompt_sistema_ativo = obter_prompt_mentor_especializado(
+                nivel_escolhido,
+                disciplina_escolhida,
+                estilo_escolhido,
+                st.session_state.perfil_usuario,
+                servico_escolhido,
+            )
+
             prompt_usuario = montar_prompt_usuario(
                 pergunta,
                 modo,
@@ -1175,9 +1025,8 @@ if payload:
             st.session_state.chat.append({"role": "assistant", "content": resposta})
             st.rerun()
 
+
 # =========================================================
 # RODAPÉ
 # =========================================================
-st.caption(
-    "MentorEdu IFCE: interface focada no chat, com apoio institucional para alunos e professores e compatibilidade com seu fluxo de login."
-)
+st.caption("MentorEdu IFCE • versão enxuta, didática e focada no chat.")
