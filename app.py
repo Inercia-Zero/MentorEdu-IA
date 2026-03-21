@@ -43,6 +43,38 @@ def init_theme_state():
 def gerar_css_tema(tema: str) -> str:
     if tema == "Claro Creme":
         return """
+[data-testid="stChatInput"] {
+    background: #f6efe7 !important;
+    border-top: 1px solid var(--line) !important;
+}
+
+[data-testid="stChatInput"] > div {
+    background: #f6efe7 !important;
+}
+
+[data-testid="stChatInput"] textarea,
+[data-testid="stChatInput"] input {
+    background: transparent !important;
+    color: var(--text) !important;
+}
+
+[data-testid="stChatInput"] textarea::placeholder,
+[data-testid="stChatInput"] input::placeholder {
+    color: var(--muted) !important;
+}
+
+[data-testid="stBottomBlockContainer"] {
+    background: #f7f3ee !important;
+}
+
+[data-testid="stChatInputContainer"] {
+    background: #f7f3ee !important;
+}
+
+[data-testid="stChatInputContainer"] > div {
+    background: #f6efe7 !important;
+    border-top: 1px solid var(--line) !important;
+}
         <style>
             :root {
                 --bg: #f7f3ee;
