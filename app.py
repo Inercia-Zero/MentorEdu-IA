@@ -49,26 +49,28 @@ def gerar_css_tema(tema: str) -> str:
         return """
         <style>
             :root {
-                --if-green: #6b8f71;
-                --if-green-dark: #4f6f56;
-                --bg-soft: #efe6da;
-                --bg-sidebar: #e8dccf;
-                --card: #f6efe6;
-                --line: #d8cabb;
-                --text: #4b3b31;
-                --muted: #7a685c;
-                --notice-bg: #f7f0e7;
-                --notice-line: #d9bf93;
-                --notice-text: #6b553f;
-                --chip-bg: #f2e8dc;
-                --chip-line: #dbcbbb;
-                --status-bg: #f8f1e8;
+                --bg-soft: #f5efe7;
+                --bg-sidebar: #eee4d8;
+                --card: #fbf7f2;
+                --card-2: #f6eee5;
+                --line: #ddd0c0;
+                --text: #3b312b;
+                --muted: #7a6b5d;
+                --accent: #8b7766;
+                --accent-2: #756352;
+                --notice-bg: #f8f1e8;
+                --notice-line: #d7c2a8;
+                --badge-bg: #f1e7dc;
+                --chip-bg: #f6eee5;
             }
 
-            .stApp { background: var(--bg-soft); }
+            .stApp {
+                background: var(--bg-soft);
+                color: var(--text);
+            }
 
             [data-testid="stSidebar"] {
-                background: linear-gradient(180deg, var(--bg-sidebar) 0%, #e3d6c9 100%);
+                background: linear-gradient(180deg, var(--bg-sidebar) 0%, #e8ddcf 100%);
                 border-right: 1px solid var(--line);
             }
 
@@ -80,67 +82,83 @@ def gerar_css_tema(tema: str) -> str:
                 background: var(--card);
                 border: 1px solid var(--line);
                 color: var(--text);
-                box-shadow: 0 8px 22px rgba(90, 70, 50, .05);
+                box-shadow: 0 10px 28px rgba(95, 75, 55, 0.05);
             }
 
             .folder-hint {
-                background: #f4ece3;
+                background: var(--card-2);
                 border: 1px solid var(--line);
                 color: var(--muted);
             }
 
             .project-badge {
-                background: #e7efe7;
-                color: var(--if-green-dark);
-                border: 1px solid #c9d9cb;
+                background: var(--badge-bg);
+                color: #6b5a4c;
+                border: 1px solid #d9cab9;
             }
 
-            .main-title { color: var(--text); }
-            .subtitle, .small-muted { color: var(--muted) !important; }
+            .main-title { color: #2f2722; }
+
+            .subtitle, .small-muted {
+                color: var(--muted) !important;
+            }
 
             .if-chip {
                 background: var(--chip-bg);
-                border: 1px solid var(--chip-line);
+                border: 1px solid var(--line);
                 color: var(--text);
             }
 
             .notice-box {
                 background: var(--notice-bg);
                 border: 1px solid var(--notice-line);
-                border-left: 5px solid #c69a5b;
-                color: var(--notice-text);
-            }
-
-            .status-inline { background: var(--status-bg); }
-
-            .stChatMessage { background: transparent !important; }
-
-            .stMarkdown, .stText, p, li, label, span, div {
+                border-left: 4px solid #b89a7c;
                 color: var(--text);
             }
 
-            .stButton > button, .stDownloadButton > button {
-                background: #8d6e63 !important;
-                color: #fffaf6 !important;
-                border: 1px solid #7a5e54 !important;
-                border-radius: 12px !important;
+            .status-inline {
+                background: var(--card);
             }
 
-            .stButton > button:hover, .stDownloadButton > button:hover {
-                background: #7d6258 !important;
+            .stButton > button,
+            .stDownloadButton > button {
+                background: var(--accent) !important;
+                color: #fffaf6 !important;
+                border: 1px solid var(--accent) !important;
+                border-radius: 12px !important;
+                box-shadow: none !important;
+            }
+
+            .stButton > button:hover,
+            .stDownloadButton > button:hover {
+                background: var(--accent-2) !important;
+                border-color: var(--accent-2) !important;
             }
 
             .stTextInput input,
             .stTextArea textarea,
             .stSelectbox div[data-baseweb="select"] > div,
             .stMultiSelect div[data-baseweb="select"] > div {
-                background: #fbf6f0 !important;
+                background: #fcf8f4 !important;
                 color: var(--text) !important;
                 border: 1px solid var(--line) !important;
             }
 
+            .stRadio label,
+            .stCheckbox label,
+            .stCaption,
+            .stMarkdown,
+            p, li, span, div {
+                color: var(--text);
+            }
+
             [data-baseweb="popover"] * {
                 color: var(--text) !important;
+            }
+
+            [data-testid="stChatInput"] {
+                background: rgba(255, 251, 246, 0.9);
+                border-top: 1px solid var(--line);
             }
         </style>
         """
@@ -148,26 +166,28 @@ def gerar_css_tema(tema: str) -> str:
     return """
     <style>
         :root {
-            --if-green: #66d98f;
-            --if-green-dark: #3fbf73;
-            --bg-soft: #0f1115;
-            --bg-sidebar: #151922;
-            --card: #171c24;
-            --line: #26303d;
-            --text: #edf2f7;
-            --muted: #97a6b5;
-            --notice-bg: #1d1a10;
-            --notice-line: #7a6224;
-            --notice-text: #e7d7a6;
-            --chip-bg: #131a19;
-            --chip-line: #244436;
-            --status-bg: #141922;
+            --bg-soft: #060708;
+            --bg-sidebar: #0a0b0d;
+            --card: #101214;
+            --card-2: #0c0e10;
+            --line: #1b1f24;
+            --text: #eceff3;
+            --muted: #9aa3ad;
+            --accent: #d9dde3;
+            --accent-2: #bfc6cf;
+            --notice-bg: #0d1013;
+            --notice-line: #262b31;
+            --badge-bg: #111418;
+            --chip-bg: #0d1013;
         }
 
-        .stApp { background: var(--bg-soft); }
+        .stApp {
+            background: var(--bg-soft);
+            color: var(--text);
+        }
 
         [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, var(--bg-sidebar) 0%, #10141c 100%);
+            background: linear-gradient(180deg, var(--bg-sidebar) 0%, #08090b 100%);
             border-right: 1px solid var(--line);
         }
 
@@ -179,67 +199,85 @@ def gerar_css_tema(tema: str) -> str:
             background: var(--card);
             border: 1px solid var(--line);
             color: var(--text);
-            box-shadow: 0 10px 26px rgba(0,0,0,.25);
+            box-shadow: 0 16px 34px rgba(0, 0, 0, 0.32);
         }
 
         .folder-hint {
-            background: #131922;
+            background: var(--card-2);
             border: 1px solid var(--line);
             color: var(--muted);
         }
 
         .project-badge {
-            background: #13241b;
-            color: var(--if-green);
-            border: 1px solid #214d35;
+            background: var(--badge-bg);
+            color: #d8dde5;
+            border: 1px solid #242931;
         }
 
-        .main-title { color: var(--text); }
-        .subtitle, .small-muted { color: var(--muted) !important; }
+        .main-title {
+            color: #f5f7fa;
+        }
+
+        .subtitle, .small-muted {
+            color: var(--muted) !important;
+        }
 
         .if-chip {
             background: var(--chip-bg);
-            border: 1px solid var(--chip-line);
+            border: 1px solid var(--line);
             color: var(--text);
         }
 
         .notice-box {
             background: var(--notice-bg);
             border: 1px solid var(--notice-line);
-            border-left: 5px solid #c9a13d;
-            color: var(--notice-text);
-        }
-
-        .status-inline { background: var(--status-bg); }
-
-        .stChatMessage { background: transparent !important; }
-
-        .stMarkdown, .stText, p, li, label, span, div {
+            border-left: 4px solid #d7dce3;
             color: var(--text);
         }
 
-        .stButton > button, .stDownloadButton > button {
-            background: #1e8f4f !important;
-            color: white !important;
-            border: 1px solid #2da15e !important;
-            border-radius: 12px !important;
+        .status-inline {
+            background: var(--card);
         }
 
-        .stButton > button:hover, .stDownloadButton > button:hover {
-            background: #197943 !important;
+        .stButton > button,
+        .stDownloadButton > button {
+            background: #171a1e !important;
+            color: #f3f5f7 !important;
+            border: 1px solid #2a3037 !important;
+            border-radius: 12px !important;
+            box-shadow: none !important;
+        }
+
+        .stButton > button:hover,
+        .stDownloadButton > button:hover {
+            background: #1d2126 !important;
+            border-color: #353c45 !important;
         }
 
         .stTextInput input,
         .stTextArea textarea,
         .stSelectbox div[data-baseweb="select"] > div,
         .stMultiSelect div[data-baseweb="select"] > div {
-            background: #11161d !important;
+            background: #0b0d10 !important;
             color: var(--text) !important;
             border: 1px solid var(--line) !important;
         }
 
+        .stRadio label,
+        .stCheckbox label,
+        .stCaption,
+        .stMarkdown,
+        p, li, span, div {
+            color: var(--text);
+        }
+
         [data-baseweb="popover"] * {
             color: var(--text) !important;
+        }
+
+        [data-testid="stChatInput"] {
+            background: rgba(6, 7, 8, 0.94);
+            border-top: 1px solid var(--line);
         }
     </style>
     """
