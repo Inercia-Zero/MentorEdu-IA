@@ -46,6 +46,7 @@ def gerar_css_tema(tema: str) -> str:
         <style>
             :root {
                 --bg: #f7f3ee;
+                --bg-top: #f5efe7;
                 --sidebar: #efe6dc;
                 --card: #fffdf9;
                 --card-2: #f8f1e8;
@@ -59,12 +60,37 @@ def gerar_css_tema(tema: str) -> str:
             }
 
             .stApp {
-                background: var(--bg);
+                background: var(--bg) !important;
+            }
+
+            [data-testid="stAppViewContainer"] {
+                background: var(--bg) !important;
+            }
+
+            [data-testid="stMain"] {
+                background: var(--bg) !important;
+            }
+
+            [data-testid="stMainBlockContainer"] {
+                background: var(--bg) !important;
+            }
+
+            .main .block-container {
+                background: transparent !important;
+            }
+
+            header[data-testid="stHeader"] {
+                background: var(--bg-top) !important;
+                border-bottom: 1px solid var(--line) !important;
+            }
+
+            [data-testid="stToolbar"] {
+                background: transparent !important;
             }
 
             [data-testid="stSidebar"] {
-                background: var(--sidebar);
-                border-right: 1px solid var(--line);
+                background: var(--sidebar) !important;
+                border-right: 1px solid var(--line) !important;
             }
 
             [data-testid="stSidebar"] * {
@@ -77,37 +103,37 @@ def gerar_css_tema(tema: str) -> str:
             .mini-card,
             .status-inline,
             .notice-box {
-                background: var(--card);
-                border: 1px solid var(--line);
-                border-radius: 18px;
-                box-shadow: 0 10px 26px rgba(92, 70, 48, 0.06);
+                background: var(--card) !important;
+                border: 1px solid var(--line) !important;
+                border-radius: 18px !important;
+                box-shadow: 0 10px 26px rgba(92, 70, 48, 0.06) !important;
             }
 
             .folder-hint {
-                background: var(--card-2);
-                border: 1px solid var(--line);
-                border-radius: 14px;
-                color: var(--muted);
+                background: var(--card-2) !important;
+                border: 1px solid var(--line) !important;
+                border-radius: 14px !important;
+                color: var(--muted) !important;
             }
 
             .project-badge {
                 display: inline-block;
-                background: var(--badge);
-                color: #6a5849;
-                border: 1px solid #d9c9b6;
-                padding: 6px 12px;
-                border-radius: 999px;
-                font-size: .88rem;
-                font-weight: 700;
-                margin-bottom: 10px;
+                background: var(--badge) !important;
+                color: #6a5849 !important;
+                border: 1px solid #d9c9b6 !important;
+                padding: 6px 12px !important;
+                border-radius: 999px !important;
+                font-size: .88rem !important;
+                font-weight: 700 !important;
+                margin-bottom: 10px !important;
             }
 
             .main-title {
-                color: #2f2722;
-                font-size: 1.85rem;
-                font-weight: 800;
-                line-height: 1.1;
-                margin-bottom: 6px;
+                color: #2f2722 !important;
+                font-size: 1.85rem !important;
+                font-weight: 800 !important;
+                line-height: 1.1 !important;
+                margin-bottom: 6px !important;
             }
 
             .subtitle,
@@ -122,25 +148,25 @@ def gerar_css_tema(tema: str) -> str:
             }
 
             .if-chip {
-                background: var(--chip);
-                border: 1px solid var(--line);
-                border-radius: 999px;
-                padding: 7px 12px;
-                color: var(--text);
-                font-size: .87rem;
+                background: var(--chip) !important;
+                border: 1px solid var(--line) !important;
+                border-radius: 999px !important;
+                padding: 7px 12px !important;
+                color: var(--text) !important;
+                font-size: .87rem !important;
             }
 
             .notice-box {
-                border-left: 4px solid #b59676;
-                color: var(--text);
-                padding: 12px 14px;
-                margin-bottom: 12px;
+                border-left: 4px solid #b59676 !important;
+                color: var(--text) !important;
+                padding: 12px 14px !important;
+                margin-bottom: 12px !important;
             }
 
             .status-inline {
-                color: var(--text);
-                padding: 12px 14px;
-                margin-bottom: 10px;
+                color: var(--text) !important;
+                padding: 12px 14px !important;
+                margin-bottom: 10px !important;
             }
 
             .stButton > button {
@@ -165,6 +191,20 @@ def gerar_css_tema(tema: str) -> str:
                 border: 1px solid var(--line) !important;
             }
 
+            [data-testid="stBottomBlockContainer"] {
+                background: var(--bg) !important;
+                border-top: 1px solid var(--line) !important;
+            }
+
+            [data-testid="stChatInputContainer"] {
+                background: var(--bg) !important;
+            }
+
+            [data-testid="stChatInputContainer"] > div {
+                background: #f6efe7 !important;
+                border-top: 1px solid var(--line) !important;
+            }
+
             [data-testid="stChatInput"] {
                 background: #f6efe7 !important;
                 border-top: 1px solid var(--line) !important;
@@ -174,32 +214,19 @@ def gerar_css_tema(tema: str) -> str:
                 background: #f6efe7 !important;
             }
 
+            section[data-testid="stChatInput"] {
+                background: #f6efe7 !important;
+            }
+
             [data-testid="stChatInput"] textarea,
             [data-testid="stChatInput"] input {
-                background: transparent !important;
+                background: #f6efe7 !important;
                 color: var(--text) !important;
             }
 
             [data-testid="stChatInput"] textarea::placeholder,
             [data-testid="stChatInput"] input::placeholder {
                 color: var(--muted) !important;
-            }
-
-            [data-testid="stBottomBlockContainer"] {
-                background: #f7f3ee !important;
-            }
-
-            [data-testid="stChatInputContainer"] {
-                background: #f7f3ee !important;
-            }
-
-            [data-testid="stChatInputContainer"] > div {
-                background: #f6efe7 !important;
-                border-top: 1px solid var(--line) !important;
-            }
-
-            section[data-testid="stChatInput"] {
-                background: #f6efe7 !important;
             }
 
             .stChatMessage {
@@ -224,7 +251,7 @@ def gerar_css_tema(tema: str) -> str:
             }
 
             p, span, label, div {
-                color: var(--text);
+                color: var(--text) !important;
             }
         </style>
         """
