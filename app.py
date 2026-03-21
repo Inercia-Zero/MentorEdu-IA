@@ -953,15 +953,17 @@ conv_keys = list(conv_map.keys())
 conv_ids = list(conv_map.values())
 current_id = st.session_state.current_conversation_id
 
-    if current_id not in conv_ids and conv_ids:
-        current_id = conv_ids[0]
+   current_id = st.session_state.current_conversation_id
 
-    if conv_keys:
-        idx = conv_ids.index(current_id)
-        escolhido_key = st.selectbox("Selecione a conversa", conv_keys, index=idx)
-        escolhido_id = conv_map[escolhido_key]
-    else:
-        escolhido_id = create_conversation()
+if current_id not in conv_ids and conv_ids:
+    current_id = conv_ids[0]
+
+if conv_keys:
+    idx = conv_ids.index(current_id)
+    escolhido_key = st.selectbox("Selecione a conversa", conv_keys, index=idx)
+    escolhido_id = conv_map[escolhido_key]
+else:
+    escolhido_id = create_conversation()
 
     col_a, col_b = st.columns(2)
     with col_a:
