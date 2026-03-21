@@ -927,43 +927,44 @@ elif st.session_state.current_conversation_id is None:
 # =========================================================
 # SIDEBAR
 # =========================================================
-exibir_bloco_login_sidebar()
+with st.sidebar:
+    exibir_bloco_login_sidebar()
 
-st.markdown("### Aparência")
-novo_tema = st.radio(
-    "Tema",
-    ["Escuro", "Claro Creme"],
-    index=0 if st.session_state.tema_visual == "Escuro" else 1,
-    key="tema_radio",
-)
+    st.markdown("### Aparência")
+    novo_tema = st.radio(
+        "Tema",
+        ["Escuro", "Claro Creme"],
+        index=0 if st.session_state.tema_visual == "Escuro" else 1,
+        key="tema_radio",
+    )
 
-if novo_tema != st.session_state.tema_visual:
-    st.session_state.tema_visual = novo_tema
-    st.rerun()
+    if novo_tema != st.session_state.tema_visual:
+        st.session_state.tema_visual = novo_tema
+        st.rerun()
 
-st.markdown("---")
+    st.markdown("---")
 
-if os.path.exists(IF_LOGO):
-    st.image(IF_LOGO, use_container_width=True)
+    if os.path.exists(IF_LOGO):
+        st.image(IF_LOGO, use_container_width=True)
 
-st.markdown("### Conversas")
-conv_rows = list_conversations()
-conv_map = {f"{formatar_conversation_label(r)} • #{r[0]}": r[0] for r in conv_rows}
-conv_keys = list(conv_map.keys())
-conv_ids = list(conv_map.values())
-current_id = st.session_state.current_conversation_id
+    st.markdown("### Conversas")
+    conv_rows = list_conversations()
+    conv_map = {f"{formatar_conversation_label(r)} • #{r[0]}": r[0] for r in conv_rows}
+    conv_keys = list(conv_map.keys())
+    conv_ids = list(conv_map.values())
+    current_id = st.session_state.current_conversation_id
 
-   current_id = st.session_state.current_conversation_id
+    if current_id not in conv_ids and conv_ids:
+        current_id = conv_ids[0]
 
-if current_id not in conv_ids and conv_ids:
-    current_id = conv_ids[0]
-
-if conv_keys:
-    idx = conv_ids.index(current_id)
-    escolhido_key = st.selectbox("Selecione a conversa", conv_keys, index=idx)
-    escolhido_id = conv_map[escolhido_key]
-else:
-    escolhido_id = create_conversation()
+    if conv_keys:
+        idx = conv_ids.index(current_id)
+        escolhido_key = st.selectbox("Selecione a conversa", conv_keys, index=idx)
+        escolhido_id = conv_map[escolhido_key]
+    else:
+        escolhido_id = create_conversation()
+        st.session_state.current_conversation_id = escolhido_id
+        carregar_conversa_no_estado(escolhido_id)
 
     col_a, col_b = st.columns(2)
     with col_a:
@@ -989,11 +990,20 @@ else:
         ["Aluno", "Professor"],
         index=0 if st.session_state.perfil_usuario == "Aluno" else 1,
     )
+
     campus_options = ["IFCE - Geral", "Fortaleza", "Maracanaú", "Sobral", "Juazeiro do Norte", "Outro"]
     campus_index = campus_options.index(st.session_state.campus) if st.session_state.campus in campus_options else 0
     st.session_state.campus = st.selectbox("Campus / unidade", campus_options, index=campus_index)
-    st.session_state.curso = st.text_input("Curso", value=st.session_state.curso, placeholder="Ex.: Licenciatura em Física")
-    st.session_state.turma = st.text_input("Turma / semestre", value=st.session_state.turma, placeholder="Ex.: 1º semestre / 2º ano B")
+    st.session_state.curso = st.text_input(
+        "Curso",
+        value=st.session_state.curso,
+        placeholder="Ex.: Licenciatura em Física",
+    )
+    st.session_state.turma = st.text_input(
+        "Turma / semestre",
+        value=st.session_state.turma,
+        placeholder="Ex.: 1º semestre / 2º ano B",
+    )
 
     st.markdown("---")
     st.markdown("### Escolha seu Mentor")
@@ -1001,6 +1011,7 @@ else:
         "<div class='folder-hint'>Escolha o <b>nível</b>, a <b>disciplina</b>, o <b>estilo</b> e o <b>tipo de atendimento</b>.</div>",
         unsafe_allow_html=True,
     )
+
     estrutura = obter_estrutura_mentores()
     nivel_escolhido = st.radio("Nível de ensino", ["Ensino Médio", "Ensino Superior"])
     disciplinas = list(estrutura[nivel_escolhido]["disciplinas"].keys())
@@ -1039,6 +1050,7 @@ else:
     conv = get_conversation(st.session_state.current_conversation_id)
     pdf_name = conv[5] if conv else None
     image_name = conv[7] if conv else None
+
     st.markdown(
         f"""
         <div class="status-card" style="padding:14px; margin-top:10px;">
@@ -1064,15 +1076,18 @@ else:
     st.markdown("### Gerenciar conversa")
     conv_atual = get_conversation(st.session_state.current_conversation_id)
     titulo_atual = conv_atual[1] if conv_atual else ""
+
     novo_titulo = st.text_input("Renomear conversa", value=titulo_atual)
     if st.button("Salvar nome", use_container_width=True):
         if novo_titulo.strip():
             rename_conversation(st.session_state.current_conversation_id, novo_titulo)
             st.rerun()
+
     st.session_state.confirm_delete = st.checkbox(
         "Confirmar exclusão da conversa atual",
         value=st.session_state.confirm_delete,
     )
+
     if st.button("Apagar conversa atual", use_container_width=True):
         if st.session_state.confirm_delete:
             apagar_id = st.session_state.current_conversation_id
@@ -1085,76 +1100,8 @@ else:
             st.rerun()
         else:
             st.warning("Marque a confirmação antes de apagar.")
-            
+
 st.markdown(gerar_css_tema(st.session_state.tema_visual), unsafe_allow_html=True)
-
-# =========================================================
-# CABEÇALHO / PRINCIPAL
-# =========================================================
-prompt_sistema_ativo = obter_prompt_mentor_especializado(
-    nivel_escolhido,
-    disciplina_escolhida,
-    estilo_escolhido,
-    st.session_state.perfil_usuario,
-    servico_escolhido,
-)
-
-st.markdown(
-    f"""
-    <div class="hero-card" style="padding: 18px 22px; margin-bottom: 12px;">
-        <div style="text-align:center;">
-            <div class="project-badge">{PROJECT_NAME}</div>
-            <div class="main-title">{APP_NAME}</div>
-            <div class="subtitle">IA institucional para apoio a alunos e professores do IFCE.</div>
-            <div class="chip-wrap" style="justify-content:center; margin-top:10px;">
-                <span class="if-chip">Aluno + Professor</span>
-                <span class="if-chip">PDF + imagem</span>
-                <span class="if-chip">Planos e avaliações</span>
-                <span class="if-chip">Mentoria por disciplina</span>
-            </div>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-st.markdown(
-    f"<div class='notice-box'><b>Perfil ativo:</b> {st.session_state.perfil_usuario} • <b>Campus:</b> {st.session_state.campus} • <b>Atendimento:</b> {servico_escolhido}</div>",
-    unsafe_allow_html=True,
-)
-
-conv = get_conversation(st.session_state.current_conversation_id)
-pdf_name = conv[5] if conv else None
-image_name = conv[7] if conv else None
-status_arquivo = f"📄 PDF ativo: {pdf_name}" if pdf_name else (f"🖼️ Imagem ativa: {image_name}" if image_name else "Sem anexo ativo")
-st.markdown(f"<div class='status-inline'><b>Status:</b> {status_arquivo}</div>", unsafe_allow_html=True)
-
-st.markdown("### Atalhos úteis")
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("Explicar conteúdo passo a passo", use_container_width=True):
-        st.session_state.pending_prompt = "Explique passo a passo o seguinte conteúdo: "
-        st.rerun()
-    if st.button("Resumir PDF em tópicos", use_container_width=True):
-        st.session_state.pending_prompt = "Resuma este material em tópicos claros para revisão: "
-        st.rerun()
-with col2:
-    if st.button("Montar plano de estudo", use_container_width=True):
-        st.session_state.pending_prompt = "Monte um plano de estudo objetivo sobre: "
-        st.rerun()
-    if st.button("Criar atividade ou lista", use_container_width=True):
-        st.session_state.pending_prompt = "Crie uma lista de exercícios sobre: "
-        st.rerun()
-
-with st.expander("Como usar o MentorEdu"):
-    st.markdown(
-        """
-- Escolha o **perfil**, o **mentor** e o **tipo de atendimento** na esquerda.
-- Use a caixa de mensagem no rodapé.
-- Clique no **+** para anexar **PDF** ou **imagem**.
-- Peça resumos, questões, planos de aula, rubricas, revisões, correções e explicações.
-        """
-    )
 
 # =========================================================
 # HISTÓRICO DO CHAT
