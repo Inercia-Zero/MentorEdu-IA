@@ -1,8 +1,8 @@
 [theme]
 base = "dark"
-primaryColor = "#BB86FC"
-backgroundColor = "#121212"
-secondaryBackgroundColor = "#1E1E1E"
-textColor = "#E0E0E0"
-linkColor = "#8AB4F8"
+primaryColor = "#BB86FC"          # Mantém o roxo legal pros botões
+backgroundColor = "#0f172a"       # Slate escuro suave (menos "preto morto", mais legível)
+secondaryBackgroundColor = "#1e293b"  # Sidebar e cards um tom acima
+textColor = "#cbd5e1"             # Cinza mais claro e contrastado (slate-300)
+linkColor = "#8AB4F8"             # Links azuis suaves
 font = "sans serif"
