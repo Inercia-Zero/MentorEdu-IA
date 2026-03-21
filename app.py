@@ -16,6 +16,8 @@ from groq import Groq
 # CONFIGURAÇÃO GERAL
 # =========================================================
 st.set_page_config(
+
+    
     page_title="MentorEdu | Projeto Inércia Zero",
     page_icon="🎓",
     layout="wide",
@@ -33,6 +35,214 @@ MAX_IMG_MB = 8
 MAX_PERGUNTAS_SESSAO = 30
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# =========================================================
+# TEMA / ESTILO
+# =========================================================
+def init_theme_state():
+    if "tema_visual" not in st.session_state:
+        st.session_state.tema_visual = "Escuro"
+
+
+def gerar_css_tema(tema: str) -> str:
+    if tema == "Claro Creme":
+        return """
+        <style>
+            :root {
+                --if-green: #6b8f71;
+                --if-green-dark: #4f6f56;
+                --bg-soft: #efe6da;
+                --bg-sidebar: #e8dccf;
+                --card: #f6efe6;
+                --line: #d8cabb;
+                --text: #4b3b31;
+                --muted: #7a685c;
+                --notice-bg: #f7f0e7;
+                --notice-line: #d9bf93;
+                --notice-text: #6b553f;
+                --chip-bg: #f2e8dc;
+                --chip-line: #dbcbbb;
+                --status-bg: #f8f1e8;
+            }
+
+            .stApp { background: var(--bg-soft); }
+
+            [data-testid="stSidebar"] {
+                background: linear-gradient(180deg, var(--bg-sidebar) 0%, #e3d6c9 100%);
+                border-right: 1px solid var(--line);
+            }
+
+            [data-testid="stSidebar"] * {
+                color: var(--text) !important;
+            }
+
+            .hero-card, .mentor-card, .status-card, .mini-card, .status-inline {
+                background: var(--card);
+                border: 1px solid var(--line);
+                color: var(--text);
+                box-shadow: 0 8px 22px rgba(90, 70, 50, .05);
+            }
+
+            .folder-hint {
+                background: #f4ece3;
+                border: 1px solid var(--line);
+                color: var(--muted);
+            }
+
+            .project-badge {
+                background: #e7efe7;
+                color: var(--if-green-dark);
+                border: 1px solid #c9d9cb;
+            }
+
+            .main-title { color: var(--text); }
+            .subtitle, .small-muted { color: var(--muted) !important; }
+
+            .if-chip {
+                background: var(--chip-bg);
+                border: 1px solid var(--chip-line);
+                color: var(--text);
+            }
+
+            .notice-box {
+                background: var(--notice-bg);
+                border: 1px solid var(--notice-line);
+                border-left: 5px solid #c69a5b;
+                color: var(--notice-text);
+            }
+
+            .status-inline { background: var(--status-bg); }
+
+            .stChatMessage { background: transparent !important; }
+
+            .stMarkdown, .stText, p, li, label, span, div {
+                color: var(--text);
+            }
+
+            .stButton > button, .stDownloadButton > button {
+                background: #8d6e63 !important;
+                color: #fffaf6 !important;
+                border: 1px solid #7a5e54 !important;
+                border-radius: 12px !important;
+            }
+
+            .stButton > button:hover, .stDownloadButton > button:hover {
+                background: #7d6258 !important;
+            }
+
+            .stTextInput input,
+            .stTextArea textarea,
+            .stSelectbox div[data-baseweb="select"] > div,
+            .stMultiSelect div[data-baseweb="select"] > div {
+                background: #fbf6f0 !important;
+                color: var(--text) !important;
+                border: 1px solid var(--line) !important;
+            }
+
+            [data-baseweb="popover"] * {
+                color: var(--text) !important;
+            }
+        </style>
+        """
+
+    return """
+    <style>
+        :root {
+            --if-green: #66d98f;
+            --if-green-dark: #3fbf73;
+            --bg-soft: #0f1115;
+            --bg-sidebar: #151922;
+            --card: #171c24;
+            --line: #26303d;
+            --text: #edf2f7;
+            --muted: #97a6b5;
+            --notice-bg: #1d1a10;
+            --notice-line: #7a6224;
+            --notice-text: #e7d7a6;
+            --chip-bg: #131a19;
+            --chip-line: #244436;
+            --status-bg: #141922;
+        }
+
+        .stApp { background: var(--bg-soft); }
+
+        [data-testid="stSidebar"] {
+            background: linear-gradient(180deg, var(--bg-sidebar) 0%, #10141c 100%);
+            border-right: 1px solid var(--line);
+        }
+
+        [data-testid="stSidebar"] * {
+            color: var(--text) !important;
+        }
+
+        .hero-card, .mentor-card, .status-card, .mini-card, .status-inline {
+            background: var(--card);
+            border: 1px solid var(--line);
+            color: var(--text);
+            box-shadow: 0 10px 26px rgba(0,0,0,.25);
+        }
+
+        .folder-hint {
+            background: #131922;
+            border: 1px solid var(--line);
+            color: var(--muted);
+        }
+
+        .project-badge {
+            background: #13241b;
+            color: var(--if-green);
+            border: 1px solid #214d35;
+        }
+
+        .main-title { color: var(--text); }
+        .subtitle, .small-muted { color: var(--muted) !important; }
+
+        .if-chip {
+            background: var(--chip-bg);
+            border: 1px solid var(--chip-line);
+            color: var(--text);
+        }
+
+        .notice-box {
+            background: var(--notice-bg);
+            border: 1px solid var(--notice-line);
+            border-left: 5px solid #c9a13d;
+            color: var(--notice-text);
+        }
+
+        .status-inline { background: var(--status-bg); }
+
+        .stChatMessage { background: transparent !important; }
+
+        .stMarkdown, .stText, p, li, label, span, div {
+            color: var(--text);
+        }
+
+        .stButton > button, .stDownloadButton > button {
+            background: #1e8f4f !important;
+            color: white !important;
+            border: 1px solid #2da15e !important;
+            border-radius: 12px !important;
+        }
+
+        .stButton > button:hover, .stDownloadButton > button:hover {
+            background: #197943 !important;
+        }
+
+        .stTextInput input,
+        .stTextArea textarea,
+        .stSelectbox div[data-baseweb="select"] > div,
+        .stMultiSelect div[data-baseweb="select"] > div {
+            background: #11161d !important;
+            color: var(--text) !important;
+            border: 1px solid var(--line) !important;
+        }
+
+        [data-baseweb="popover"] * {
+            color: var(--text) !important;
+        }
+    </style>
+    """
 
 # =========================================================
 # LOGIN / AUTENTICAÇÃO
