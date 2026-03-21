@@ -562,9 +562,7 @@ def init_session_state():
         "last_sources": [],
         "pending_prompt": None,
         "perfil_usuario": "Aluno",
-        "campus": "IFCE - Geral",
         "curso": "",
-        "turma": "",
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -757,7 +755,7 @@ client, erro_cliente = carregar_cliente()
 # =========================================================
 def obter_estrutura_mentores() -> Dict[str, Dict[str, List[str]]]:
     base = {
-        "Física": ["Didático", "Feynman", "GrokFísica"],
+        "Física": ["Didático", "Feynman"],
         "Química": ["Didático", "Vestibular", "Laboratório"],
         "Matemática": ["Didático", "Objetivo", "Rigoroso"],
         "Programação": ["Didático", "Prático", "Monitor"],
@@ -798,13 +796,12 @@ def resumo_mentor(nivel, disciplina, estilo):
 
 def construir_contexto_institucional() -> str:
     perfil = st.session_state.get("perfil_usuario", "Aluno")
-    campus = st.session_state.get("campus", "IFCE - Geral")
     curso = st.session_state.get("curso", "")
-    turma = st.session_state.get("turma", "")
     return (
-        f"Contexto institucional: perfil={perfil}; instituição=IFCE; campus={campus}; "
-        f"curso={curso or 'não informado'}; turma={turma or 'não informada'}."
+        f"Contexto institucional: perfil={perfil}; instituição=IFCE; "
+        f"curso={curso or 'não informado'}."
     )
+
 
 
 def formatar_historico_curto(chat: List[Dict[str, str]], limite: int = CHAT_HISTORY_LIMIT) -> str:
@@ -841,8 +838,6 @@ def obter_prompt_mentor_especializado(nivel, disciplina, estilo, perfil, servico
 
     if estilo == "Feynman":
         base += " Explique como se estivesse ensinando alguém inteligente que está vendo o assunto pela primeira vez."
-    elif estilo == "GrokFísica":
-        base += " Use humor leve, mas sem prejudicar a didática."
     elif estilo == "Rigoroso":
         base += " Priorize precisão formal, definições e justificativas."
     elif estilo == "Monitor":
@@ -1010,8 +1005,6 @@ def montar_prompt_usuario(
         partes.append("Resolva passo a passo. Use LaTeX quando útil, com $...$ para inline e $$...$$ para destaque.")
     elif modo == "Chat Criativo":
         partes.append("Pode responder de forma mais criativa, porém ainda útil e informativa.")
-    elif modo == "GrokFísica (zoeira + didática)":
-        partes.append("Use humor leve, sem perder didática e correção conceitual.")
 
     return "\n\n".join(partes)
 
@@ -1159,19 +1152,10 @@ with st.sidebar:
         ["Aluno", "Professor"],
         index=0 if st.session_state.perfil_usuario == "Aluno" else 1,
     )
-
-    campus_options = ["IFCE - Geral", "Fortaleza", "Maracanaú", "Sobral", "Juazeiro do Norte", "Outro"]
-    campus_index = campus_options.index(st.session_state.campus) if st.session_state.campus in campus_options else 0
-    st.session_state.campus = st.selectbox("Campus / unidade", campus_options, index=campus_index)
     st.session_state.curso = st.text_input(
         "Curso",
         value=st.session_state.curso,
         placeholder="Ex.: Licenciatura em Física",
-    )
-    st.session_state.turma = st.text_input(
-        "Turma / semestre",
-        value=st.session_state.turma,
-        placeholder="Ex.: 1º semestre / 2º ano B",
     )
 
     st.markdown("---")
@@ -1202,7 +1186,7 @@ with st.sidebar:
 
     modo = st.selectbox(
         "Modo de trabalho",
-        ["Chat Geral", "Análise de Conteúdo", "Matemática", "Chat Criativo", "GrokFísica (zoeira + didática)"],
+        ["Chat Geral", "Análise de Conteúdo", "Matemática", "Chat Criativo"],
     )
 
     st.markdown("---")
