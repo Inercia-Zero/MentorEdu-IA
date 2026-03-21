@@ -177,6 +177,134 @@ def gerar_css_tema(tema: str) -> str:
                 box-shadow: none !important;
             }
 
+            .stButton > button:hover {# =========================================================
+# TEMA / ESTILO
+# =========================================================
+def init_theme_state():
+    if "tema_visual" not in st.session_state:
+        st.session_state.tema_visual = "Escuro"
+
+
+def gerar_css_tema(tema: str) -> str:
+    if tema == "Claro Creme":
+        return """
+        <style>
+            :root {
+                --bg: #f7f3ee;
+                --bg-top: #f5efe7;
+                --sidebar: #efe6dc;
+                --card: #fffdf9;
+                --card-2: #f8f1e8;
+                --line: #dccfc0;
+                --text: #3b312a;
+                --muted: #7a6d61;
+                --accent: #9a8676;
+                --accent-hover: #826f60;
+                --badge: #f1e7dc;
+                --chip: #f7efe6;
+            }
+
+            .stApp,
+            [data-testid="stAppViewContainer"],
+            [data-testid="stMain"],
+            [data-testid="stMainBlockContainer"] {
+                background: var(--bg) !important;
+            }
+
+            header[data-testid="stHeader"] {
+                background: var(--bg-top) !important;
+                border-bottom: 1px solid var(--line) !important;
+            }
+
+            [data-testid="stSidebar"] {
+                background: var(--sidebar) !important;
+                border-right: 1px solid var(--line) !important;
+            }
+
+            [data-testid="stSidebar"] * {
+                color: var(--text) !important;
+            }
+
+            .hero-card,
+            .mentor-card,
+            .status-card,
+            .mini-card,
+            .status-inline,
+            .notice-box {
+                background: var(--card) !important;
+                border: 1px solid var(--line) !important;
+                border-radius: 18px !important;
+                box-shadow: 0 10px 26px rgba(92, 70, 48, 0.06) !important;
+            }
+
+            .folder-hint {
+                background: var(--card-2) !important;
+                border: 1px solid var(--line) !important;
+                border-radius: 14px !important;
+                color: var(--muted) !important;
+            }
+
+            .project-badge {
+                display: inline-block;
+                background: var(--badge) !important;
+                color: #6a5849 !important;
+                border: 1px solid #d9c9b6 !important;
+                padding: 6px 12px !important;
+                border-radius: 999px !important;
+                font-size: .88rem !important;
+                font-weight: 700 !important;
+                margin-bottom: 10px !important;
+            }
+
+            .main-title {
+                color: #2f2722 !important;
+                font-size: 1.85rem !important;
+                font-weight: 800 !important;
+                line-height: 1.1 !important;
+                margin-bottom: 6px !important;
+            }
+
+            .subtitle,
+            .small-muted {
+                color: var(--muted) !important;
+            }
+
+            .chip-wrap {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .if-chip {
+                background: var(--chip) !important;
+                border: 1px solid var(--line) !important;
+                border-radius: 999px !important;
+                padding: 7px 12px !important;
+                color: var(--text) !important;
+                font-size: .87rem !important;
+            }
+
+            .notice-box {
+                border-left: 4px solid #b59676 !important;
+                color: var(--text) !important;
+                padding: 12px 14px !important;
+                margin-bottom: 12px !important;
+            }
+
+            .status-inline {
+                color: var(--text) !important;
+                padding: 12px 14px !important;
+                margin-bottom: 10px !important;
+            }
+
+            .stButton > button {
+                background: #9a8676 !important;
+                color: #fffdfa !important;
+                border: 1px solid #9a8676 !important;
+                border-radius: 12px !important;
+                box-shadow: none !important;
+            }
+
             .stButton > button:hover {
                 background: #826f60 !important;
                 border-color: #826f60 !important;
@@ -200,22 +328,12 @@ def gerar_css_tema(tema: str) -> str:
                 background: var(--bg) !important;
             }
 
-            [data-testid="stChatInputContainer"] > div {
-                background: #f6efe7 !important;
-                border-top: 1px solid var(--line) !important;
-            }
-
-            [data-testid="stChatInput"] {
-                background: #f6efe7 !important;
-                border-top: 1px solid var(--line) !important;
-            }
-
-            [data-testid="stChatInput"] > div {
-                background: #f6efe7 !important;
-            }
-
+            [data-testid="stChatInputContainer"] > div,
+            [data-testid="stChatInput"],
+            [data-testid="stChatInput"] > div,
             section[data-testid="stChatInput"] {
                 background: #f6efe7 !important;
+                border-top: 1px solid var(--line) !important;
             }
 
             [data-testid="stChatInput"] textarea,
@@ -249,10 +367,6 @@ def gerar_css_tema(tema: str) -> str:
             [data-testid="stExpander"] * {
                 color: var(--text) !important;
             }
-
-            p, span, label, div {
-                color: var(--text) !important;
-            }
         </style>
         """
 
@@ -260,6 +374,7 @@ def gerar_css_tema(tema: str) -> str:
     <style>
         :root {
             --bg: #0d0f12;
+            --bg-top: #111317;
             --sidebar: #111317;
             --card: #171a1f;
             --card-2: #14171b;
@@ -272,13 +387,21 @@ def gerar_css_tema(tema: str) -> str:
             --chip: #181c22;
         }
 
-        .stApp {
-            background: var(--bg);
+        .stApp,
+        [data-testid="stAppViewContainer"],
+        [data-testid="stMain"],
+        [data-testid="stMainBlockContainer"] {
+            background: var(--bg) !important;
+        }
+
+        header[data-testid="stHeader"] {
+            background: var(--bg-top) !important;
+            border-bottom: 1px solid var(--line) !important;
         }
 
         [data-testid="stSidebar"] {
-            background: var(--sidebar);
-            border-right: 1px solid var(--line);
+            background: var(--sidebar) !important;
+            border-right: 1px solid var(--line) !important;
         }
 
         [data-testid="stSidebar"] * {
@@ -929,16 +1052,19 @@ elif st.session_state.current_conversation_id is None:
 # =========================================================
 exibir_bloco_login_sidebar()
 
-with st.sidebar:
-    st.markdown("### Aparência")
-    st.session_state.tema_visual = st.radio(
-        "Tema",
-        ["Escuro", "Claro Creme"],
-        index=0 if st.session_state.tema_visual == "Escuro" else 1,
-    )
-    st.markdown(gerar_css_tema(st.session_state.tema_visual), unsafe_allow_html=True)
-    st.markdown("---")
+st.markdown("### Aparência")
+novo_tema = st.radio(
+    "Tema",
+    ["Escuro", "Claro Creme"],
+    index=0 if st.session_state.tema_visual == "Escuro" else 1,
+    key="tema_radio",
+)
 
+if novo_tema != st.session_state.tema_visual:
+    st.session_state.tema_visual = novo_tema
+    st.rerun()
+
+st.markdown("---")
     if os.path.exists(IF_LOGO):
         st.image(IF_LOGO, use_container_width=True)
 
@@ -1079,6 +1205,8 @@ with st.sidebar:
             st.rerun()
         else:
             st.warning("Marque a confirmação antes de apagar.")
+            
+st.markdown(gerar_css_tema(st.session_state.tema_visual), unsafe_allow_html=True)
 
 # =========================================================
 # CABEÇALHO / PRINCIPAL
