@@ -942,15 +942,16 @@ if novo_tema != st.session_state.tema_visual:
     st.rerun()
 
 st.markdown("---")
-    if os.path.exists(IF_LOGO):
-        st.image(IF_LOGO, use_container_width=True)
 
-    st.markdown("### Conversas")
-    conv_rows = list_conversations()
-    conv_map = {f"{formatar_conversation_label(r)} • #{r[0]}": r[0] for r in conv_rows}
-    conv_keys = list(conv_map.keys())
-    conv_ids = list(conv_map.values())
-    current_id = st.session_state.current_conversation_id
+if os.path.exists(IF_LOGO):
+    st.image(IF_LOGO, use_container_width=True)
+
+st.markdown("### Conversas")
+conv_rows = list_conversations()
+conv_map = {f"{formatar_conversation_label(r)} • #{r[0]}": r[0] for r in conv_rows}
+conv_keys = list(conv_map.keys())
+conv_ids = list(conv_map.values())
+current_id = st.session_state.current_conversation_id
 
     if current_id not in conv_ids and conv_ids:
         current_id = conv_ids[0]
