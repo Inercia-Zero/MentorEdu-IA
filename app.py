@@ -38,184 +38,25 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # =========================================================
 # TEMA
 # =========================================================
-def init_theme_state():
-    if "tema_visual" not in st.session_state:
-        st.session_state.tema_visual = "Escuro"
 
-
-def gerar_css_tema(tema: str) -> str:
-    if tema == "Claro Creme":
-        return """
-        <style>
-            :root {
-                --bg: #f7f3ee;
-                --bg-top: #f5efe7;
-                --sidebar: #efe6dc;
-                --card: #fffdf9;
-                --card-2: #f8f1e8;
-                --line: #dccfc0;
-                --text: #3b312a;
-                --muted: #7a6d61;
-                --accent: #8c7666;
-                --accent-hover: #776252;
-                --badge: #f1e7dc;
-                --chip: #f7efe6;
-                --user-bg: #efe4d7;
-                --assistant-bg: #fffaf5;
-            }
-
-            .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], [data-testid="stMainBlockContainer"] {
-                background: var(--bg) !important;
-            }
-
-            .main .block-container {
-                background: transparent !important;
-                padding-top: 1.2rem !important;
-            }
-
-            header[data-testid="stHeader"] {
-                background: var(--bg-top) !important;
-                border-bottom: 1px solid var(--line) !important;
-            }
-
-            [data-testid="stSidebar"] {
-                background: var(--sidebar) !important;
-                border-right: 1px solid var(--line) !important;
-            }
-
-            [data-testid="stSidebar"] * {
-                color: var(--text) !important;
-            }
-
-            .hero-card, .mentor-card, .status-card, .notice-box, .folder-hint {
-                background: var(--card) !important;
-                border: 1px solid var(--line) !important;
-                border-radius: 18px !important;
-                box-shadow: 0 12px 28px rgba(92, 70, 48, 0.07) !important;
-            }
-
-            .folder-hint {
-                background: var(--card-2) !important;
-                border-radius: 14px !important;
-                color: var(--muted) !important;
-                padding: 12px 14px !important;
-            }
-
-            .project-badge {
-                display: inline-block;
-                background: var(--badge) !important;
-                color: #6a5849 !important;
-                border: 1px solid #d9c9b6 !important;
-                padding: 6px 12px !important;
-                border-radius: 999px !important;
-                font-size: .88rem !important;
-                font-weight: 700 !important;
-                margin-bottom: 10px !important;
-            }
-
-            .main-title {
-                color: #2f2722 !important;
-                font-size: 1.95rem !important;
-                font-weight: 800 !important;
-                line-height: 1.08 !important;
-                margin-bottom: 6px !important;
-            }
-
-            .subtitle, .small-muted { color: var(--muted) !important; }
-
-            .chip-wrap {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-                margin-top: 10px;
-            }
-
-            .if-chip {
-                background: var(--chip) !important;
-                border: 1px solid var(--line) !important;
-                border-radius: 999px !important;
-                padding: 7px 12px !important;
-                color: var(--text) !important;
-                font-size: .87rem !important;
-            }
-
-            .notice-box {
-                border-left: 4px solid #b59676 !important;
-                color: var(--text) !important;
-                padding: 12px 14px !important;
-                margin-bottom: 12px !important;
-            }
-
-            .stButton > button {
-                background: var(--accent) !important;
-                color: #fffdfa !important;
-                border: 1px solid var(--accent) !important;
-                border-radius: 12px !important;
-            }
-
-            .stButton > button:hover {
-                background: var(--accent-hover) !important;
-                border-color: var(--accent-hover) !important;
-            }
-
-            .stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"] > div, .stMultiSelect div[data-baseweb="select"] > div {
-                background: #fffaf5 !important;
-                color: var(--text) !important;
-                border: 1px solid var(--line) !important;
-                border-radius: 12px !important;
-            }
-
-            [data-testid="stChatInputContainer"], [data-testid="stBottomBlockContainer"] {
-                background: var(--bg) !important;
-                border-top: 1px solid var(--line) !important;
-            }
-
-            [data-testid="stChatInput"] textarea, [data-testid="stChatInput"] input {
-                background: #f6efe7 !important;
-                color: var(--text) !important;
-            }
-
-            [data-testid="stChatMessageContent"] {
-                color: var(--text) !important;
-                border: 1px solid var(--line) !important;
-                border-radius: 16px !important;
-                padding: .55rem .7rem !important;
-            }
-
-            .stChatMessage:has([data-testid="chatAvatarIcon-user"]) [data-testid="stChatMessageContent"] {
-                background: var(--user-bg) !important;
-            }
-
-            .stChatMessage:has([data-testid="chatAvatarIcon-assistant"]) [data-testid="stChatMessageContent"] {
-                background: var(--assistant-bg) !important;
-            }
-
-            [data-testid="stExpander"] {
-                background: var(--card) !important;
-                border: 1px solid var(--line) !important;
-                border-radius: 14px !important;
-            }
-
-            p, span, label, div, li { color: var(--text) !important; }
-        </style>
-        """
-
+def gerar_css():
     return """
     <style>
         :root {
-            --bg: #0d0f12;
-            --sidebar: #111317;
-            --card: #171a1f;
-            --card-2: #14171b;
-            --line: #2a2f36;
-            --text: #eceff3;
-            --muted: #9ca3af;
-            --accent: #1b1f25;
-            --accent-hover: #252a31;
-            --badge: #1a1e24;
-            --chip: #181c22;
-            --user-bg: #1b222c;
-            --assistant-bg: #141920;
+            --bg: #f7f3ee;
+            --bg-top: #f5efe7;
+            --sidebar: #efe6dc;
+            --card: #fffdf9;
+            --card-2: #f8f1e8;
+            --line: #dccfc0;
+            --text: #3b312a;
+            --muted: #7a6d61;
+            --accent: #8c7666;
+            --accent-hover: #776252;
+            --badge: #f1e7dc;
+            --chip: #f7efe6;
+            --user-bg: #efe4d7;
+            --assistant-bg: #fffaf5;
         }
 
         .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], [data-testid="stMainBlockContainer"] {
@@ -227,6 +68,11 @@ def gerar_css_tema(tema: str) -> str:
             padding-top: 1.2rem !important;
         }
 
+        header[data-testid="stHeader"] {
+            background: var(--bg-top) !important;
+            border-bottom: 1px solid var(--line) !important;
+        }
+
         [data-testid="stSidebar"] {
             background: var(--sidebar) !important;
             border-right: 1px solid var(--line) !important;
@@ -236,11 +82,11 @@ def gerar_css_tema(tema: str) -> str:
             color: var(--text) !important;
         }
 
-        .hero-card, .mentor-card, .status-card, .notice-box, .folder-hint {
+        .hero-card, .mentor-card, .status-card, .notice-box, .folder-hint, .painel-card {
             background: var(--card) !important;
             border: 1px solid var(--line) !important;
             border-radius: 18px !important;
-            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22) !important;
+            box-shadow: 0 12px 28px rgba(92, 70, 48, 0.07) !important;
         }
 
         .folder-hint {
@@ -253,8 +99,8 @@ def gerar_css_tema(tema: str) -> str:
         .project-badge {
             display: inline-block;
             background: var(--badge) !important;
-            color: #e5e7eb !important;
-            border: 1px solid #303640 !important;
+            color: #6a5849 !important;
+            border: 1px solid #d9c9b6 !important;
             padding: 6px 12px !important;
             border-radius: 999px !important;
             font-size: .88rem !important;
@@ -263,14 +109,16 @@ def gerar_css_tema(tema: str) -> str:
         }
 
         .main-title {
-            color: #f3f4f6 !important;
+            color: #2f2722 !important;
             font-size: 1.95rem !important;
             font-weight: 800 !important;
             line-height: 1.08 !important;
             margin-bottom: 6px !important;
         }
 
-        .subtitle, .small-muted { color: var(--muted) !important; }
+        .subtitle, .small-muted {
+            color: var(--muted) !important;
+        }
 
         .chip-wrap {
             display: flex;
@@ -289,7 +137,7 @@ def gerar_css_tema(tema: str) -> str:
         }
 
         .notice-box {
-            border-left: 4px solid #d1d5db !important;
+            border-left: 4px solid #b59676 !important;
             color: var(--text) !important;
             padding: 12px 14px !important;
             margin-bottom: 12px !important;
@@ -297,31 +145,52 @@ def gerar_css_tema(tema: str) -> str:
 
         .stButton > button {
             background: var(--accent) !important;
-            color: #f3f4f6 !important;
-            border: 1px solid #343a43 !important;
+            color: #fffdfa !important;
+            border: 1px solid var(--accent) !important;
             border-radius: 12px !important;
         }
 
         .stButton > button:hover {
             background: var(--accent-hover) !important;
-            border-color: #434a55 !important;
+            border-color: var(--accent-hover) !important;
         }
 
-        .stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"] > div, .stMultiSelect div[data-baseweb="select"] > div {
-            background: #12171d !important;
+        .stTextInput input,
+        .stTextArea textarea,
+        .stSelectbox div[data-baseweb="select"] > div,
+        .stMultiSelect div[data-baseweb="select"] > div {
+            background: #fffaf5 !important;
             color: var(--text) !important;
             border: 1px solid var(--line) !important;
             border-radius: 12px !important;
         }
 
-        [data-testid="stChatInputContainer"], [data-testid="stBottomBlockContainer"] {
+        [data-testid="stBottomBlockContainer"] {
             background: var(--bg) !important;
             border-top: 1px solid var(--line) !important;
         }
 
-        [data-testid="stChatInput"] textarea, [data-testid="stChatInput"] input {
-            background: #11161c !important;
+        [data-testid="stChatInputContainer"] {
+            background: var(--bg) !important;
+        }
+
+        [data-testid="stChatInputContainer"] > div,
+        [data-testid="stChatInput"],
+        [data-testid="stChatInput"] > div,
+        section[data-testid="stChatInput"] {
+            background: var(--bg) !important;
+            border-top: 1px solid var(--line) !important;
+        }
+
+        [data-testid="stChatInput"] textarea,
+        [data-testid="stChatInput"] input {
+            background: #f6efe7 !important;
             color: var(--text) !important;
+        }
+
+        [data-testid="stChatInput"] textarea::placeholder,
+        [data-testid="stChatInput"] input::placeholder {
+            color: var(--muted) !important;
         }
 
         [data-testid="stChatMessageContent"] {
@@ -345,13 +214,13 @@ def gerar_css_tema(tema: str) -> str:
             border-radius: 14px !important;
         }
 
-        p, span, label, div, li { color: var(--text) !important; }
+        p, span, label, div, li {
+            color: var(--text) !important;
+        }
     </style>
     """
-
-
-init_theme_state()
-st.markdown(gerar_css_tema(st.session_state.tema_visual), unsafe_allow_html=True)
+    
+st.markdown(gerar_css(), unsafe_allow_html=True)
 
 # =========================================================
 # DB
@@ -1012,17 +881,6 @@ elif st.session_state.current_conversation_id is None:
 with st.sidebar:
     exibir_bloco_login_sidebar()
 
-    st.markdown("### Aparência")
-    novo_tema = st.radio(
-        "Tema",
-        ["Escuro", "Claro Creme"],
-        index=0 if st.session_state.tema_visual == "Escuro" else 1,
-        key="tema_radio",
-    )
-    if novo_tema != st.session_state.tema_visual:
-        st.session_state.tema_visual = novo_tema
-        st.rerun()
-
     if os.path.exists(IF_LOGO):
         st.image(IF_LOGO, use_container_width=True)
 
@@ -1053,6 +911,7 @@ with st.sidebar:
             resetar_sessao_visual()
             carregar_conversa_no_estado(novo_id)
             st.rerun()
+
     with col_b:
         if st.button("Recarregar", use_container_width=True):
             carregar_conversa_no_estado(escolhido_id)
@@ -1063,68 +922,14 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    st.markdown("### Configuração acadêmica")
-    st.session_state.nivel = st.radio("Nível de ensino", ["Ensino Médio", "Ensino Superior"])
+    st.markdown("### PDF")
 
-    areas = list(opcoes_area().keys())
-    area_index = areas.index(st.session_state.area) if st.session_state.area in areas else 0
-    st.session_state.area = st.selectbox("Área", areas, index=area_index)
-
-    materias_area = opcoes_area()[st.session_state.area]
-    if st.session_state.materia not in materias_area:
-        st.session_state.materia = materias_area[0]
-
-    materia_index = materias_area.index(st.session_state.materia)
-    st.session_state.materia = st.selectbox("Matéria", materias_area, index=materia_index)
-
-    tipos = opcoes_tipo_ajuda(st.session_state.materia)
-    if st.session_state.tipo_ajuda not in tipos:
-        st.session_state.tipo_ajuda = tipos[0]
-    tipo_index = tipos.index(st.session_state.tipo_ajuda)
-    st.session_state.tipo_ajuda = st.selectbox("Tipo de ajuda", tipos, index=tipo_index)
-
-    estilos = ["Direto", "Didático", "Passo a passo", "Revisão rápida"]
-    estilo_index = estilos.index(st.session_state.estilo_resposta) if st.session_state.estilo_resposta in estilos else 1
-    st.session_state.estilo_resposta = st.selectbox("Estilo da resposta", estilos, index=estilo_index)
-
-    reforcos_disp = opcoes_reforco(st.session_state.materia)
-    reforcos_validos = [r for r in st.session_state.reforcos if r in reforcos_disp]
-    if not reforcos_validos:
-        reforcos_validos = [reforcos_disp[0]]
-    st.session_state.reforcos = st.multiselect(
-        "Reforços",
-        reforcos_disp,
-        default=reforcos_validos,
-    )
-
-    st.markdown(
-        f"""
-        <div class="mentor-card" style="padding:14px; margin-top:10px;">
-            <h4 style="margin:0 0 6px 0;">{st.session_state.materia}</h4>
-            <p style="margin:0;">{resumo_materia(st.session_state.materia)}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.markdown("---")
-    st.markdown("### Ferramentas rápidas")
-    sugs = sugestoes_rapidas(st.session_state.materia)
-    for i, sug in enumerate(sugs):
-        if st.button(sug[:40] + ("..." if len(sug) > 40 else ""), use_container_width=True, key=f"sug_{i}"):
-            st.session_state.pending_prompt = sug
-
-    st.markdown("---")
-    st.markdown("### Estado da sessão")
     conv = get_conversation(st.session_state.current_conversation_id)
     pdf_name = conv[5] if conv else None
 
     st.markdown(
         f"""
         <div class="status-card" style="padding:14px; margin-top:10px;">
-            <div><b>Perguntas</b></div>
-            <div>{st.session_state.contador_perguntas}/{MAX_PERGUNTAS_SESSAO}</div>
-            <hr style="margin:10px 0; border:none; border-top:1px solid #2a313b;">
             <div><b>PDF ativo</b></div>
             <div>{pdf_name if pdf_name else 'Nenhum'}</div>
         </div>
@@ -1139,10 +944,12 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### Gerenciar conversa")
+
     conv_atual = get_conversation(st.session_state.current_conversation_id)
     titulo_atual = conv_atual[1] if conv_atual else ""
 
     novo_titulo = st.text_input("Renomear conversa", value=titulo_atual)
+
     if st.button("Salvar nome", use_container_width=True):
         if novo_titulo.strip():
             rename_conversation(st.session_state.current_conversation_id, novo_titulo)
