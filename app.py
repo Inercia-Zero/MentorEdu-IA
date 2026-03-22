@@ -826,7 +826,7 @@ def obter_prompt_sistema() -> str:
         )
 
     if subject == "Metodologia Científica":
-        base += (f
+        base += (
             "Quando o assunto for metodologia científica, ajude a discutir viabilidade de projetos, estrutura de relatórios, "
             "manuscritos, resumos, introduções, objetivos, justificativas, métodos e organização acadêmica. "
             "Seja honesto ao avaliar se uma ideia de projeto parece promissora ou fraca. "
