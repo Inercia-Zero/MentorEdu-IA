@@ -67,7 +67,7 @@ def gerar_css() -> str:
         }
 
         .main .block-container {
-            padding-top: 1.1rem !important;
+            padding-top: 1rem !important;
             padding-bottom: 1rem !important;
         }
 
@@ -107,10 +107,10 @@ def gerar_css() -> str:
 
         .main-title {
             color: #5b473b !important;
-            font-size: 2.3rem !important;
+            font-size: 2.25rem !important;
             font-weight: 700 !important;
             line-height: 1.08 !important;
-            margin-bottom: 6px !important;
+            margin-bottom: 8px !important;
             text-align: center !important;
         }
 
@@ -264,7 +264,7 @@ st.markdown(gerar_css(), unsafe_allow_html=True)
 
 
 # =========================================================
-# DB
+# BANCO DE DADOS
 # =========================================================
 def get_conn():
     return sqlite3.connect(DB_PATH, check_same_thread=False)
@@ -308,7 +308,7 @@ init_db()
 
 
 # =========================================================
-# SESSÃO
+# ESTADO DE SESSÃO
 # =========================================================
 def init_session_state():
     defaults = {
@@ -762,8 +762,8 @@ def gerar_resposta_groq(prompt_sistema: str, prompt_usuario: str) -> str:
                 {"role": "system", "content": prompt_sistema},
                 {"role": "user", "content": prompt_usuario},
             ],
-            temperature=0.35,
-            max_tokens=1100,
+            temperature=0.25,
+            max_tokens=1000,
         )
         return limpar_resposta(resp.choices[0].message.content.strip())
     except Exception as e:
@@ -797,8 +797,8 @@ def gerar_texto_visual(resposta: str, pergunta: str) -> str:
                 {"role": "system", "content": prompt_sistema},
                 {"role": "user", "content": prompt_usuario},
             ],
-            temperature=0.25,
-            max_tokens=300,
+            temperature=0.2,
+            max_tokens=280,
         )
         return resp.choices[0].message.content.strip()
     except Exception:
