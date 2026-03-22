@@ -39,6 +39,51 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # TEMA
 # =========================================================
 def gerar_css():
+    div[data-baseweb="popover"] {
+    background: transparent !important;
+}
+
+div[data-baseweb="popover"] > div {
+    background: #fffaf5 !important;
+    border: 1px solid #dccfc0 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 12px 28px rgba(92, 70, 48, 0.10) !important;
+}
+
+ul[role="listbox"] {
+    background: #fffaf5 !important;
+    border-radius: 14px !important;
+}
+
+ul[role="listbox"] li {
+    background: #fffaf5 !important;
+    color: #3b312a !important;
+}
+
+ul[role="listbox"] li:hover {
+    background: #efe4d7 !important;
+    color: #3b312a !important;
+}
+
+ul[role="listbox"] li[aria-selected="true"] {
+    background: #e9dfd3 !important;
+    color: #3b312a !important;
+}
+
+div[role="option"] {
+    background: #fffaf5 !important;
+    color: #3b312a !important;
+}
+
+div[role="option"]:hover {
+    background: #efe4d7 !important;
+    color: #3b312a !important;
+}
+
+div[aria-selected="true"] {
+    background: #e9dfd3 !important;
+    color: #3b312a !important;
+}
     return """
     <style>
         :root {
