@@ -256,6 +256,120 @@ def gerar_css() -> str:
         p, span, label, div, li {
             color: var(--text) !important;
         }
+                .login-card {
+            background: #fffdf9 !important;
+            border: 1px solid #dccfc0 !important;
+            border-radius: 22px !important;
+            padding: 16px !important;
+            box-shadow: 0 10px 24px rgba(92, 70, 48, 0.06) !important;
+            margin-bottom: 10px !important;
+        }
+
+        .login-card-title {
+            font-size: 1.15rem !important;
+            font-weight: 700 !important;
+            color: #4f3f34 !important;
+            margin-bottom: 2px !important;
+        }
+
+        .login-card-subtitle {
+            font-size: 0.88rem !important;
+            color: #7a6d61 !important;
+            margin-bottom: 14px !important;
+        }
+
+        .login-user-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f8f1e8;
+            border: 1px solid #e2d5c8;
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .login-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 999px;
+            background: #9a8676;
+            color: white !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .login-user-name {
+            font-weight: 700 !important;
+            color: #4f3f34 !important;
+            line-height: 1.1;
+        }
+
+        .login-user-email {
+            font-size: 0.85rem !important;
+            color: #7a6d61 !important;
+            word-break: break-word;
+            margin-top: 2px;
+        }
+
+        .login-empty-box {
+            background: #f8f1e8;
+            border: 1px solid #e2d5c8;
+            border-radius: 16px;
+            padding: 12px;
+            color: #6f6257 !important;
+            font-size: 0.92rem;
+            margin-bottom: 12px;
+        }
+
+        .top-hero {
+            background: #fffdf9;
+            border: 1px solid #dccfc0;
+            border-radius: 24px;
+            padding: 24px 24px 18px 24px;
+            box-shadow: 0 12px 28px rgba(92, 70, 48, 0.07);
+            margin-bottom: 16px;
+        }
+
+        .top-hero-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #4f3f34 !important;
+            margin-bottom: 6px;
+            text-align: center;
+        }
+
+        .top-hero-subtitle {
+            text-align: center;
+            color: #7a6d61 !important;
+            font-size: 0.98rem;
+            margin-bottom: 10px;
+        }
+
+        .top-hero-chips {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .top-hero-chip {
+            background: #f7efe6;
+            border: 1px solid #dccfc0;
+            border-radius: 999px;
+            padding: 7px 12px;
+            color: #4f3f34 !important;
+            font-size: 0.88rem;
+        }
+
+        .painel-card {
+            padding: 30px !important;
+        }
     </style>
     """
 
