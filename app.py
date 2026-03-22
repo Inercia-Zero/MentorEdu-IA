@@ -341,20 +341,48 @@ init_session_state()
 # =========================================================
 def exibir_bloco_login_sidebar():
     try:
-        st.markdown("### 👤 Conta")
+        st.markdown(
+            """
+            <div class="login-card">
+                <div class="login-card-title">Conta</div>
+                <div class="login-card-subtitle">Acesse para salvar melhor sua experiência</div>
+            """,
+            unsafe_allow_html=True,
+        )
+
         if hasattr(st, "user") and getattr(st.user, "is_logged_in", False):
             nome = st.user.name.split()[0] if getattr(st.user, "name", None) else "Usuário"
-            st.markdown(f"**{nome}**")
             email = getattr(st.user, "email", "")
-            if email:
-                st.caption(email)
+
+            st.markdown(
+                f"""
+                <div class="login-user-box">
+                    <div class="login-avatar">{nome[:1].upper()}</div>
+                    <div>
+                        <div class="login-user-name">{nome}</div>
+                        <div class="login-user-email">{email}</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
             if st.button("Sair", use_container_width=True, key="logout_btn"):
                 st.logout()
         else:
-            st.caption("Entre com sua conta para personalizar a experiência.")
+            st.markdown(
+                """
+                <div class="login-empty-box">
+                    Entre com sua conta para personalizar o atendimento e manter suas conversas organizadas.
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
             if hasattr(st, "login"):
                 if st.button("Entrar com Google", use_container_width=True, key="login_btn"):
                     st.login()
+
+        st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("---")
     except Exception:
         pass
