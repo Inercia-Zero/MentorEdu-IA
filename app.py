@@ -11,6 +11,7 @@ from pypdf import PdfReader
 from groq import Groq
 from PIL import Image, ImageDraw, ImageFont
 
+
 # =========================================================
 # CONFIGURAÇÃO GERAL
 # =========================================================
@@ -37,6 +38,7 @@ CHAT_HISTORY_LIMIT = 6
 MODEL_NAME = "llama-3.3-70b-versatile"
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 
 # =========================================================
 # TEMA
@@ -306,7 +308,6 @@ def gerar_css() -> str:
             border-radius: 14px !important;
         }
 
-        /* Dropdown */
         div[data-baseweb="popover"],
         div[data-baseweb="popover"] * {
             color: #3b312a !important;
@@ -363,7 +364,6 @@ def gerar_css() -> str:
             color: #3b312a !important;
         }
 
-        /* Chat input */
         [data-testid="stBottomBlockContainer"] {
             background: var(--bg) !important;
             border-top: 1px solid var(--line) !important;
@@ -392,7 +392,6 @@ def gerar_css() -> str:
             color: #7a6d61 !important;
         }
 
-        /* Bolhas */
         [data-testid="stChatMessageContent"] {
             color: var(--text) !important;
             border: 1px solid var(--line) !important;
@@ -429,7 +428,7 @@ st.markdown(gerar_css(), unsafe_allow_html=True)
 
 
 # =========================================================
-# UTILITÁRIOS
+# BANCO DE DADOS
 # =========================================================
 def get_conn():
     return sqlite3.connect(DB_PATH, check_same_thread=False)
@@ -467,10 +466,26 @@ def init_db():
         """
     )
 
+    # migração simples para bancos antigos
+    cur.execute("PRAGMA table_info(conversations)")
+    cols = [row[1] for row in cur.fetchall()]
+
+    if "profile" not in cols:
+        cur.execute("ALTER TABLE conversations ADD COLUMN profile TEXT")
+    if "nickname" not in cols:
+        cur.execute("ALTER TABLE conversations ADD COLUMN nickname TEXT")
+    if "pdf_path" not in cols:
+        cur.execute("ALTER TABLE conversations ADD COLUMN pdf_path TEXT")
+    if "pdf_name" not in cols:
+        cur.execute("ALTER TABLE conversations ADD COLUMN pdf_name TEXT")
+
     conn.commit()
     conn.close()
 
 
+# =========================================================
+# ESTADO DE SESSÃO
+# =========================================================
 def init_session_state():
     defaults = {
         "auth_complete": False,
@@ -497,9 +512,48 @@ init_db()
 init_session_state()
 
 
+# =========================================================
+# UTILITÁRIOS
+# =========================================================
 def get_first_name(name: str) -> str:
     txt = (name or "").strip()
     return txt.split()[0] if txt else "Usuário"
+
+
+def student_subjects() -> List[str]:
+    return ["Física", "Matemática", "Química", "Português", "Inglês"]
+
+
+def teacher_subjects() -> List[str]:
+    return ["Física", "Matemática", "Química", "Linguagens", "Metodologia Científica"]
+
+
+def student_focuses() -> List[str]:
+    return [
+        "Estudo",
+        "Resolver exercício",
+        "Revisão para prova",
+        "Resumo de PDF",
+        "Explicação em LaTeX",
+        "Esquema visual",
+    ]
+
+
+def teacher_focuses() -> List[str]:
+    return [
+        "Metodologia",
+        "Criar questões",
+        "Planejar aula",
+        "Trabalhar PDF",
+        "Atividade / dinâmica",
+        "Iniciação científica",
+    ]
+
+
+def profile_description(profile: str) -> str:
+    if profile == "Professor":
+        return "apoio em metodologia, planejamento, questões, materiais e iniciação científica"
+    return "apoio em conteúdos, exercícios, revisão, PDFs e explicações visuais"
 
 
 def list_conversations():
@@ -614,7 +668,6 @@ def maybe_update_title_from_first_message(conversation_id, text):
     texto = (text or "").strip()
     if not texto:
         return
-
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("SELECT title FROM conversations WHERE id = ?", (conversation_id,))
@@ -661,7 +714,7 @@ def carregar_conversa_no_estado(conversation_id):
 
 
 def formatar_conversation_label(row):
-    conv_id, title, _, _, profile, nickname, pdf_name = row
+    _, title, _, _, profile, _, pdf_name = row
     extras = []
     if profile:
         extras.append(profile)
@@ -671,6 +724,9 @@ def formatar_conversation_label(row):
     return f"{title}{suffix}"
 
 
+# =========================================================
+# CLIENTE GROQ
+# =========================================================
 def carregar_cliente() -> Tuple[Optional[Groq], Optional[str]]:
     try:
         chave = str(st.secrets.get("GROQ_API_KEY", "")).strip()
@@ -688,44 +744,8 @@ client, erro_cliente = carregar_cliente()
 
 
 # =========================================================
-# CONTEÚDO / PERFIS
+# PDF / PROMPTS
 # =========================================================
-def student_subjects() -> List[str]:
-    return ["Física", "Matemática", "Química", "Português", "Inglês"]
-
-
-def teacher_subjects() -> List[str]:
-    return ["Física", "Matemática", "Química", "Linguagens", "Metodologia Científica"]
-
-
-def student_focuses() -> List[str]:
-    return [
-        "Estudo",
-        "Resolver exercício",
-        "Revisão para prova",
-        "Resumo de PDF",
-        "Explicação em LaTeX",
-        "Esquema visual",
-    ]
-
-
-def teacher_focuses() -> List[str]:
-    return [
-        "Metodologia",
-        "Criar questões",
-        "Planejar aula",
-        "Trabalhar PDF",
-        "Atividade / dinâmica",
-        "Iniciação científica",
-    ]
-
-
-def profile_description(profile: str) -> str:
-    if profile == "Professor":
-        return "apoio em metodologia, planejamento, questões, materiais e iniciação científica"
-    return "apoio em conteúdos, exercícios, revisão, PDFs e explicações visuais"
-
-
 def processar_pdf_from_path(pdf_path: str) -> Optional[str]:
     try:
         reader = PdfReader(pdf_path)
@@ -785,7 +805,7 @@ def obter_prompt_sistema() -> str:
         f"Você é o MentorEdu IA, um mentor acadêmico institucional do {INSTITUTION_NAME}, "
         f"ligado ao {PROJECT_NAME} e à {COURSE_NAME}. "
         f"Você está atendendo {nome}, no perfil {profile}. "
-        f"Foco atual: área/assunto {subject}. Modo atual: {focus}. "
+        f"Foco atual: assunto {subject}. Modo atual: {focus}. "
         "Responda em português do Brasil, exceto quando a pessoa pedir explicitamente prática em inglês. "
         "Seja didático, claro, elegante e objetivo. "
         "Evite introduções longas e repetitivas. "
@@ -823,7 +843,7 @@ def montar_prompt_usuario(pergunta: str, pdf_texto: Optional[str]) -> str:
         f"Foco atual: {st.session_state.focus_mode}",
     ]
 
-    historico = formatar_historico_curto(st.session_state.get("chat", []))
+    historico = formatar_historico_curto(st.session_state.get('chat', []))
     if historico:
         partes.append("Histórico recente:\n" + historico)
 
@@ -913,6 +933,9 @@ def gerar_texto_visual(resposta: str, pergunta: str) -> str:
         return "Resumo visual indisponível no momento."
 
 
+# =========================================================
+# IMAGEM LOCAL
+# =========================================================
 def _get_font(size: int = 24):
     possiveis = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -973,6 +996,9 @@ def criar_imagem_esquema(titulo: str, corpo: str) -> str:
     return caminho
 
 
+# =========================================================
+# INPUT
+# =========================================================
 def render_chat_input():
     try:
         payload = st.chat_input(
@@ -1388,4 +1414,4 @@ if payload:
 
 st.caption(
     f"{APP_NAME} • {PROJECT_NAME} • {INSTITUTION_NAME} • {COURSE_NAME}"
-)
+)s
