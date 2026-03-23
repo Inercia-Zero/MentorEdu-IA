@@ -1,6 +1,7 @@
 import os
 import re
 import uuid
+import hashlib
 import textwrap
 import sqlite3
 from datetime import datetime
@@ -41,7 +42,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 # =========================================================
-# TEMA
+# TEMA / CSS
 # =========================================================
 def gerar_css() -> str:
     return """
@@ -57,9 +58,7 @@ def gerar_css() -> str:
             --muted: #7a6d61;
             --accent: #9a8676;
             --accent-hover: #826f60;
-            --accent-soft: #efe4d7;
             --badge: #f1e7dc;
-            --chip: #f7efe6;
             --user-bg: #efe4d7;
             --assistant-bg: #fffaf5;
             --shadow: 0 12px 28px rgba(92, 70, 48, 0.07);
@@ -75,6 +74,7 @@ def gerar_css() -> str:
         .main .block-container {
             padding-top: 1rem !important;
             padding-bottom: 1rem !important;
+            max-width: 1100px !important;
         }
 
         header[data-testid="stHeader"] {
@@ -95,8 +95,9 @@ def gerar_css() -> str:
         .painel-card,
         .status-card,
         .login-card,
-        .mini-card,
-        .choice-card {
+        .choice-card,
+        .account-card,
+        .mini-soft-card {
             background: var(--card) !important;
             border: 1px solid var(--line) !important;
             border-radius: 24px !important;
@@ -149,14 +150,14 @@ def gerar_css() -> str:
 
         .course-title {
             color: #7b6a5c !important;
-            font-size: 1.08rem !important;
+            font-size: 1.02rem !important;
             font-weight: 600 !important;
             margin-bottom: 0 !important;
         }
 
         .main-title {
             color: #5b473b !important;
-            font-size: 2rem !important;
+            font-size: 1.9rem !important;
             font-weight: 800 !important;
             line-height: 1.1 !important;
             margin-bottom: 10px !important;
@@ -190,16 +191,17 @@ def gerar_css() -> str:
             margin-bottom: 14px;
         }
 
-        .name-avatar {
-            width: 52px;
-            height: 52px;
+        .name-avatar,
+        .account-avatar {
+            width: 50px;
+            height: 50px;
             border-radius: 999px;
             background: var(--accent);
             color: white !important;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
+            font-size: 1.15rem;
             font-weight: 800;
             flex-shrink: 0;
         }
@@ -221,11 +223,7 @@ def gerar_css() -> str:
         }
 
         .account-card {
-            background: var(--card);
-            border: 1px solid var(--line);
-            border-radius: 20px;
             padding: 14px;
-            box-shadow: var(--shadow);
             margin-bottom: 12px;
         }
 
@@ -233,21 +231,6 @@ def gerar_css() -> str:
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .account-avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 999px;
-            background: var(--accent);
-            color: white !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 1.1rem;
-            flex-shrink: 0;
         }
 
         .account-name {
@@ -285,12 +268,17 @@ def gerar_css() -> str:
             font-size: 0.92rem !important;
         }
 
+        .mini-soft-card {
+            padding: 12px 14px;
+            border-radius: 16px !important;
+        }
+
         .stButton > button {
             background: var(--accent) !important;
             color: #fffdfa !important;
             border: 1px solid var(--accent) !important;
             border-radius: 14px !important;
-            min-height: 46px !important;
+            min-height: 44px !important;
         }
 
         .stButton > button:hover {
@@ -300,8 +288,7 @@ def gerar_css() -> str:
 
         .stTextInput input,
         .stTextArea textarea,
-        .stSelectbox div[data-baseweb="select"] > div,
-        .stMultiSelect div[data-baseweb="select"] > div {
+        .stSelectbox div[data-baseweb="select"] > div {
             background: #fffaf5 !important;
             color: #3b312a !important;
             border: 1px solid #dccfc0 !important;
@@ -320,46 +307,9 @@ def gerar_css() -> str:
             box-shadow: 0 12px 28px rgba(92, 70, 48, 0.10) !important;
         }
 
-        ul[role="listbox"] {
-            background: #fffaf5 !important;
-            border: none !important;
-            border-radius: 14px !important;
-            padding: 6px !important;
-        }
-
+        ul[role="listbox"],
         ul[role="listbox"] li,
         div[role="option"] {
-            background: #fffaf5 !important;
-            color: #3b312a !important;
-            border-radius: 10px !important;
-        }
-
-        ul[role="listbox"] li:hover,
-        div[role="option"]:hover {
-            background: #efe4d7 !important;
-            color: #3b312a !important;
-        }
-
-        ul[role="listbox"] li[aria-selected="true"],
-        div[role="option"][aria-selected="true"] {
-            background: #e9dfd3 !important;
-            color: #3b312a !important;
-        }
-
-        [data-baseweb="menu"],
-        [data-baseweb="menu"] > div,
-        [data-baseweb="menu"] ul,
-        [data-baseweb="menu"] li {
-            background: #fffaf5 !important;
-            color: #3b312a !important;
-        }
-
-        body [data-baseweb="popover"] {
-            background: transparent !important;
-        }
-
-        body [data-baseweb="popover"] [role="listbox"],
-        body [data-baseweb="popover"] [role="option"] {
             background: #fffaf5 !important;
             color: #3b312a !important;
         }
@@ -396,7 +346,7 @@ def gerar_css() -> str:
             color: var(--text) !important;
             border: 1px solid var(--line) !important;
             border-radius: 16px !important;
-            padding: .55rem .7rem !important;
+            padding: .65rem .8rem !important;
         }
 
         .stChatMessage:has([data-testid="chatAvatarIcon-user"]) [data-testid="stChatMessageContent"] {
@@ -407,17 +357,7 @@ def gerar_css() -> str:
             background: var(--assistant-bg) !important;
         }
 
-        [data-testid="stExpander"] {
-            background: var(--card) !important;
-            border: 1px solid var(--line) !important;
-            border-radius: 14px !important;
-        }
-
-        [data-testid="stExpander"] * {
-            color: var(--text) !important;
-        }
-
-        p, span, label, div, li, h1, h2, h3, h4 {
+        p, span, label, div, li, h1, h2, h3, h4, small {
             color: var(--text) !important;
         }
     </style>
@@ -442,6 +382,7 @@ def init_db():
         """
         CREATE TABLE IF NOT EXISTS conversations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_key TEXT,
             title TEXT NOT NULL DEFAULT 'Nova conversa',
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
@@ -466,7 +407,6 @@ def init_db():
         """
     )
 
-    # migração simples para bancos antigos
     cur.execute("PRAGMA table_info(conversations)")
     cols = [row[1] for row in cur.fetchall()]
 
@@ -478,6 +418,8 @@ def init_db():
         cur.execute("ALTER TABLE conversations ADD COLUMN pdf_path TEXT")
     if "pdf_name" not in cols:
         cur.execute("ALTER TABLE conversations ADD COLUMN pdf_name TEXT")
+    if "user_key" not in cols:
+        cur.execute("ALTER TABLE conversations ADD COLUMN user_key TEXT")
 
     conn.commit()
     conn.close()
@@ -498,10 +440,9 @@ def init_session_state():
         "loaded_conversation_id": None,
         "confirm_delete": False,
         "contador_perguntas": 0,
-        "pending_prompt": None,
-        "subject": "Física",
-        "focus_mode": "Estudo",
         "ultima_imagem_visual": None,
+        "last_detected_intent": None,
+        "last_detected_subject": None,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -520,47 +461,33 @@ def get_first_name(name: str) -> str:
     return txt.split()[0] if txt else "Usuário"
 
 
-def student_subjects() -> List[str]:
-    return ["Física", "Matemática", "Química", "Português", "Inglês"]
+def get_logged_email() -> str:
+    try:
+        if hasattr(st, "user") and getattr(st.user, "is_logged_in", False):
+            return str(getattr(st.user, "email", "") or "").strip().lower()
+    except Exception:
+        pass
+    return ""
 
 
-def teacher_subjects() -> List[str]:
-    return ["Física", "Matemática", "Química", "Linguagens", "Metodologia Científica"]
-
-
-def student_focuses() -> List[str]:
-    return [
-        "Estudo",
-        "Resolver exercício",
-        "Revisão para prova",
-        "Resumo de PDF",
-        "Explicação em LaTeX",
-        "Esquema visual",
-    ]
-
-
-def teacher_focuses() -> List[str]:
-    return [
-        "Metodologia",
-        "Criar questões",
-        "Planejar aula",
-        "Trabalhar PDF",
-        "Atividade / dinâmica",
-        "Iniciação científica",
-    ]
-
-
-def profile_description(profile: str) -> str:
-    if profile == "Professor":
-        return "apoio em metodologia, planejamento, questões, materiais e iniciação científica"
-    return "apoio em conteúdos, exercícios, revisão, PDFs e explicações visuais"
+def build_user_key() -> str:
+    email = get_logged_email()
+    base = email or f"{st.session_state.profile}|{st.session_state.nickname.strip().lower()}"
+    return hashlib.sha256(base.encode("utf-8")).hexdigest()
 
 
 def list_conversations():
+    user_key = build_user_key()
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
-        "SELECT id, title, created_at, updated_at, profile, nickname, pdf_name FROM conversations ORDER BY updated_at DESC, id DESC"
+        """
+        SELECT id, title, created_at, updated_at, profile, nickname, pdf_name
+        FROM conversations
+        WHERE user_key = ?
+        ORDER BY updated_at DESC, id DESC
+        """,
+        (user_key,),
     )
     rows = cur.fetchall()
     conn.close()
@@ -568,15 +495,16 @@ def list_conversations():
 
 
 def get_conversation(conversation_id):
+    user_key = build_user_key()
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT id, title, created_at, updated_at, profile, nickname, pdf_path, pdf_name
+        SELECT id, title, created_at, updated_at, profile, nickname, pdf_path, pdf_name, user_key
         FROM conversations
-        WHERE id = ?
+        WHERE id = ? AND user_key = ?
         """,
-        (conversation_id,),
+        (conversation_id, user_key),
     )
     row = cur.fetchone()
     conn.close()
@@ -585,14 +513,16 @@ def get_conversation(conversation_id):
 
 def create_conversation(title="Nova conversa"):
     now = datetime.utcnow().isoformat()
+    user_key = build_user_key()
+
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
         """
-        INSERT INTO conversations(title, created_at, updated_at, profile, nickname)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO conversations(title, created_at, updated_at, profile, nickname, pdf_path, pdf_name, user_key)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (title, now, now, st.session_state.profile, st.session_state.nickname),
+        (title, now, now, st.session_state.profile, st.session_state.nickname, None, None, user_key),
     )
     conn.commit()
     cid = cur.lastrowid
@@ -604,8 +534,8 @@ def rename_conversation(conversation_id, title):
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
-        "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?",
-        (title.strip(), datetime.utcnow().isoformat(), conversation_id),
+        "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ? AND user_key = ?",
+        (title.strip(), datetime.utcnow().isoformat(), conversation_id, build_user_key()),
     )
     conn.commit()
     conn.close()
@@ -622,7 +552,7 @@ def delete_conversation(conversation_id):
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("DELETE FROM messages WHERE conversation_id = ?", (conversation_id,))
-    cur.execute("DELETE FROM conversations WHERE id = ?", (conversation_id,))
+    cur.execute("DELETE FROM conversations WHERE id = ? AND user_key = ?", (conversation_id, build_user_key()))
     conn.commit()
     conn.close()
 
@@ -657,8 +587,12 @@ def update_conversation_pdf(conversation_id, pdf_path=None, pdf_name=None):
     cur = conn.cursor()
     now = datetime.utcnow().isoformat()
     cur.execute(
-        "UPDATE conversations SET pdf_path = ?, pdf_name = ?, updated_at = ? WHERE id = ?",
-        (pdf_path, pdf_name, now, conversation_id),
+        """
+        UPDATE conversations
+        SET pdf_path = ?, pdf_name = ?, updated_at = ?
+        WHERE id = ? AND user_key = ?
+        """,
+        (pdf_path, pdf_name, now, conversation_id, build_user_key()),
     )
     conn.commit()
     conn.close()
@@ -668,15 +602,19 @@ def maybe_update_title_from_first_message(conversation_id, text):
     texto = (text or "").strip()
     if not texto:
         return
+
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("SELECT title FROM conversations WHERE id = ?", (conversation_id,))
+    cur.execute(
+        "SELECT title FROM conversations WHERE id = ? AND user_key = ?",
+        (conversation_id, build_user_key()),
+    )
     row = cur.fetchone()
     if row and row[0] == "Nova conversa":
         title = re.sub(r"\s+", " ", texto.replace("\n", " ")).strip()[:72]
         cur.execute(
-            "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?",
-            (title, datetime.utcnow().isoformat(), conversation_id),
+            "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ? AND user_key = ?",
+            (title, datetime.utcnow().isoformat(), conversation_id, build_user_key()),
         )
         conn.commit()
     conn.close()
@@ -689,6 +627,8 @@ def resetar_sessao_visual():
     st.session_state.contador_perguntas = 0
     st.session_state.confirm_delete = False
     st.session_state.ultima_imagem_visual = None
+    st.session_state.last_detected_intent = None
+    st.session_state.last_detected_subject = None
 
 
 def carregar_conversa_no_estado(conversation_id):
@@ -696,7 +636,7 @@ def carregar_conversa_no_estado(conversation_id):
     if not conv:
         return
 
-    _, _, _, _, profile, nickname, pdf_path, pdf_name = conv
+    _, _, _, _, profile, nickname, pdf_path, pdf_name, _ = conv
 
     st.session_state.chat = [{"role": role, "content": content} for role, content, _ in get_messages(conversation_id)]
     st.session_state.profile = profile or st.session_state.profile
@@ -720,7 +660,7 @@ def formatar_conversation_label(row):
         extras.append(profile)
     if pdf_name:
         extras.append("PDF")
-    suffix = f" [{' | '.join(extras)}]" if extras else ""
+    suffix = f" [{' • '.join(extras)}]" if extras else ""
     return f"{title}{suffix}"
 
 
@@ -732,8 +672,10 @@ def carregar_cliente() -> Tuple[Optional[Groq], Optional[str]]:
         chave = str(st.secrets.get("GROQ_API_KEY", "")).strip()
     except Exception:
         chave = ""
+
     if not chave:
         return None, "A chave GROQ_API_KEY não foi encontrada ou está vazia nos Secrets."
+
     try:
         return Groq(api_key=chave), None
     except Exception as e:
@@ -744,7 +686,7 @@ client, erro_cliente = carregar_cliente()
 
 
 # =========================================================
-# PDF / PROMPTS
+# PDF
 # =========================================================
 def processar_pdf_from_path(pdf_path: str) -> Optional[str]:
     try:
@@ -768,10 +710,12 @@ def tamanho_mb(uploaded_file) -> float:
 def validar_upload(uploaded_file) -> Optional[str]:
     nome = uploaded_file.name.lower()
     mb = tamanho_mb(uploaded_file)
+
     if nome.endswith(".pdf") and mb > MAX_PDF_MB:
         return f"O PDF excede o limite de {MAX_PDF_MB} MB."
     if not nome.endswith(".pdf"):
         return "No momento, o anexo aceito é apenas PDF."
+
     return None
 
 
@@ -783,9 +727,91 @@ def salvar_upload(uploaded_file) -> Tuple[str, str]:
     return destino, uploaded_file.name
 
 
+# =========================================================
+# INTERPRETAÇÃO AUTOMÁTICA
+# =========================================================
+def infer_subject(texto: str, profile: str) -> str:
+    t = (texto or "").lower()
+
+    regras = [
+        ("Física", ["mru", "muv", "cinemática", "força", "newton", "velocidade", "aceleração", "energia", "trabalho", "calor", "temperatura", "circuito", "corrente", "tensão", "resistência", "óptica", "onda", "frequência"]),
+        ("Matemática", ["equação", "função", "derivada", "integral", "log", "matriz", "determinante", "seno", "cosseno", "trigonometria", "porcentagem"]),
+        ("Química", ["mol", "ligações", "átomo", "pH", "ácido", "base", "reação", "estequiometria"]),
+        ("Português", ["interpretação", "redação", "gramática", "sujeito", "predicado", "oração", "texto"]),
+        ("Inglês", ["translate", "english", "inglês", "verb", "grammar", "reading"]),
+        ("Linguagens", ["bncc", "letramento", "texto dissertativo", "linguagens"]),
+        ("Metodologia Científica", ["artigo", "projeto de pesquisa", "metodologia", "objetivo geral", "objetivos específicos", "justificativa", "resumo expandido", "referencial teórico", "pibid", "iniciação científica"]),
+    ]
+
+    melhor = None
+    maior = 0
+
+    for assunto, palavras in regras:
+        score = sum(1 for p in palavras if p in t)
+        if score > maior:
+            maior = score
+            melhor = assunto
+
+    if melhor:
+        return melhor
+
+    return "Metodologia Científica" if profile == "Professor" else "Física"
+
+
+def detect_intent(texto: str, has_pdf: bool, profile: str) -> Dict[str, str]:
+    t = (texto or "").lower()
+    subject = infer_subject(texto, profile)
+
+    def has_any(*keys) -> bool:
+        return any(k in t for k in keys)
+
+    if has_pdf and has_any("resuma", "resume", "resumir", "síntese", "sintese", "explique esse pdf", "leia esse pdf", "analise esse pdf"):
+        intent = "resumo_pdf"
+    elif has_pdf:
+        intent = "usar_pdf"
+    elif has_any("latex", "fórmula", "formula", "equação bonitinha", "equacao bonitinha", "notação matemática", "notacao matematica"):
+        intent = "latex"
+    elif has_any("esquema visual", "mapa mental", "visual", "diagrama", "quadro-resumo", "quadro resumo"):
+        intent = "visual"
+    elif has_any("questão", "questao", "exercício", "exercicio", "lista de exercícios", "lista de exercicios", "me teste", "quiz", "simulado"):
+        intent = "exercicios"
+    elif has_any("corrija", "corrigir", "onde eu errei", "revise minha resposta", "confere minha resposta"):
+        intent = "correcao"
+    elif profile == "Professor" and has_any("média", "media", "nota", "notas", "planilha", "desempenho da turma", "corrigir prova"):
+        intent = "apoio_docente"
+    elif profile == "Professor" and has_any("plano de aula", "aula", "sequência didática", "sequencia didatica", "atividade", "dinâmica", "dinamica"):
+        intent = "planejamento_docente"
+    elif profile == "Professor" and has_any("projeto", "pibid", "iniciação científica", "iniciacao cientifica", "artigo", "relatório", "relatorio", "resumo expandido"):
+        intent = "pesquisa_docente"
+    else:
+        intent = "explicacao"
+
+    return {"intent": intent, "subject": subject}
+
+
+def intent_label(intent: str) -> str:
+    mapa = {
+        "resumo_pdf": "Resumo de PDF",
+        "usar_pdf": "Uso de PDF",
+        "latex": "Explicação com LaTeX",
+        "visual": "Esquema visual",
+        "exercicios": "Exercícios / quiz",
+        "correcao": "Correção / feedback",
+        "apoio_docente": "Apoio docente",
+        "planejamento_docente": "Planejamento docente",
+        "pesquisa_docente": "Pesquisa / iniciação científica",
+        "explicacao": "Explicação geral",
+    }
+    return mapa.get(intent, "Explicação geral")
+
+
+# =========================================================
+# PROMPTS
+# =========================================================
 def formatar_historico_curto(chat: List[Dict[str, str]], limite: int = CHAT_HISTORY_LIMIT) -> str:
     if not chat:
         return ""
+
     blocos = []
     for msg in chat[-limite:]:
         papel = "Usuário" if msg["role"] == "user" else "Assistente"
@@ -795,55 +821,99 @@ def formatar_historico_curto(chat: List[Dict[str, str]], limite: int = CHAT_HIST
     return "\n".join(blocos)
 
 
-def obter_prompt_sistema() -> str:
+def obter_prompt_sistema(intent: str, subject: str) -> str:
     nome = get_first_name(st.session_state.nickname)
     profile = st.session_state.profile
-    subject = st.session_state.subject
-    focus = st.session_state.focus_mode
 
-    base = (
-        f"Você é o MentorEdu IA, um mentor acadêmico institucional do {INSTITUTION_NAME}, "
-        f"ligado ao {PROJECT_NAME} e à {COURSE_NAME}. "
-        f"Você está atendendo {nome}, no perfil {profile}. "
-        f"Foco atual: assunto {subject}. Modo atual: {focus}. "
-        "Responda em português do Brasil, exceto quando a pessoa pedir explicitamente prática em inglês. "
-        "Seja didático, claro, elegante e objetivo. "
-        "Evite introduções longas e repetitivas. "
-        "Quando houver matemática, física ou química com fórmulas, use LaTeX válido com $...$ e $$...$$. "
-        "Quando houver PDF, use o PDF apenas se ele for relevante ao pedido. "
-        "Quando a pergunta for simples, responda de forma simples. "
-    )
+    base = f"""
+Você é o MentorEdu IA, um mentor acadêmico institucional do {INSTITUTION_NAME}, ligado ao {PROJECT_NAME} e à {COURSE_NAME}.
+
+Você está atendendo {nome}, no perfil {profile}.
+Assunto inferido: {subject}.
+Intenção inferida: {intent_label(intent)}.
+
+Responda em português do Brasil.
+Seja didático, claro, acolhedor e direto.
+Não invente dados, referências ou resultados.
+Quando houver matemática, física ou química com fórmulas, use LaTeX válido com $...$ e $$...$$.
+Não peça para o usuário configurar funções manualmente; aja como uma IA que interpreta o pedido.
+Se houver PDF anexado, use o conteúdo do PDF apenas se ele for relevante ao pedido.
+Quando o pedido estiver ambíguo, faça uma suposição razoável e siga.
+"""
 
     if profile == "Aluno":
-        base += (
-            "Atue como mentor de estudo. Priorize explicação de conteúdo, resolução de exercícios, revisão, resumos, "
-            "passo a passo, interpretação e reforço visual quando útil. "
-        )
+        base += """
+Você está ajudando um estudante.
+Priorize:
+- explicação clara;
+- passo a passo quando necessário;
+- erros conceituais comuns;
+- exercícios curtos quando fizer sentido;
+- linguagem acessível.
+"""
     else:
-        base += (
-            "Atue como mentor docente e acadêmico. Priorize metodologia, criação de questões, planejamento de aula, "
-            "uso de PDFs como base, propostas de atividades, dinâmicas, experimentos didáticos e orientação de iniciação científica. "
-        )
+        base += """
+Você está ajudando um docente.
+Priorize:
+- metodologia;
+- planejamento;
+- criação de questões;
+- organização de material;
+- análise de desempenho;
+- iniciação científica e pesquisa quando apropriado.
+"""
 
-    if subject == "Metodologia Científica":
-        base += (
-            "Quando o assunto for metodologia científica, ajude a discutir viabilidade de projetos, estrutura de relatórios, "
-            "manuscritos, resumos, introduções, objetivos, justificativas, métodos e organização acadêmica. "
-            "Seja honesto ao avaliar se uma ideia de projeto parece promissora ou fraca. "
-        )
+    if intent == "resumo_pdf":
+        base += """
+Tarefa principal: resumir o PDF com clareza, destacando ideias centrais, conceitos-chave e possíveis aplicações.
+"""
+    elif intent == "usar_pdf":
+        base += """
+Tarefa principal: usar o PDF como base para explicar, responder ou organizar o conteúdo solicitado.
+"""
+    elif intent == "latex":
+        base += """
+Tarefa principal: responder com notação matemática bem formatada e explicações claras.
+"""
+    elif intent == "visual":
+        base += """
+Tarefa principal: explicar de forma organizada para facilitar posterior conversão em esquema visual.
+"""
+    elif intent == "exercicios":
+        base += """
+Tarefa principal: gerar ou resolver exercícios, com nível adequado e correção comentada quando útil.
+"""
+    elif intent == "correcao":
+        base += """
+Tarefa principal: analisar a resposta do usuário, apontar acertos, erros e como melhorar.
+"""
+    elif intent == "apoio_docente":
+        base += """
+Tarefa principal: apoiar o professor em tarefas docentes práticas, incluindo médias, notas, correções e organização.
+Se o usuário fornecer dados numéricos, analise-os com cuidado e explique o resultado.
+"""
+    elif intent == "planejamento_docente":
+        base += """
+Tarefa principal: apoiar planejamento de aula, sequência didática, questões, avaliação e estratégias pedagógicas.
+"""
+    elif intent == "pesquisa_docente":
+        base += """
+Tarefa principal: apoiar projeto, artigo, resumo expandido, PIBID, relatório e iniciação científica.
+Seja acadêmico, mas claro.
+"""
 
     return base.strip()
 
 
-def montar_prompt_usuario(pergunta: str, pdf_texto: Optional[str]) -> str:
+def montar_prompt_usuario(pergunta: str, pdf_texto: Optional[str], intent: str, subject: str) -> str:
     partes = [
         f"Perfil do usuário: {st.session_state.profile}",
         f"Nome de preferência: {get_first_name(st.session_state.nickname)}",
-        f"Assunto atual: {st.session_state.subject}",
-        f"Foco atual: {st.session_state.focus_mode}",
+        f"Assunto inferido: {subject}",
+        f"Intenção inferida: {intent_label(intent)}",
     ]
 
-    historico = formatar_historico_curto(st.session_state.get('chat', []))
+    historico = formatar_historico_curto(st.session_state.get("chat", []))
     if historico:
         partes.append("Histórico recente:\n" + historico)
 
@@ -892,31 +962,34 @@ def gerar_resposta_groq(prompt_sistema: str, prompt_usuario: str) -> str:
                 {"role": "user", "content": prompt_usuario},
             ],
             temperature=0.25,
-            max_tokens=1100,
+            max_tokens=1200,
         )
         return limpar_resposta(resp.choices[0].message.content.strip())
     except Exception as e:
         return f"Ocorreu um erro ao gerar a resposta: {e}"
 
 
-def gerar_texto_visual(resposta: str, pergunta: str) -> str:
+def gerar_texto_visual(resposta: str, pergunta: str, subject: str) -> str:
     if client is None:
         return "Resumo visual indisponível no momento."
 
-    prompt_sistema = (
-        "Você cria resumos visuais curtos para estudos. "
-        "Transforme a explicação em um esquema visual textual, curto, organizado e claro. "
-        "Use títulos curtos, setas, tópicos e fórmulas simples quando útil. "
-        "Não escreva parágrafos longos. No máximo 12 linhas."
-    )
+    prompt_sistema = """
+Você cria resumos visuais curtos para estudos.
+Transforme a explicação em um esquema visual textual, curto, organizado e claro.
+Use títulos curtos, setas, tópicos e fórmulas simples quando útil.
+Não escreva parágrafos longos.
+No máximo 12 linhas.
+""".strip()
 
-    prompt_usuario = (
-        f"Perfil: {st.session_state.profile}\n"
-        f"Assunto: {st.session_state.subject}\n"
-        f"Pedido: {pergunta}\n\n"
-        f"Resposta-base:\n{resposta}\n\n"
-        "Agora gere um esquema visual resumido."
-    )
+    prompt_usuario = f"""
+Assunto: {subject}
+Pedido: {pergunta}
+
+Resposta-base:
+{resposta}
+
+Agora gere um esquema visual resumido.
+""".strip()
 
     try:
         resp = client.chat.completions.create(
@@ -971,7 +1044,7 @@ def criar_imagem_esquema(titulo: str, corpo: str) -> str:
     draw.text((margem_x, y), titulo, fill=accent, font=font_titulo)
     y += 70
 
-    subt = f"{st.session_state.subject} • {st.session_state.profile}"
+    subt = f"{st.session_state.profile}"
     draw.text((margem_x, y), subt, fill=(100, 88, 76), font=font_sub)
     y += 55
 
@@ -1002,7 +1075,7 @@ def criar_imagem_esquema(titulo: str, corpo: str) -> str:
 def render_chat_input():
     try:
         payload = st.chat_input(
-            "Digite sua pergunta ou envie um PDF...",
+            "Escreva sua dúvida ou envie um PDF...",
             accept_file=True,
             file_type=["pdf"],
             key="main_chat_input",
@@ -1011,7 +1084,7 @@ def render_chat_input():
     except TypeError:
         st.caption("Seu Streamlit não suporta anexo embutido no chat. Atualize para uma versão mais nova.")
         up = st.file_uploader("Anexe PDF", type=["pdf"], label_visibility="collapsed")
-        txt = st.chat_input("Digite sua pergunta...", key="fallback_chat_input")
+        txt = st.chat_input("Escreva sua dúvida...", key="fallback_chat_input")
         return {"text": txt, "files": [up] if up else []}
 
 
@@ -1032,7 +1105,7 @@ def render_login_screen():
     st.markdown(f'<div class="course-title">{COURSE_NAME}</div>', unsafe_allow_html=True)
     st.markdown('<div class="main-title" style="margin-top:16px;">Como você quer começar?</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="small-muted" style="text-align:center; margin-bottom:18px;">Entre primeiro e depois o mentor adapta a experiência ao seu perfil.</div>',
+        '<div class="small-muted" style="text-align:center; margin-bottom:18px;">Entre primeiro e depois use o chat livremente. O mentor interpreta sua intenção automaticamente.</div>',
         unsafe_allow_html=True,
     )
     st.markdown("</div>", unsafe_allow_html=True)
@@ -1067,7 +1140,7 @@ def render_login_screen():
             <div class="choice-card">
                 <div style="font-size:2.1rem;">🎓</div>
                 <h3>Aluno</h3>
-                <p>Foco em conteúdo, exercícios, revisão, PDFs, LaTeX e explicações visuais.</p>
+                <p>Foco em conteúdo, exercícios, revisão, PDF, fórmulas e explicações visuais.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1080,7 +1153,7 @@ def render_login_screen():
             <div class="choice-card">
                 <div style="font-size:2.1rem;">📘</div>
                 <h3>Professor</h3>
-                <p>Foco em metodologia, aulas, questões, materiais, PDFs e iniciação científica.</p>
+                <p>Foco em metodologia, aulas, questões, PDFs, notas, médias e iniciação científica.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1095,8 +1168,6 @@ def render_login_screen():
             st.session_state.nickname = nome_limpo
             st.session_state.profile = "Aluno" if aluno_click else "Professor"
             st.session_state.auth_complete = True
-            st.session_state.subject = "Física" if st.session_state.profile == "Aluno" else "Metodologia Científica"
-            st.session_state.focus_mode = "Estudo" if st.session_state.profile == "Aluno" else "Metodologia"
             st.rerun()
 
     st.markdown("</div>", unsafe_allow_html=True)
@@ -1175,7 +1246,7 @@ with st.sidebar:
 
     if conv_keys:
         idx = conv_ids.index(current_id)
-        escolhido_key = st.selectbox("Selecione a conversa", conv_keys, index=idx)
+        escolhido_key = st.selectbox("Histórico", conv_keys, index=idx, label_visibility="collapsed")
         escolhido_id = conv_map[escolhido_key]
     else:
         escolhido_id = create_conversation()
@@ -1199,42 +1270,38 @@ with st.sidebar:
         carregar_conversa_no_estado(escolhido_id)
         st.rerun()
 
-    st.markdown("---")
-    st.markdown("### PDF")
-
     conv = get_conversation(st.session_state.current_conversation_id)
     pdf_name = conv[7] if conv else None
+    titulo_atual = conv[1] if conv else ""
 
+    st.markdown("---")
+    st.markdown("### Status")
     st.markdown(
         f"""
-        <div class="status-card" style="padding:14px; margin-top:10px;">
-            <div><b>PDF ativo</b></div>
-            <div>{pdf_name if pdf_name else 'Nenhum'}</div>
+        <div class="mini-soft-card">
+            <div style="font-weight:800; margin-bottom:4px;">PDF ativo</div>
+            <div class="small-muted">{pdf_name if pdf_name else 'Nenhum PDF anexado nesta conversa.'}</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    if st.button("Limpar PDF", use_container_width=True):
+    if st.button("Limpar PDF ativo", use_container_width=True):
         update_conversation_pdf(st.session_state.current_conversation_id, None, None)
         carregar_conversa_no_estado(st.session_state.current_conversation_id)
         st.rerun()
 
     st.markdown("---")
-    st.markdown("### Gerenciar conversa")
-
-    conv_atual = get_conversation(st.session_state.current_conversation_id)
-    titulo_atual = conv_atual[1] if conv_atual else ""
+    st.markdown("### Gerenciar")
 
     novo_titulo = st.text_input("Renomear conversa", value=titulo_atual)
-
     if st.button("Salvar nome", use_container_width=True):
         if novo_titulo.strip():
             rename_conversation(st.session_state.current_conversation_id, novo_titulo)
             st.rerun()
 
     st.session_state.confirm_delete = st.checkbox(
-        "Confirmar exclusão da conversa atual",
+        "Confirmar exclusão",
         value=st.session_state.confirm_delete,
     )
 
@@ -1255,6 +1322,12 @@ with st.sidebar:
 # =========================================================
 # TOPO
 # =========================================================
+descricao = (
+    "apoio em conteúdo, exercícios, revisão, PDF e explicações guiadas"
+    if st.session_state.profile == "Aluno"
+    else "apoio em metodologia, aulas, questões, médias, PDF e iniciação científica"
+)
+
 st.markdown(
     f"""
     <div class="hero-card">
@@ -1263,70 +1336,37 @@ st.markdown(
         <div class="institution-title">{INSTITUTION_NAME}</div>
         <div class="course-title">{COURSE_NAME}</div>
         <div class="hero-subtitle">
-            Olá, {get_first_name(st.session_state.nickname)}. Você está no perfil <b>{st.session_state.profile}</b>,
-            com {profile_description(st.session_state.profile)}.
+            Olá, {get_first_name(st.session_state.nickname)}. Você está no perfil <b>{st.session_state.profile}</b>, com {descricao}.
         </div>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-# =========================================================
-# PAINEL CENTRAL
-# =========================================================
 st.markdown('<div class="painel-card" style="margin-top:16px;">', unsafe_allow_html=True)
 st.markdown('<div class="main-title">Como posso te ajudar hoje?</div>', unsafe_allow_html=True)
 
 if st.session_state.profile == "Aluno":
-    subject_options = student_subjects()
-    focus_options = student_focuses()
+    st.caption("Exemplos: “explique MRU”, “resuma este PDF”, “me dê 5 questões”, “responda com LaTeX”, “faça um esquema visual”.")
 else:
-    subject_options = teacher_subjects()
-    focus_options = teacher_focuses()
+    st.caption("Exemplos: “monte um plano de aula”, “crie 10 questões”, “calcule a média destes alunos”, “use este PDF como base”, “me ajude no projeto PIBID”.")
 
-if st.session_state.subject not in subject_options:
-    st.session_state.subject = subject_options[0]
-
-if st.session_state.focus_mode not in focus_options:
-    st.session_state.focus_mode = focus_options[0]
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.session_state.subject = st.selectbox(
-        "Assunto principal",
-        subject_options,
-        index=subject_options.index(st.session_state.subject),
-        key="subject_select",
+if st.session_state.last_detected_intent or st.session_state.last_detected_subject:
+    st.markdown(
+        f"""
+        <div class="mini-soft-card" style="margin-top:10px;">
+            <div style="font-weight:800; margin-bottom:4px;">Leitura atual do mentor</div>
+            <div class="small-muted">
+                Intenção: {intent_label(st.session_state.last_detected_intent or "explicacao")} •
+                Assunto: {st.session_state.last_detected_subject or "—"}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
-
-with col2:
-    st.session_state.focus_mode = st.selectbox(
-        "Foco da conversa",
-        focus_options,
-        index=focus_options.index(st.session_state.focus_mode),
-        key="focus_select",
-    )
-
-with st.expander("Sugestões do mentor"):
-    if st.session_state.profile == "Aluno":
-        st.markdown(
-            """
-            - **Física / Matemática / Química:** exercícios, revisão, fórmulas, LaTeX e passo a passo  
-            - **Português / Inglês:** interpretação, gramática, escrita e correção  
-            - **PDF:** basta enviar o material e dizer o que quer
-            """
-        )
-    else:
-        st.markdown(
-            """
-            - **Metodologia / aula:** planejamento, questões, sequência didática, atividades  
-            - **PDF:** transformar material em aula, lista, avaliação ou resumo docente  
-            - **Iniciação científica:** discutir ideia, estruturar relatório, manuscrito ou projeto
-            """
-        )
 
 st.markdown("</div>", unsafe_allow_html=True)
+
 
 # =========================================================
 # CHAT
@@ -1355,11 +1395,8 @@ if payload:
         prompt = payload
         arquivos = []
 
-    if st.session_state.pending_prompt and prompt:
-        prompt = f"{st.session_state.pending_prompt}{prompt}"
-        st.session_state.pending_prompt = None
-
     conv_id = st.session_state.current_conversation_id
+    houve_pdf = False
 
     if arquivos:
         arq = arquivos[0]
@@ -1371,6 +1408,7 @@ if payload:
             st.session_state.db_texto_pdf = processar_pdf_from_path(destino)
             st.session_state.pdf_nome = nome_original
             update_conversation_pdf(conv_id, destino, nome_original)
+            houve_pdf = True
             st.toast(f"PDF ativo: {nome_original}")
 
     if prompt and prompt.strip():
@@ -1379,14 +1417,29 @@ if payload:
         else:
             pergunta = prompt.strip()
             maybe_update_title_from_first_message(conv_id, pergunta)
+
             save_message(conv_id, "user", pergunta)
             st.session_state.chat.append({"role": "user", "content": pergunta})
             st.session_state.contador_perguntas += 1
 
-            prompt_sistema = obter_prompt_sistema()
+            inferencia = detect_intent(
+                texto=pergunta,
+                has_pdf=bool(st.session_state.db_texto_pdf) or houve_pdf,
+                profile=st.session_state.profile,
+            )
+
+            intent = inferencia["intent"]
+            subject = inferencia["subject"]
+
+            st.session_state.last_detected_intent = intent
+            st.session_state.last_detected_subject = subject
+
+            prompt_sistema = obter_prompt_sistema(intent=intent, subject=subject)
             prompt_usuario = montar_prompt_usuario(
                 pergunta=pergunta,
                 pdf_texto=st.session_state.db_texto_pdf,
+                intent=intent,
+                subject=subject,
             )
 
             with st.spinner("Pensando..."):
@@ -1395,14 +1448,10 @@ if payload:
             save_message(conv_id, "assistant", resposta)
             st.session_state.chat.append({"role": "assistant", "content": resposta})
 
-            if (
-                "visual" in st.session_state.focus_mode.lower()
-                or "latex" in st.session_state.focus_mode.lower()
-                or "pdf" in st.session_state.focus_mode.lower()
-            ):
+            if intent in {"visual"} or "esquema visual" in pergunta.lower():
                 try:
-                    texto_visual = gerar_texto_visual(resposta, pergunta)
-                    titulo_visual = f"{st.session_state.subject} • esquema visual"
+                    texto_visual = gerar_texto_visual(resposta, pergunta, subject)
+                    titulo_visual = f"{subject} • esquema visual"
                     caminho_img = criar_imagem_esquema(titulo_visual, texto_visual)
                     st.session_state.ultima_imagem_visual = caminho_img
                 except Exception:
@@ -1412,6 +1461,4 @@ if payload:
 
             st.rerun()
 
-st.caption(
-    f"{APP_NAME} • {PROJECT_NAME} • {INSTITUTION_NAME} • {COURSE_NAME}"
-)
+st.caption(f"{APP_NAME} • {PROJECT_NAME} • {INSTITUTION_NAME} • {COURSE_NAME}")
