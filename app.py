@@ -4,9 +4,12 @@ import uuid
 import html
 import hashlib
 import sqlite3
+from io import BytesIO
 from datetime import datetime
 from typing import Optional, Tuple, Dict, List
 
+import matplotlib.pyplot as plt
+from matplotlib.patches import FancyArrowPatch
 import streamlit as st
 from groq import Groq
 from pypdf import PdfReader
@@ -31,9 +34,9 @@ DB_PATH = "mentoredu.db"
 UPLOAD_DIR = "uploads"
 MODEL_NAME = "llama-3.3-70b-versatile"
 MAX_PDF_MB = 15
-MAX_FILE_MB = 8
+MAX_FILE_MB = 10
 MAX_PERGUNTAS_SESSAO = 40
-PDF_CONTEXT_LIMIT = 7500
+PDF_CONTEXT_LIMIT = 8000
 CHAT_HISTORY_LIMIT = 8
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -41,35 +44,35 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 MENTORS = {
     "Física": {
         "emoji": "⚛️",
-        "subtitle": "cinemática, dinâmica, energia, circuitos e interpretação física",
-        "accent": "#8f7a67",
-        "description": "Explicações guiadas, linguagem física, fórmulas, gráficos e aplicações.",
-        "quick": ["Explique MRU", "Resolva uma questão", "Faça um esquema visual"],
+        "title": "Mentor de Física",
+        "subtitle": "cinemática, dinâmica, energia, circuitos, gráficos e interpretação física",
+        "description": "Explicações guiadas, fórmulas, gráficos, fenômenos físicos e linguagem da Física.",
+        "prompt": "Você é um mentor especialista em Física escolar e início da graduação. Priorize interpretação física, gráficos, unidades, significado das fórmulas e erros conceituais comuns.",
     },
     "Matemática": {
         "emoji": "📐",
-        "subtitle": "álgebra, funções, geometria, trigonometria e notação matemática",
-        "accent": "#8a735f",
-        "description": "Passo a passo, LaTeX, raciocínio lógico e exercícios por nível.",
-        "quick": ["Explique função do 2º grau", "Responda com LaTeX", "Gere 5 questões"],
+        "title": "Mentor de Matemática",
+        "subtitle": "álgebra, funções, trigonometria, geometria e notação matemática",
+        "description": "Passo a passo, raciocínio lógico, LaTeX e resolução bem organizada.",
+        "prompt": "Você é um mentor especialista em Matemática. Priorize passo a passo, notação clara, raciocínio lógico, gráficos e organização algébrica.",
     },
     "Química": {
         "emoji": "🧪",
-        "subtitle": "nomenclatura, estequiometria, pH, ligações e tabela periódica",
-        "accent": "#937b69",
-        "description": "Conceitos químicos, cálculos e consulta rápida à tabela periódica.",
-        "quick": ["Explique estequiometria", "Use o PDF anexado", "Monte um resumo"],
+        "title": "Mentor de Química",
+        "subtitle": "nomenclatura, estequiometria, tabela periódica, ligações e distribuições eletrônicas",
+        "description": "Explicações químicas, nomenclatura, cálculos e consulta visual de Química.",
+        "prompt": "Você é um mentor especialista em Química. Priorize nomenclatura, tabela periódica, distribuição eletrônica, estequiometria, cálculos químicos e linguagem própria da Química.",
     },
     "Linguagens": {
         "emoji": "📚",
-        "subtitle": "português, inglês, interpretação, gramática e produção textual",
-        "accent": "#8a7568",
-        "description": "Leitura, escrita, correção, análise textual e apoio em português e inglês.",
-        "quick": ["Corrija este texto", "Explique gramática", "Pratique inglês"],
+        "title": "Mentor de Linguagens",
+        "subtitle": "português, inglês, leitura, interpretação, gramática e produção textual",
+        "description": "Apoio em escrita, correção, explicação gramatical e prática de leitura.",
+        "prompt": "Você é um mentor especialista em Linguagens, com foco em Português e Inglês. Priorize clareza, correção textual, interpretação e explicações acessíveis.",
     },
 }
 
-PERIODIC_TABLE = [
+PERIODIC_ROWS = [
     ["H", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "He"],
     ["Li", "Be", "", "", "", "", "", "", "", "", "", "", "B", "C", "N", "O", "F", "Ne"],
     ["Na", "Mg", "", "", "", "", "", "", "", "", "", "", "Al", "Si", "P", "S", "Cl", "Ar"],
@@ -90,35 +93,29 @@ def app_css() -> str:
     <style>
     :root {
         --bg: #f7f1e8;
-        --bg-soft: #f2e8dc;
-        --bg-sidebar: #efe2d3;
+        --bg-soft: #f1e8dc;
+        --bg-sidebar: #efe3d4;
         --card: #fffaf4;
-        --card-2: #fcf6ef;
-        --line: #dac8b7;
-        --text: #3b3027;
-        --muted: #75685d;
-        --accent: #8d7763;
-        --accent-soft: #efe1d2;
-        --shadow: 0 12px 30px rgba(78, 58, 40, .08);
+        --card-2: #faf2e8;
+        --line: #d8c6b4;
+        --text: #3c3128;
+        --muted: #75695e;
+        --accent: #8c7764;
+        --accent-2: #9b8673;
+        --accent-soft: #ede0d1;
+        --shadow: 0 12px 28px rgba(81, 62, 44, .08);
     }
 
-    html, body, [class*="css"] {
-        color: var(--text) !important;
-    }
-
-    .stApp,
-    [data-testid="stAppViewContainer"],
-    [data-testid="stMain"],
-    [data-testid="stMainBlockContainer"],
-    section.main,
-    .main .block-container {
+    html, body, [class*="css"], .stApp, [data-testid="stAppViewContainer"],
+    [data-testid="stMain"], [data-testid="stMainBlockContainer"],
+    section.main, .main .block-container {
         background: var(--bg) !important;
         color: var(--text) !important;
     }
 
     .main .block-container {
         max-width: 1180px !important;
-        padding-top: 1rem !important;
+        padding-top: 0.9rem !important;
         padding-bottom: 1rem !important;
     }
 
@@ -127,276 +124,172 @@ def app_css() -> str:
         border-bottom: 1px solid var(--line) !important;
     }
 
+    [data-testid="stToolbar"] { right: 0.5rem !important; }
+
     [data-testid="stSidebar"] {
         background: var(--bg-sidebar) !important;
         border-right: 1px solid var(--line) !important;
     }
 
-    [data-testid="stSidebar"] * {
-        color: var(--text) !important;
-    }
+    [data-testid="stSidebar"] * { color: var(--text) !important; }
 
-    .hero-card, .panel-card, .mentor-card, .login-card, .soft-card, .table-card {
+    .hero-card, .panel-card, .mentor-card, .login-card, .soft-card, .periodic-card {
         background: var(--card) !important;
         border: 1px solid var(--line) !important;
         border-radius: 24px !important;
         box-shadow: var(--shadow) !important;
     }
 
-    .hero-card, .panel-card, .table-card {
-        padding: 22px;
-    }
-
-    .login-card {
-        padding: 28px;
-        max-width: 980px;
-        margin: 28px auto;
-    }
-
-    .soft-card {
-        padding: 14px 16px;
-        border-radius: 18px !important;
-    }
+    .hero-card, .panel-card, .periodic-card { padding: 22px; }
+    .login-card { padding: 28px; max-width: 1020px; margin: 10px auto 28px auto; }
+    .soft-card { padding: 14px 16px; border-radius: 18px !important; }
 
     .project-badge {
-        display:inline-block;
-        padding: 7px 12px;
+        display: inline-block;
         background: var(--accent-soft);
+        color: #665649 !important;
         border: 1px solid var(--line);
+        padding: 7px 12px;
         border-radius: 999px;
         font-weight: 700;
-        color: #66574a !important;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
     }
 
-    .hero-title {
-        font-size: 2.2rem;
-        font-weight: 800;
-        line-height: 1.05;
-        margin-bottom: 4px;
-        color: #5a483b !important;
-    }
-
-    .hero-sub, .muted {
-        color: var(--muted) !important;
-    }
-
-    .sidebar-brand {
+    .login-top {
         text-align: center;
-        margin-bottom: 16px;
+        margin-bottom: 14px;
     }
 
-    .sidebar-brand img {
+    .logo-center img {
         display: block;
-        margin: 0 auto 10px auto;
-        max-width: 180px;
+        margin: 0 auto 12px auto;
+        max-width: 200px;
+        width: 100%;
     }
 
-    .sidebar-inst-title {
-        font-size: 1.12rem;
-        font-weight: 800;
-        color: #5a483b !important;
-        line-height: 1.12;
-    }
-
-    .sidebar-inst-sub {
-        color: var(--muted) !important;
-        font-size: .96rem;
-        margin-top: 4px;
-    }
+    .inst-big { font-size: 1.28rem; font-weight: 800; color: #59473a !important; }
+    .inst-sub { font-size: 1rem; color: var(--muted) !important; margin-top: 4px; }
+    .title-main { font-size: 2.1rem; font-weight: 800; color: #5a483b !important; line-height: 1.05; }
+    .muted { color: var(--muted) !important; }
 
     .mentor-card {
         padding: 18px;
-        min-height: 220px;
-        display:flex;
-        flex-direction:column;
-        justify-content:space-between;
+        min-height: 210px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
+    .mentor-emoji { font-size: 2rem; margin-bottom: 10px; }
+    .mentor-title { font-size: 1.12rem; font-weight: 800; color: #5a483b !important; }
+    .mentor-sub { color: var(--muted) !important; font-size: .95rem; margin: 6px 0 10px 0; }
 
-    .mentor-emoji {
-        font-size: 2rem;
-        margin-bottom: 8px;
-    }
-
-    .mentor-title {
-        font-size: 1.15rem;
-        font-weight: 800;
-        color: #544236 !important;
-        margin-bottom: 6px;
-    }
-
-    .mentor-subtitle {
-        color: var(--muted) !important;
-        font-size: .95rem;
-        margin-bottom: 8px;
-    }
-
-    .mentor-chip {
-        display:inline-block;
-        margin: 3px 4px 0 0;
-        padding: 5px 9px;
-        border-radius: 999px;
-        border: 1px solid var(--line);
-        background: #f8efe5;
-        color: #66574a !important;
-        font-size: .8rem;
-    }
+    .brand-box { text-align: center; margin-top: 8px; margin-bottom: 18px; }
+    .brand-box img { display:block; margin: 0 auto 10px auto; max-width: 190px; width: 100%; }
+    .brand-title { font-size: 1.08rem; font-weight: 800; color: #5a483b !important; line-height: 1.1; }
+    .brand-sub { color: var(--muted) !important; font-size: .95rem; }
 
     .account-box {
         background: var(--card);
         border: 1px solid var(--line);
-        border-radius: 22px;
+        border-radius: 20px;
         padding: 14px;
         margin-bottom: 10px;
     }
-
-    .account-name {
-        font-weight: 800;
-        color: #534236 !important;
-    }
-
-    .account-sub {
-        color: var(--muted) !important;
-        font-size: .9rem;
-    }
-
-    .metric-strip {
-        display:grid;
-        grid-template-columns: repeat(3, minmax(0,1fr));
-        gap: 12px;
-        margin-top: 14px;
-    }
-
-    .metric-box {
-        background: var(--card-2);
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        padding: 12px;
-    }
-
-    .metric-label { color: var(--muted) !important; font-size: .85rem; }
-    .metric-value { font-size: 1.02rem; font-weight: 800; color: #564439 !important; }
-
-    .attach-pill {
-        display:inline-block;
-        padding: 7px 12px;
-        border-radius: 999px;
-        background: #f7ecdf;
-        border:1px solid var(--line);
-        font-size: .88rem;
-        color: #66574a !important;
-        margin-right: 8px;
-        margin-bottom: 8px;
-    }
-
-    .periodic-table {
-        display:grid;
-        grid-template-columns: repeat(18, minmax(0,1fr));
-        gap: 6px;
-        margin-top: 14px;
-    }
-
-    .pt-cell {
-        min-height: 42px;
-        border-radius: 12px;
-        border: 1px solid #d6c2af;
-        background: #fff6eb;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        font-size: .82rem;
-        font-weight: 700;
-        color: #5b493d !important;
-    }
-
-    .pt-cell-empty {
-        background: transparent;
-        border: none;
-    }
-
-    .series-row {
-        display:grid;
-        grid-template-columns: repeat(15, minmax(0,1fr));
-        gap: 6px;
-        margin-top: 8px;
-    }
-
-    [data-testid="stChatInputContainer"],
-    [data-testid="stBottomBlockContainer"] {
-        background: var(--bg) !important;
-        border-top: 1px solid var(--line) !important;
-    }
-
-    [data-testid="stChatInput"] textarea,
-    [data-testid="stTextInputRootElement"] input,
-    .stTextInput input,
-    .stTextArea textarea,
-    [data-baseweb="select"] > div,
-    [data-baseweb="base-input"] > div {
-        background: #fffaf4 !important;
-        color: var(--text) !important;
-        border: 1px solid var(--line) !important;
-        border-radius: 16px !important;
-    }
-
-    [data-testid="stChatInput"] textarea::placeholder,
-    .stTextInput input::placeholder,
-    .stTextArea textarea::placeholder {
-        color: var(--muted) !important;
-    }
+    .account-name { font-weight: 800; color: #544236 !important; }
+    .account-sub { color: var(--muted) !important; font-size: .9rem; }
 
     .stButton > button,
-    [data-testid="baseButton-secondary"],
-    [data-testid="baseButton-primary"] {
+    div[data-testid="baseButton-secondary"] > button,
+    div[data-testid="baseButton-primary"] > button {
         background: var(--accent) !important;
-        color: #fffaf4 !important;
+        color: #fffaf5 !important;
         border: 1px solid var(--accent) !important;
         border-radius: 14px !important;
         min-height: 42px !important;
+        box-shadow: none !important;
     }
-
     .stButton > button:hover,
-    [data-testid="baseButton-secondary"]:hover,
-    [data-testid="baseButton-primary"]:hover {
-        filter: brightness(.97);
+    div[data-testid="baseButton-secondary"] > button:hover,
+    div[data-testid="baseButton-primary"] > button:hover {
+        background: var(--accent-2) !important;
+        border-color: var(--accent-2) !important;
     }
 
-    button[kind="secondary"], button[kind="tertiary"] {
-        color: var(--text) !important;
-    }
-
-    [data-baseweb="popover"],
-    [data-baseweb="popover"] > div,
-    [data-baseweb="menu"],
-    [role="listbox"],
-    [role="dialog"] {
-        background: #fffaf4 !important;
+    .stTextInput input,
+    .stTextArea textarea,
+    .stFileUploader,
+    .stFileUploader section,
+    .stSelectbox div[data-baseweb="select"] > div,
+    .stPopover button,
+    .stSegmentedControl,
+    .stRadio > div,
+    [data-baseweb="input"] > div,
+    [data-baseweb="base-input"] > div {
+        background: var(--card-2) !important;
         color: var(--text) !important;
         border-color: var(--line) !important;
     }
 
-    [role="option"], [data-baseweb="menu"] * {
+    [data-baseweb="popover"], [data-baseweb="popover"] * {
+        background: var(--card) !important;
         color: var(--text) !important;
+        border-color: var(--line) !important;
+    }
+
+    ul[role="listbox"], li[role="option"], div[role="option"] {
+        background: var(--card) !important;
+        color: var(--text) !important;
+    }
+
+    [data-testid="stChatInputContainer"],
+    [data-testid="stBottomBlockContainer"],
+    [data-testid="stChatInput"],
+    [data-testid="stChatInput"] > div,
+    [data-testid="stChatInput"] textarea,
+    [data-testid="stChatInput"] input {
+        background: var(--bg) !important;
+        color: var(--text) !important;
+        border-color: var(--line) !important;
+        box-shadow: none !important;
+    }
+
+    [data-testid="stChatInput"] textarea,
+    [data-testid="stChatInput"] input {
+        background: var(--card-2) !important;
+        border: 1px solid var(--line) !important;
+        border-radius: 16px !important;
     }
 
     [data-testid="stChatMessageContent"] {
         color: var(--text) !important;
-        border-radius: 18px !important;
         border: 1px solid var(--line) !important;
+        border-radius: 16px !important;
         padding: .7rem .85rem !important;
+        background: var(--card) !important;
     }
 
-    .stChatMessage:has([data-testid="chatAvatarIcon-assistant"]) [data-testid="stChatMessageContent"] {
-        background: #fff9f2 !important;
+    .periodic-wrap { overflow-x: auto; }
+    table.periodic {
+        width: 100%; border-collapse: separate; border-spacing: 5px;
+    }
+    table.periodic td {
+        min-width: 42px; height: 44px; text-align: center; font-weight: 700;
+        border-radius: 10px; border: 1px solid var(--line); background: #f8efe4; color: #5a483b;
+        font-size: .9rem;
+    }
+    table.periodic td.empty { background: transparent !important; border: none !important; }
+    .series-row { display: grid; grid-template-columns: repeat(15, 1fr); gap: 5px; margin-top: 8px; }
+    .series-cell {
+        text-align: center; padding: 10px 4px; border-radius: 10px; border: 1px solid var(--line);
+        background: #f8efe4; font-weight: 700; color: #5a483b;
+    }
+    .attach-note {
+        margin-top: 10px; padding: 10px 12px; border: 1px dashed var(--line);
+        border-radius: 14px; background: #fbf5ed; color: var(--muted) !important;
     }
 
-    .stChatMessage:has([data-testid="chatAvatarIcon-user"]) [data-testid="stChatMessageContent"] {
-        background: #efe2d3 !important;
-    }
-
-    p, span, label, li, h1, h2, h3, h4, h5, h6, small, div {
-        color: var(--text);
-    }
+    .small-clean { font-size: .9rem; color: var(--muted) !important; }
+    .stMarkdown p, .stCaption, label, span, div { color: var(--text) !important; }
     </style>
     """
 
@@ -418,18 +311,16 @@ def init_db():
         """
         CREATE TABLE IF NOT EXISTS conversations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_key TEXT NOT NULL,
+            user_key TEXT,
             title TEXT NOT NULL DEFAULT 'Nova conversa',
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             profile TEXT,
             nickname TEXT,
             mentor TEXT,
-            pdf_path TEXT,
-            pdf_name TEXT,
-            image_path TEXT,
-            image_name TEXT,
-            attachment_kind TEXT
+            attachment_path TEXT,
+            attachment_name TEXT,
+            attachment_type TEXT
         )
         """
     )
@@ -445,60 +336,60 @@ def init_db():
         )
         """
     )
+
     cur.execute("PRAGMA table_info(conversations)")
     cols = [r[1] for r in cur.fetchall()]
-    for col, ddl in {
-        "mentor": "ALTER TABLE conversations ADD COLUMN mentor TEXT",
-        "pdf_path": "ALTER TABLE conversations ADD COLUMN pdf_path TEXT",
-        "pdf_name": "ALTER TABLE conversations ADD COLUMN pdf_name TEXT",
-        "image_path": "ALTER TABLE conversations ADD COLUMN image_path TEXT",
-        "image_name": "ALTER TABLE conversations ADD COLUMN image_name TEXT",
-        "attachment_kind": "ALTER TABLE conversations ADD COLUMN attachment_kind TEXT",
-    }.items():
+    for col, ddl in [
+        ("user_key", "ALTER TABLE conversations ADD COLUMN user_key TEXT"),
+        ("profile", "ALTER TABLE conversations ADD COLUMN profile TEXT"),
+        ("nickname", "ALTER TABLE conversations ADD COLUMN nickname TEXT"),
+        ("mentor", "ALTER TABLE conversations ADD COLUMN mentor TEXT"),
+        ("attachment_path", "ALTER TABLE conversations ADD COLUMN attachment_path TEXT"),
+        ("attachment_name", "ALTER TABLE conversations ADD COLUMN attachment_name TEXT"),
+        ("attachment_type", "ALTER TABLE conversations ADD COLUMN attachment_type TEXT"),
+    ]:
         if col not in cols:
             cur.execute(ddl)
+
     conn.commit()
     conn.close()
 
 
-init_db()
-
-
 # =========================================================
-# STATE
+# SESSION
 # =========================================================
-def init_state():
+def init_session_state():
     defaults = {
         "auth_complete": False,
         "profile": "Aluno",
         "nickname": "",
         "mentor": "Física",
         "chat": [],
-        "db_texto_pdf": None,
-        "pdf_nome": None,
-        "image_nome": None,
         "current_conversation_id": None,
         "loaded_conversation_id": None,
+        "attachment_text": None,
+        "attachment_name": None,
+        "attachment_type": None,
+        "attachment_preview_path": None,
+        "last_generated_image": None,
+        "last_intent": None,
         "contador_perguntas": 0,
-        "last_detected_intent": None,
-        "pending_upload": None,
-        "pending_upload_label": None,
-        "pending_upload_kind": None,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
             st.session_state[k] = v
 
 
-init_state()
+init_db()
+init_session_state()
 
 
 # =========================================================
 # HELPERS
 # =========================================================
 def get_first_name(name: str) -> str:
-    txt = (name or "").strip()
-    return txt.split()[0] if txt else "Usuário"
+    name = (name or "").strip()
+    return name.split()[0] if name else "Usuário"
 
 
 def get_logged_email() -> str:
@@ -516,28 +407,32 @@ def build_user_key() -> str:
     return hashlib.sha256(base.encode("utf-8")).hexdigest()
 
 
-def now_iso() -> str:
-    return datetime.utcnow().isoformat()
+def load_client() -> Tuple[Optional[Groq], Optional[str]]:
+    try:
+        key = str(st.secrets.get("GROQ_API_KEY", "")).strip()
+    except Exception:
+        key = ""
+    if not key:
+        return None, "A chave GROQ_API_KEY não foi encontrada nos Secrets."
+    try:
+        return Groq(api_key=key), None
+    except Exception as e:
+        return None, f"Erro ao iniciar Groq: {e}"
 
 
-def reset_visual_state():
-    st.session_state.chat = []
-    st.session_state.db_texto_pdf = None
-    st.session_state.pdf_nome = None
-    st.session_state.image_nome = None
-    st.session_state.contador_perguntas = 0
-    st.session_state.last_detected_intent = None
-    st.session_state.pending_upload = None
-    st.session_state.pending_upload_label = None
-    st.session_state.pending_upload_kind = None
+client, client_error = load_client()
 
 
-def list_conversations():
+def avatar_if() -> str:
+    return IF_LOGO if os.path.exists(IF_LOGO) else "🎓"
+
+
+def list_conversations() -> List[tuple]:
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT id, title, updated_at, mentor, profile, pdf_name, image_name
+        SELECT id, title, updated_at, mentor, attachment_name
         FROM conversations
         WHERE user_key = ?
         ORDER BY updated_at DESC, id DESC
@@ -555,9 +450,8 @@ def get_conversation(cid: int):
     cur.execute(
         """
         SELECT id, title, created_at, updated_at, profile, nickname, mentor,
-               pdf_path, pdf_name, image_path, image_name, attachment_kind
-        FROM conversations
-        WHERE id = ? AND user_key = ?
+               attachment_path, attachment_name, attachment_type, user_key
+        FROM conversations WHERE id = ? AND user_key = ?
         """,
         (cid, build_user_key()),
     )
@@ -566,31 +460,17 @@ def get_conversation(cid: int):
     return row
 
 
-def create_conversation(title: str = "Nova conversa") -> int:
+def create_conversation(title: str = "Nova conversa", mentor: Optional[str] = None) -> int:
+    now = datetime.utcnow().isoformat()
+    mentor = mentor or st.session_state.mentor
     conn = get_conn()
     cur = conn.cursor()
-    now = now_iso()
     cur.execute(
         """
-        INSERT INTO conversations(
-            user_key, title, created_at, updated_at, profile, nickname, mentor,
-            pdf_path, pdf_name, image_path, image_name, attachment_kind
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO conversations(user_key, title, created_at, updated_at, profile, nickname, mentor)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (
-            build_user_key(),
-            title,
-            now,
-            now,
-            st.session_state.profile,
-            st.session_state.nickname,
-            st.session_state.mentor,
-            None,
-            None,
-            None,
-            None,
-            None,
-        ),
+        (build_user_key(), title, now, now, st.session_state.profile, st.session_state.nickname, mentor),
     )
     conn.commit()
     cid = cur.lastrowid
@@ -599,19 +479,19 @@ def create_conversation(title: str = "Nova conversa") -> int:
 
 
 def save_message(cid: int, role: str, content: str):
+    now = datetime.utcnow().isoformat()
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
         "INSERT INTO messages(conversation_id, role, content, created_at) VALUES (?, ?, ?, ?)",
-        (cid, role, content, now_iso()),
+        (cid, role, content, now),
     )
-    cur.execute("UPDATE conversations SET updated_at = ?, mentor = ?, profile = ?, nickname = ? WHERE id = ?",
-                (now_iso(), st.session_state.mentor, st.session_state.profile, st.session_state.nickname, cid))
+    cur.execute("UPDATE conversations SET updated_at = ? WHERE id = ?", (now, cid))
     conn.commit()
     conn.close()
 
 
-def get_messages(cid: int):
+def get_messages(cid: int) -> List[tuple]:
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
@@ -623,9 +503,9 @@ def get_messages(cid: int):
     return rows
 
 
-def maybe_update_title_from_first_message(cid: int, text: str):
-    txt = re.sub(r"\s+", " ", (text or "").strip())
-    if not txt:
+def rename_first_message_title(cid: int, text: str):
+    text = re.sub(r"\s+", " ", (text or "").strip())
+    if not text:
         return
     conn = get_conn()
     cur = conn.cursor()
@@ -634,36 +514,19 @@ def maybe_update_title_from_first_message(cid: int, text: str):
     if row and row[0] == "Nova conversa":
         cur.execute(
             "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ? AND user_key = ?",
-            (txt[:70], now_iso(), cid, build_user_key()),
+            (text[:70], datetime.utcnow().isoformat(), cid, build_user_key()),
         )
         conn.commit()
     conn.close()
 
 
-def update_conversation_attachment(cid: int, *, pdf_path=None, pdf_name=None, image_path=None, image_name=None, attachment_kind=None):
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        UPDATE conversations
-        SET pdf_path = ?, pdf_name = ?, image_path = ?, image_name = ?, attachment_kind = ?, updated_at = ?, mentor = ?
-        WHERE id = ? AND user_key = ?
-        """,
-        (pdf_path, pdf_name, image_path, image_name, attachment_kind, now_iso(), st.session_state.mentor, cid, build_user_key()),
-    )
-    conn.commit()
-    conn.close()
-
-
 def delete_conversation(cid: int):
     conv = get_conversation(cid)
-    if conv:
-        for p in [conv[7], conv[9]]:
-            if p and os.path.exists(p):
-                try:
-                    os.remove(p)
-                except Exception:
-                    pass
+    if conv and conv[7] and os.path.exists(conv[7]):
+        try:
+            os.remove(conv[7])
+        except Exception:
+            pass
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("DELETE FROM messages WHERE conversation_id = ?", (cid,))
@@ -672,573 +535,583 @@ def delete_conversation(cid: int):
     conn.close()
 
 
+def update_attachment(cid: int, path: Optional[str], name: Optional[str], ftype: Optional[str]):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE conversations
+        SET attachment_path = ?, attachment_name = ?, attachment_type = ?, updated_at = ?
+        WHERE id = ? AND user_key = ?
+        """,
+        (path, name, ftype, datetime.utcnow().isoformat(), cid, build_user_key()),
+    )
+    conn.commit()
+    conn.close()
+
+
+def update_mentor(cid: int, mentor: str):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE conversations SET mentor = ?, updated_at = ? WHERE id = ? AND user_key = ?",
+        (mentor, datetime.utcnow().isoformat(), cid, build_user_key()),
+    )
+    conn.commit()
+    conn.close()
+
+
+def reset_visual_state(clear_file=True):
+    st.session_state.chat = []
+    st.session_state.loaded_conversation_id = None
+    st.session_state.last_generated_image = None
+    st.session_state.last_intent = None
+    st.session_state.contador_perguntas = 0
+    if clear_file:
+        st.session_state.attachment_text = None
+        st.session_state.attachment_name = None
+        st.session_state.attachment_type = None
+        st.session_state.attachment_preview_path = None
+
+
 def load_conversation_into_state(cid: int):
     conv = get_conversation(cid)
     if not conv:
         return
-    (_, _, _, _, profile, nickname, mentor, pdf_path, pdf_name, image_path, image_name, _) = conv
+    _, _, _, _, profile, nickname, mentor, attachment_path, attachment_name, attachment_type, _ = conv
     st.session_state.profile = profile or st.session_state.profile
     st.session_state.nickname = nickname or st.session_state.nickname
     st.session_state.mentor = mentor or st.session_state.mentor
     st.session_state.chat = [{"role": r, "content": c} for r, c, _ in get_messages(cid)]
     st.session_state.current_conversation_id = cid
     st.session_state.loaded_conversation_id = cid
-    st.session_state.pdf_nome = pdf_name
-    st.session_state.image_nome = image_name
-    st.session_state.db_texto_pdf = process_pdf_from_path(pdf_path) if pdf_path and os.path.exists(pdf_path) else None
+    st.session_state.last_generated_image = None
+    st.session_state.attachment_name = attachment_name
+    st.session_state.attachment_type = attachment_type
+    st.session_state.attachment_preview_path = attachment_path if attachment_type == "image" else None
+    if attachment_path and os.path.exists(attachment_path) and attachment_type == "pdf":
+        st.session_state.attachment_text = extract_pdf_text(attachment_path)
+    elif attachment_type == "text" and attachment_path and os.path.exists(attachment_path):
+        try:
+            with open(attachment_path, "r", encoding="utf-8") as f:
+                st.session_state.attachment_text = f.read()
+        except Exception:
+            st.session_state.attachment_text = None
+    else:
+        st.session_state.attachment_text = None
 
 
-def get_file_ext(name: str) -> str:
-    return os.path.splitext(name or "")[1].lower()
-
-
-def size_mb(uploaded_file) -> float:
+# =========================================================
+# FILES
+# =========================================================
+def file_mb(uploaded_file) -> float:
     return round(len(uploaded_file.getbuffer()) / (1024 * 1024), 2)
 
 
 def validate_upload(uploaded_file) -> Optional[str]:
-    ext = get_file_ext(uploaded_file.name)
-    mb = size_mb(uploaded_file)
-    if ext == ".pdf" and mb > MAX_PDF_MB:
-        return f"O PDF excede o limite de {MAX_PDF_MB} MB."
-    if ext in {".png", ".jpg", ".jpeg", ".webp"} and mb > MAX_FILE_MB:
-        return f"A imagem excede o limite de {MAX_FILE_MB} MB."
-    if ext not in {".pdf", ".png", ".jpg", ".jpeg", ".webp", ".txt", ".md"}:
-        return "Anexe PDF, imagem, TXT ou MD."
+    name = uploaded_file.name.lower()
+    mb = file_mb(uploaded_file)
+    if name.endswith(".pdf"):
+        if mb > MAX_PDF_MB:
+            return f"O PDF excede o limite de {MAX_PDF_MB} MB."
+        return None
+    allowed = (".png", ".jpg", ".jpeg", ".webp", ".txt")
+    if not name.endswith(allowed):
+        return "Envie PDF, imagem (PNG/JPG/WEBP) ou TXT."
+    if mb > MAX_FILE_MB:
+        return f"O arquivo excede o limite de {MAX_FILE_MB} MB."
     return None
 
 
-def save_upload(uploaded_file) -> Tuple[str, str]:
-    ext = get_file_ext(uploaded_file.name)
+def save_upload(uploaded_file) -> Tuple[str, str, str]:
+    ext = os.path.splitext(uploaded_file.name)[1].lower()
     dest = os.path.join(UPLOAD_DIR, f"{uuid.uuid4().hex}{ext}")
     with open(dest, "wb") as f:
         f.write(uploaded_file.getbuffer())
-    return dest, uploaded_file.name
+    if ext == ".pdf":
+        ftype = "pdf"
+    elif ext == ".txt":
+        ftype = "text"
+    else:
+        ftype = "image"
+    return dest, uploaded_file.name, ftype
 
 
-def process_pdf_from_path(path: Optional[str]) -> Optional[str]:
-    if not path:
-        return None
+def extract_pdf_text(path: str) -> Optional[str]:
     try:
         reader = PdfReader(path)
-        texts = []
+        chunks = []
         for page in reader.pages:
             txt = (page.extract_text() or "").strip()
             if txt:
-                texts.append(re.sub(r"\s+", " ", txt))
-        final = "\n\n".join(texts).strip()
-        return final or None
-    except Exception:
-        return None
-
-
-def read_text_file(path: Optional[str]) -> Optional[str]:
-    if not path:
-        return None
-    try:
-        with open(path, "r", encoding="utf-8", errors="ignore") as f:
-            txt = f.read().strip()
-        return txt or None
+                chunks.append(re.sub(r"\s+", " ", txt))
+        text = "\n\n".join(chunks).strip()
+        return text or None
     except Exception:
         return None
 
 
 # =========================================================
-# GROQ
+# RENDERERS
 # =========================================================
-def load_client() -> Tuple[Optional[Groq], Optional[str]]:
-    try:
-        key = str(st.secrets.get("GROQ_API_KEY", "")).strip()
-    except Exception:
-        key = ""
-    if not key:
-        return None, "A chave GROQ_API_KEY não foi encontrada nos Secrets."
-    try:
-        return Groq(api_key=key), None
-    except Exception as e:
-        return None, f"Erro ao iniciar Groq: {e}"
+def render_periodic_table():
+    rows_html = []
+    for row in PERIODIC_ROWS:
+        tds = []
+        for el in row:
+            if el:
+                tds.append(f"<td>{html.escape(el)}</td>")
+            else:
+                tds.append('<td class="empty"></td>')
+        rows_html.append("<tr>" + "".join(tds) + "</tr>")
+    lan = "".join(f'<div class="series-cell">{x}</div>' for x in LANTHANIDES)
+    act = "".join(f'<div class="series-cell">{x}</div>' for x in ACTINIDES)
+    st.markdown(
+        f"""
+        <div class="periodic-card">
+            <div style="font-weight:800; font-size:1.05rem; margin-bottom:8px; color:#5a483b;">Tabela periódica rápida</div>
+            <div class="small-clean" style="margin-bottom:10px;">Consulta visual para o mentor de Química.</div>
+            <div class="periodic-wrap">
+                <table class="periodic">{''.join(rows_html)}</table>
+                <div class="small-clean" style="margin-top:10px;">Lantanídeos</div>
+                <div class="series-row">{lan}</div>
+                <div class="small-clean" style="margin-top:10px;">Actinídeos</div>
+                <div class="series-row">{act}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
-client, client_error = load_client()
+def build_linus_pauling_diagram() -> str:
+    path = os.path.join(UPLOAD_DIR, f"linus_{uuid.uuid4().hex}.png")
+    fig, ax = plt.subplots(figsize=(10, 7), dpi=180)
+    fig.patch.set_facecolor("#f7f1e8")
+    ax.set_facecolor("#fffaf4")
+    ax.axis("off")
+
+    levels = [
+        ["1s"],
+        ["2s", "2p"],
+        ["3s", "3p", "3d"],
+        ["4s", "4p", "4d", "4f"],
+        ["5s", "5p", "5d", "5f"],
+        ["6s", "6p", "6d"],
+        ["7s", "7p"],
+    ]
+
+    xs = [1, 3, 5, 7]
+    ys = list(range(len(levels), 0, -1))
+
+    positions = []
+    for row_idx, subs in enumerate(levels):
+        y = ys[row_idx]
+        for col_idx, sub in enumerate(subs):
+            x = xs[min(col_idx, len(xs)-1)]
+            positions.append((x, y, sub))
+            ax.text(
+                x, y, sub,
+                ha="center", va="center", fontsize=16, fontweight="bold", color="#5a483b",
+                bbox=dict(boxstyle="round,pad=0.35", facecolor="#f3e8da", edgecolor="#d8c6b4")
+            )
+
+    arrows = [
+        ((7.7, 7.3), (0.8, 6.2)),
+        ((7.7, 6.3), (0.8, 5.2)),
+        ((7.7, 5.3), (0.8, 4.2)),
+        ((7.7, 4.3), (0.8, 3.2)),
+        ((7.7, 3.3), (0.8, 2.2)),
+        ((5.7, 2.3), (0.8, 1.2)),
+    ]
+    for start, end in arrows:
+        arrow = FancyArrowPatch(start, end, arrowstyle="->", mutation_scale=18, linewidth=2.2, color="#8c7764")
+        ax.add_patch(arrow)
+
+    ax.text(4.1, 8.0, "Diagrama de Linus Pauling", ha="center", fontsize=19, fontweight="bold", color="#5a483b")
+    ax.text(4.1, 0.35, "Ordem de preenchimento: 1s → 2s → 2p → 3s → 3p → 4s ...", ha="center", fontsize=12, color="#75695e")
+    ax.set_xlim(0, 8.5)
+    ax.set_ylim(0, 8.5)
+    plt.tight_layout()
+    fig.savefig(path, bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.close(fig)
+    return path
 
 
 # =========================================================
-# MENTOR / PROMPT
+# INTENT / PROMPTS
 # =========================================================
-def infer_intent(text: str, has_pdf: bool, has_image: bool) -> str:
+def detect_intent(text: str) -> str:
     t = (text or "").lower()
-    if has_pdf and any(k in t for k in ["resuma", "resumir", "resumo", "use o pdf", "leia o pdf", "analise o pdf"]):
-        return "resumo_pdf"
-    if has_image and any(k in t for k in ["imagem", "foto", "analise a imagem", "olhe a imagem"]):
-        return "imagem"
-    if any(k in t for k in ["latex", "fórmula", "formula", "equação", "equacao", "notação", "notacao"]):
-        return "latex"
+    if "linus pauling" in t or "diagrama de linus" in t:
+        return "linus"
+    if "tabela periódica" in t or "tabela periodica" in t:
+        return "tabela_periodica"
+    if any(k in t for k in ["gráfico", "grafico", "diagrama", "esquema visual", "imagem"]):
+        return "visual"
+    if any(k in t for k in ["resuma", "resumir", "resumo"]) and st.session_state.attachment_text:
+        return "resumo"
+    if any(k in t for k in ["corrija", "corrigir", "onde eu errei"]):
+        return "correcao"
     if any(k in t for k in ["questão", "questao", "exercício", "exercicio", "quiz", "simulado"]):
         return "exercicios"
-    if any(k in t for k in ["corrija", "corrigir", "revise", "onde eu errei", "feedback"]):
-        return "correcao"
-    if st.session_state.profile == "Professor" and any(k in t for k in ["plano de aula", "sequência didática", "sequencia didatica", "atividade", "metodologia"]):
-        return "planejamento"
-    if st.session_state.profile == "Professor" and any(k in t for k in ["média", "media", "notas", "nota", "turma"]):
-        return "apoio_docente"
     return "explicacao"
 
 
-def format_recent_history(chat: List[Dict[str, str]], limit: int = CHAT_HISTORY_LIMIT) -> str:
+def chat_history_text(chat: List[Dict[str, str]], limit: int = CHAT_HISTORY_LIMIT) -> str:
     parts = []
     for msg in chat[-limit:]:
-        role = "Usuário" if msg["role"] == "user" else "Assistente"
-        content = (msg["content"] or "").strip()
-        if content:
-            parts.append(f"{role}: {content[:500]}")
+        who = "Usuário" if msg["role"] == "user" else "Assistente"
+        parts.append(f"{who}: {msg['content'][:700]}")
     return "\n".join(parts)
 
 
-def mentor_system_prompt(intent: str) -> str:
+def system_prompt() -> str:
     mentor = st.session_state.mentor
     profile = st.session_state.profile
-    name = get_first_name(st.session_state.nickname)
+    area_prompt = MENTORS[mentor]["prompt"]
     base = f"""
-Você é o {mentor}Mentor do MentorEdu IA, projeto institucional do {INSTITUTION_NAME}, ligado ao {PROJECT_NAME} e à {COURSE_NAME}.
-Atenda {name}, no perfil {profile}.
-Área/mentor atual: {mentor}.
-Responda em português do Brasil.
-Use tom claro, didático, elegante e humano.
-Não peça para o usuário configurar funções manualmente.
-Quando houver matemática, física ou química com fórmulas, use LaTeX válido com $...$ e $$...$$.
-Quando houver PDF, use o conteúdo do PDF apenas se ele for relevante.
-Se o usuário pedir imagem, reconheça a limitação caso não haja leitura visual suficiente e peça descrição complementar sem inventar detalhes.
-""".strip()
-
-    area_rules = {
-        "Física": "Especialize suas respostas em linguagem física, significado das grandezas, interpretação de gráficos, unidades e erros conceituais comuns.",
-        "Matemática": "Especialize suas respostas em raciocínio lógico, demonstração passo a passo, organização algébrica, interpretação simbólica e notação matemática.",
-        "Química": "Especialize suas respostas em nomenclaturas, reações, estequiometria, linguagem química, balanceamento e uso conceitual da tabela periódica.",
-        "Linguagens": "Especialize suas respostas em leitura, produção textual, gramática, interpretação, português e inglês quando pedido.",
-    }
-    base += "\n" + area_rules.get(mentor, "")
-
+Você é o {APP_NAME}, um mentor acadêmico institucional ligado ao {PROJECT_NAME} do {INSTITUTION_NAME}.
+Atenda em português do Brasil.
+Perfil atual do usuário: {profile}.
+Área atual do mentor: {mentor}.
+{area_prompt}
+Seja claro, didático, acolhedor e objetivo.
+Não peça que o usuário configure funções manualmente.
+Quando couber matemática, use LaTeX válido com $...$ e $$...$$.
+Quando houver anexo relevante, use esse contexto.
+Se a área for Química, trate nomenclaturas e distribuições com mais precisão.
+Se a área for Física ou Matemática, trate fórmulas, gráficos e passos com rigor.
+Se a área for Linguagens, foque em clareza, escrita e interpretação.
+"""
     if profile == "Professor":
-        base += "\nAo atender professores, priorize metodologia, planejamento, avaliações, organização didática, médias e iniciação científica."
+        base += "\nComo o usuário está no perfil Professor, também ajude com metodologia, avaliação, planejamento e materiais."
     else:
-        base += "\nAo atender alunos, priorize explicação progressiva, exercícios, revisão, correção e acolhimento."
-
-    extras = {
-        "resumo_pdf": "Sua tarefa principal é resumir, explicar e organizar o PDF anexado.",
-        "latex": "Sua tarefa principal é responder com boa notação matemática e clareza formal.",
-        "exercicios": "Sua tarefa principal é criar ou resolver exercícios com dificuldade adequada.",
-        "correcao": "Sua tarefa principal é apontar acertos, erros e melhorias.",
-        "planejamento": "Sua tarefa principal é montar planejamento, sequência didática ou atividade.",
-        "apoio_docente": "Sua tarefa principal é apoiar tarefas docentes práticas, incluindo notas e médias.",
-        "imagem": "Se a imagem não puder ser lida de forma confiável, deixe isso explícito e peça uma breve descrição; não invente conteúdo visual.",
-    }
-    return base + "\n" + extras.get(intent, "")
+        base += "\nComo o usuário está no perfil Aluno, priorize compreensão, exemplos e prática guiada."
+    return base.strip()
 
 
-def build_user_prompt(question: str, attachment_text: Optional[str], attachment_hint: Optional[str], intent: str) -> str:
+def build_user_prompt(text: str) -> str:
     parts = [
+        f"Usuário: {get_first_name(st.session_state.nickname)}",
+        f"Mentor escolhido: {st.session_state.mentor}",
         f"Perfil: {st.session_state.profile}",
-        f"Nome: {get_first_name(st.session_state.nickname)}",
-        f"Mentor atual: {st.session_state.mentor}",
-        f"Intenção inferida: {intent}",
+        f"Intenção provável: {detect_intent(text)}",
     ]
-    hist = format_recent_history(st.session_state.chat)
-    if hist:
-        parts.append("Histórico recente:\n" + hist)
-    if attachment_hint:
-        parts.append("Anexo ativo:\n" + attachment_hint)
-    if attachment_text:
-        parts.append("Conteúdo de apoio do anexo:\n" + attachment_text[:PDF_CONTEXT_LIMIT])
-    parts.append("Pedido atual:\n" + question.strip())
+    history = chat_history_text(st.session_state.chat)
+    if history:
+        parts.append("Histórico recente:\n" + history)
+    if st.session_state.attachment_text:
+        parts.append("Contexto do anexo:\n" + st.session_state.attachment_text[:PDF_CONTEXT_LIMIT])
+    if st.session_state.attachment_name and st.session_state.attachment_type == "image":
+        parts.append(f"Imagem anexada: {st.session_state.attachment_name}. Avise quando a resposta depender de leitura visual detalhada.")
+    parts.append("Pedido atual:\n" + text.strip())
     return "\n\n".join(parts)
 
 
-def generate_response(system_prompt: str, user_prompt: str) -> str:
+def ask_groq(user_text: str) -> str:
     if client is None:
-        return client_error or "Não consegui iniciar a IA."
+        return client_error or "Não foi possível iniciar a IA."
     try:
         resp = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
+                {"role": "system", "content": system_prompt()},
+                {"role": "user", "content": build_user_prompt(user_text)},
             ],
-            temperature=0.3,
-            max_tokens=1250,
+            temperature=0.25,
+            max_tokens=1200,
         )
         text = (resp.choices[0].message.content or "").strip()
-        return re.sub(r"\n{3,}", "\n\n", text) or "Não consegui gerar uma resposta útil."
+        return re.sub(r"\n{3,}", "\n\n", text) if text else "Não consegui gerar uma resposta útil."
     except Exception as e:
         return f"Ocorreu um erro ao gerar a resposta: {e}"
 
 
 # =========================================================
-# UI BUILDERS
+# LOGIN / MENTOR PICKER
 # =========================================================
-def render_periodic_table():
-    st.markdown('<div class="table-card">', unsafe_allow_html=True)
-    st.markdown("**Tabela periódica rápida**")
-    st.caption("Consulta visual leve para o mentor de Química.")
-    html_rows = ['<div class="periodic-table">']
-    for row in PERIODIC_TABLE:
-        for cell in row:
-            if cell:
-                html_rows.append(f'<div class="pt-cell">{html.escape(cell)}</div>')
-            else:
-                html_rows.append('<div class="pt-cell pt-cell-empty"></div>')
-    html_rows.append('</div>')
-    html_rows.append('<div style="margin-top:14px; font-weight:700; color:#5b493d;">Lantanídeos</div>')
-    html_rows.append('<div class="series-row">' + ''.join(f'<div class="pt-cell">{html.escape(x)}</div>' for x in LANTHANIDES) + '</div>')
-    html_rows.append('<div style="margin-top:10px; font-weight:700; color:#5b493d;">Actinídeos</div>')
-    html_rows.append('<div class="series-row">' + ''.join(f'<div class="pt-cell">{html.escape(x)}</div>' for x in ACTINIDES) + '</div>')
-    st.markdown(''.join(html_rows), unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
 def render_login_screen():
     st.markdown('<div class="login-card">', unsafe_allow_html=True)
-    top_col1, top_col2 = st.columns([1.1, 1.3])
-    with top_col1:
-        if os.path.exists(IF_LOGO):
-            st.image(IF_LOGO, width=220)
-        st.markdown(f'<div class="project-badge">{PROJECT_NAME}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="hero-title">{APP_NAME}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div><b>{INSTITUTION_NAME}</b><br><span class="muted">{COURSE_NAME}</span></div>', unsafe_allow_html=True)
-        st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="muted">Escolha seu nome, seu perfil e o mentor principal. A experiência continua simples, mas cada mentor já entra com contexto próprio.</div>', unsafe_allow_html=True)
-
-    with top_col2:
-        st.text_input(
-            "Como você quer ser chamado?",
-            key="nickname_input_login",
-            value=st.session_state.nickname,
-            placeholder="Ex.: Iago, Professor André...",
-        )
-        if st.session_state.get("nickname_input_login") != st.session_state.nickname:
-            st.session_state.nickname = st.session_state.get("nickname_input_login", "")
-        profile = st.radio("Perfil", ["Aluno", "Professor"], horizontal=True, index=0 if st.session_state.profile == "Aluno" else 1)
-        st.session_state.profile = profile
-
-    st.markdown("### Escolha seu mentor")
-    cols = st.columns(4)
-    selected = st.session_state.mentor
-    for idx, (mentor_name, meta) in enumerate(MENTORS.items()):
-        with cols[idx]:
-            st.markdown(
-                f'''<div class="mentor-card"><div><div class="mentor-emoji">{meta["emoji"]}</div><div class="mentor-title">{mentor_name}</div><div class="mentor-subtitle">{meta["subtitle"]}</div><div class="muted">{meta["description"]}</div></div><div>{''.join(f'<span class="mentor-chip">{html.escape(ch)}</span>' for ch in meta["quick"])}</div></div>''',
-                unsafe_allow_html=True,
-            )
-            if st.button(f"Escolher {mentor_name}", key=f"pick_{mentor_name}", use_container_width=True):
-                selected = mentor_name
-                st.session_state.mentor = mentor_name
-
-    st.markdown(f'<div class="soft-card" style="margin-top:16px;"><b>Mentor atual:</b> {selected} <span class="muted">• {MENTORS[selected]["subtitle"]}</span></div>', unsafe_allow_html=True)
-    if st.button("Entrar", type="primary", use_container_width=True):
-        if not st.session_state.nickname.strip():
-            st.warning("Digite como você quer ser chamado.")
-        else:
-            st.session_state.auth_complete = True
-            st.rerun()
+    st.markdown('<div class="login-top">', unsafe_allow_html=True)
+    if os.path.exists(IF_LOGO):
+        st.markdown('<div class="logo-center">', unsafe_allow_html=True)
+        st.image(IF_LOGO, width=210)
+        st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="project-badge">{PROJECT_NAME}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="inst-big">{INSTITUTION_NAME}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="inst-sub">{COURSE_NAME}</div>', unsafe_allow_html=True)
+    st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="title-main">Escolha como quer entrar</div>', unsafe_allow_html=True)
+    st.markdown('<div class="muted">Tema café com leite, mentor especializado e fluxo mais intuitivo.</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-
-def ensure_current_conversation():
-    rows = list_conversations()
-    if not rows:
-        cid = create_conversation()
-        st.session_state.current_conversation_id = cid
-        load_conversation_into_state(cid)
-    elif st.session_state.current_conversation_id is None:
-        st.session_state.current_conversation_id = rows[0][0]
-        load_conversation_into_state(rows[0][0])
-
-
-def render_sidebar():
-    with st.sidebar:
-        st.markdown('<div class="sidebar-brand">', unsafe_allow_html=True)
-        if os.path.exists(IF_LOGO):
-            st.image(IF_LOGO, width=190)
-        st.markdown(f'<div class="sidebar-inst-title">{INSTITUTION_NAME}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="sidebar-inst-sub">{COURSE_NAME}</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
+    col1, col2 = st.columns([1.35, 1])
+    with col1:
+        nickname = st.text_input(
+            "Como você quer ser chamado?",
+            value=st.session_state.nickname,
+            placeholder="Ex.: Iago, Professor João, Maria...",
+        )
+        role = st.radio("Escolha o perfil", ["Aluno", "Professor"], horizontal=True)
+        st.session_state.profile = role
+    with col2:
         st.markdown(
-            f'''<div class="account-box"><div class="account-name">{get_first_name(st.session_state.nickname)}</div><div class="account-sub">{st.session_state.profile} • Mentor {st.session_state.mentor}</div></div>''',
+            f"""
+            <div class="soft-card">
+                <div style="font-weight:800; margin-bottom:6px; color:#5a483b;">Prévia</div>
+                <div class="small-clean">Nome: <b>{html.escape(get_first_name(nickname))}</b></div>
+                <div class="small-clean">Perfil: <b>{html.escape(role)}</b></div>
+                <div class="small-clean">Logo e identidade visual centralizadas.</div>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
-        if st.button("Nova conversa", use_container_width=True):
-            cid = create_conversation()
-            reset_visual_state()
-            st.session_state.current_conversation_id = cid
-            load_conversation_into_state(cid)
-            st.rerun()
+    st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-weight:800; color:#5a483b; margin-bottom:10px;">Escolha seu mentor</div>', unsafe_allow_html=True)
 
-        rows = list_conversations()
-        options = {f"{r[1]} • {r[3] or '—'}": r[0] for r in rows}
-        keys = list(options.keys())
-        current_id = st.session_state.current_conversation_id
-        index = 0
-        for i, v in enumerate(options.values()):
-            if v == current_id:
-                index = i
-                break
-        picked = st.selectbox("Conversas", keys, index=index, label_visibility="collapsed") if keys else None
-        if picked and options[picked] != current_id:
-            load_conversation_into_state(options[picked])
-            st.rerun()
+    cols = st.columns(4)
+    picked = None
+    for idx, (mentor, meta) in enumerate(MENTORS.items()):
+        with cols[idx]:
+            st.markdown(
+                f"""
+                <div class="mentor-card">
+                    <div>
+                        <div class="mentor-emoji">{meta['emoji']}</div>
+                        <div class="mentor-title">{mentor}</div>
+                        <div class="mentor-sub">{meta['subtitle']}</div>
+                    </div>
+                    <div class="small-clean">{meta['description']}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button(f"Entrar em {mentor}", key=f"pick_{mentor}", use_container_width=True):
+                picked = mentor
 
-        pop = getattr(st, "popover", None)
-        if pop:
-            with st.popover("⋯ Opções da conversa", use_container_width=True):
-                st.caption("A conversa já recebe nome automático pela primeira pergunta.")
-                if st.button("Apagar conversa atual", use_container_width=True):
-                    delete_conversation(st.session_state.current_conversation_id)
-                    reset_visual_state()
-                    remain = list_conversations()
-                    new_id = remain[0][0] if remain else create_conversation()
-                    st.session_state.current_conversation_id = new_id
-                    load_conversation_into_state(new_id)
-                    st.rerun()
+    if picked:
+        if not nickname.strip():
+            st.warning("Digite como você quer ser chamado antes de entrar.")
         else:
-            if st.button("Apagar conversa atual", use_container_width=True):
-                delete_conversation(st.session_state.current_conversation_id)
-                reset_visual_state()
-                remain = list_conversations()
-                new_id = remain[0][0] if remain else create_conversation()
-                st.session_state.current_conversation_id = new_id
-                load_conversation_into_state(new_id)
-                st.rerun()
-
-        if st.button("Trocar perfil / mentor", use_container_width=True):
-            st.session_state.auth_complete = False
+            st.session_state.nickname = nickname.strip()
+            st.session_state.mentor = picked
+            st.session_state.auth_complete = True
+            reset_visual_state(clear_file=True)
             st.rerun()
 
+    st.markdown('</div>', unsafe_allow_html=True)
 
-def render_main_header():
-    mentor = st.session_state.mentor
+
+if not st.session_state.auth_complete:
+    render_login_screen()
+    st.stop()
+
+
+# =========================================================
+# LOAD INITIAL CONVERSATION
+# =========================================================
+rows = list_conversations()
+if not rows:
+    cid = create_conversation(mentor=st.session_state.mentor)
+    st.session_state.current_conversation_id = cid
+    load_conversation_into_state(cid)
+elif st.session_state.current_conversation_id is None:
+    st.session_state.current_conversation_id = rows[0][0]
+    load_conversation_into_state(rows[0][0])
+
+
+# =========================================================
+# SIDEBAR
+# =========================================================
+with st.sidebar:
+    st.markdown('<div class="brand-box">', unsafe_allow_html=True)
+    if os.path.exists(IF_LOGO):
+        st.image(IF_LOGO, width=190)
+    st.markdown(f'<div class="brand-title">{INSTITUTION_NAME}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="brand-sub">{COURSE_NAME}</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
     st.markdown(
-        f'''
-        <div class="hero-card">
-            <div class="project-badge">{PROJECT_NAME}</div>
-            <div class="hero-title">{APP_NAME}</div>
-            <div><b>{INSTITUTION_NAME}</b> • <span class="muted">{COURSE_NAME}</span></div>
-            <div class="hero-sub" style="margin-top:10px;">Olá, {get_first_name(st.session_state.nickname)}. Você está com o mentor de <b>{mentor}</b> no perfil <b>{st.session_state.profile}</b>.</div>
-            <div class="metric-strip">
-                <div class="metric-box"><div class="metric-label">Mentor</div><div class="metric-value">{mentor}</div></div>
-                <div class="metric-box"><div class="metric-label">Perfil</div><div class="metric-value">{st.session_state.profile}</div></div>
-                <div class="metric-box"><div class="metric-label">Anexo ativo</div><div class="metric-value">{st.session_state.pdf_nome or st.session_state.image_nome or 'Nenhum'}</div></div>
-            </div>
+        f"""
+        <div class="account-box">
+            <div class="account-name">{html.escape(get_first_name(st.session_state.nickname))}</div>
+            <div class="account-sub">{html.escape(st.session_state.profile)} • Mentor de {html.escape(st.session_state.mentor)}</div>
         </div>
-        ''',
+        """,
         unsafe_allow_html=True,
     )
 
+    selected_mentor = st.selectbox("Trocar mentor", list(MENTORS.keys()), index=list(MENTORS.keys()).index(st.session_state.mentor))
+    if selected_mentor != st.session_state.mentor:
+        st.session_state.mentor = selected_mentor
+        reset_visual_state(clear_file=True)
+        cid = create_conversation(mentor=selected_mentor)
+        st.session_state.current_conversation_id = cid
+        load_conversation_into_state(cid)
+        st.rerun()
 
-def render_mentor_switcher():
-    st.markdown('<div class="panel-card" style="margin-top:14px;">', unsafe_allow_html=True)
-    st.markdown("### Escolha de mentor")
-    st.caption("A interface mantém o mesmo clima visual, mas o mentor muda o contexto pedagógico.")
-    cols = st.columns(4)
-    for idx, (mentor_name, meta) in enumerate(MENTORS.items()):
-        with cols[idx]:
-            active = mentor_name == st.session_state.mentor
-            label = f"{meta['emoji']} {mentor_name}" + (" • atual" if active else "")
-            if st.button(label, key=f"switch_{mentor_name}", use_container_width=True):
-                st.session_state.mentor = mentor_name
-                if st.session_state.current_conversation_id:
-                    conn = get_conn()
-                    cur = conn.cursor()
-                    cur.execute("UPDATE conversations SET mentor = ?, updated_at = ? WHERE id = ? AND user_key = ?",
-                                (mentor_name, now_iso(), st.session_state.current_conversation_id, build_user_key()))
-                    conn.commit()
-                    conn.close()
-                st.rerun()
-    st.markdown(f'<div class="soft-card" style="margin-top:10px;"><b>{st.session_state.mentor}</b> • <span class="muted">{MENTORS[st.session_state.mentor]["description"]}</span></div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
-def render_attachment_bar():
-    st.markdown('<div class="panel-card" style="margin-top:14px;">', unsafe_allow_html=True)
-    st.markdown("### Arquivos e apoio")
-    st.caption("Os anexos ficam perto do chat, para uso mais intuitivo no celular e no desktop.")
-
-    c1, c2 = st.columns([1.2, 1])
-    with c1:
-        if getattr(st, "popover", None):
-            with st.popover("Anexar arquivo", use_container_width=True):
-                st.file_uploader("PDF", type=["pdf"], key="up_pdf")
-                st.file_uploader("Imagem", type=["png", "jpg", "jpeg", "webp"], key="up_img")
-                st.file_uploader("Texto", type=["txt", "md"], key="up_text")
-        else:
-            st.file_uploader("PDF, imagem ou texto", type=["pdf", "png", "jpg", "jpeg", "webp", "txt", "md"], key="up_any")
-
-        uploaded = None
-        kind = None
-        label = None
-        if st.session_state.get("up_pdf") is not None:
-            uploaded = st.session_state.get("up_pdf")
-            kind = "pdf"
-            label = uploaded.name
-        elif st.session_state.get("up_img") is not None:
-            uploaded = st.session_state.get("up_img")
-            kind = "image"
-            label = uploaded.name
-        elif st.session_state.get("up_text") is not None:
-            uploaded = st.session_state.get("up_text")
-            kind = "text"
-            label = uploaded.name
-        elif st.session_state.get("up_any") is not None:
-            uploaded = st.session_state.get("up_any")
-            ext = get_file_ext(uploaded.name)
-            kind = "pdf" if ext == ".pdf" else ("image" if ext in {".png", ".jpg", ".jpeg", ".webp"} else "text")
-            label = uploaded.name
-
-        if uploaded is not None:
-            st.session_state.pending_upload = uploaded
-            st.session_state.pending_upload_label = label
-            st.session_state.pending_upload_kind = kind
-
-        if st.button("Usar anexo nesta conversa", use_container_width=True):
-            uploaded = st.session_state.pending_upload
-            if uploaded is None:
-                st.info("Selecione um arquivo primeiro.")
-            else:
-                error = validate_upload(uploaded)
-                if error:
-                    st.warning(error)
-                else:
-                    path, original_name = save_upload(uploaded)
-                    cid = st.session_state.current_conversation_id
-                    if st.session_state.pending_upload_kind == "pdf":
-                        st.session_state.db_texto_pdf = process_pdf_from_path(path)
-                        st.session_state.pdf_nome = original_name
-                        st.session_state.image_nome = None
-                        update_conversation_attachment(cid, pdf_path=path, pdf_name=original_name, image_path=None, image_name=None, attachment_kind="pdf")
-                    elif st.session_state.pending_upload_kind == "image":
-                        st.session_state.image_nome = original_name
-                        st.session_state.pdf_nome = None
-                        st.session_state.db_texto_pdf = None
-                        update_conversation_attachment(cid, pdf_path=None, pdf_name=None, image_path=path, image_name=original_name, attachment_kind="image")
-                    else:
-                        txt = read_text_file(path)
-                        st.session_state.db_texto_pdf = txt
-                        st.session_state.pdf_nome = original_name
-                        st.session_state.image_nome = None
-                        update_conversation_attachment(cid, pdf_path=path, pdf_name=original_name, image_path=None, image_name=None, attachment_kind="text")
-                    st.success(f"Anexo ativo: {original_name}")
-                    st.session_state.pending_upload = None
-                    st.session_state.pending_upload_label = None
-                    st.session_state.pending_upload_kind = None
-                    for key in ["up_pdf", "up_img", "up_text", "up_any"]:
-                        if key in st.session_state:
-                            st.session_state[key] = None
-                    st.rerun()
-
-    with c2:
-        active = st.session_state.pdf_nome or st.session_state.image_nome
-        if active:
-            st.markdown(f'<span class="attach-pill">Ativo: {html.escape(active)}</span>', unsafe_allow_html=True)
-        if st.session_state.pending_upload_label:
-            st.markdown(f'<span class="attach-pill">Selecionado: {html.escape(st.session_state.pending_upload_label)}</span>', unsafe_allow_html=True)
-        if st.button("Limpar anexo ativo", use_container_width=True):
-            update_conversation_attachment(st.session_state.current_conversation_id, pdf_path=None, pdf_name=None, image_path=None, image_name=None, attachment_kind=None)
-            st.session_state.db_texto_pdf = None
-            st.session_state.pdf_nome = None
-            st.session_state.image_nome = None
+    conv_rows = list_conversations()
+    labels = {f"{row[1]} • {row[3]}": row[0] for row in conv_rows}
+    if labels:
+        current = st.session_state.current_conversation_id
+        keys = list(labels.keys())
+        vals = list(labels.values())
+        idx = vals.index(current) if current in vals else 0
+        chosen_key = st.selectbox("Conversas", keys, index=idx)
+        chosen_id = labels[chosen_key]
+        if chosen_id != st.session_state.current_conversation_id:
+            load_conversation_into_state(chosen_id)
             st.rerun()
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("Nova", use_container_width=True):
+            reset_visual_state(clear_file=True)
+            cid = create_conversation(mentor=st.session_state.mentor)
+            st.session_state.current_conversation_id = cid
+            load_conversation_into_state(cid)
+            st.rerun()
+    with c2:
+        if st.button("Sair", use_container_width=True):
+            st.session_state.auth_complete = False
+            st.rerun()
 
-
-def render_context_panels():
-    cols = st.columns([1.25, 1])
-    with cols[0]:
-        st.markdown('<div class="panel-card" style="margin-top:14px;">', unsafe_allow_html=True)
-        st.markdown("### Como posso te ajudar hoje?")
-        if st.session_state.profile == "Aluno":
-            st.caption("Exemplos: “explique com LaTeX”, “resuma este PDF”, “me dê 5 questões”, “corrija minha resposta”.")
-        else:
-            st.caption("Exemplos: “monte um plano de aula”, “crie uma atividade”, “calcule médias”, “use este PDF como base”.")
-        mentor = st.session_state.mentor
-        chips = ''.join(f'<span class="mentor-chip">{html.escape(x)}</span>' for x in MENTORS[mentor]["quick"])
-        st.markdown(chips, unsafe_allow_html=True)
-        if st.session_state.last_detected_intent:
-            st.markdown(f'<div class="soft-card" style="margin-top:12px;"><b>Leitura do mentor:</b> {html.escape(st.session_state.last_detected_intent)}</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-    with cols[1]:
-        if st.session_state.mentor == "Química":
-            render_periodic_table()
-        else:
-            st.markdown('<div class="panel-card" style="margin-top:14px;">', unsafe_allow_html=True)
-            st.markdown(f"### Painel do mentor de {st.session_state.mentor}")
-            st.caption(MENTORS[st.session_state.mentor]["subtitle"])
-            st.markdown(f'<div class="soft-card"><b>Dica:</b> {MENTORS[st.session_state.mentor]["description"]}</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-
-def render_chat():
-    for msg in st.session_state.chat:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"], unsafe_allow_html=False)
-
-    payload = None
-    try:
-        payload = st.chat_input("Escreva sua dúvida. O mentor interpreta o pedido automaticamente.")
-    except Exception:
-        payload = st.text_input("Escreva sua dúvida", key="fallback_prompt")
-
-    if payload and str(payload).strip():
-        question = str(payload).strip()
+    if st.button("Apagar conversa atual", use_container_width=True):
         cid = st.session_state.current_conversation_id
-        if st.session_state.contador_perguntas >= MAX_PERGUNTAS_SESSAO:
-            st.warning("Você atingiu o limite de perguntas desta sessão.")
-            return
+        delete_conversation(cid)
+        remaining = list_conversations()
+        reset_visual_state(clear_file=True)
+        if remaining:
+            st.session_state.current_conversation_id = remaining[0][0]
+            load_conversation_into_state(remaining[0][0])
+        else:
+            cid = create_conversation(mentor=st.session_state.mentor)
+            st.session_state.current_conversation_id = cid
+            load_conversation_into_state(cid)
+        st.rerun()
 
-        maybe_update_title_from_first_message(cid, question)
+
+# =========================================================
+# MAIN HEADER
+# =========================================================
+meta = MENTORS[st.session_state.mentor]
+st.markdown(
+    f"""
+    <div class="hero-card">
+        <div class="project-badge">{PROJECT_NAME}</div>
+        <div class="title-main">{APP_NAME}</div>
+        <div style="font-weight:800; color:#5a483b; margin-top:6px;">{meta['title']}</div>
+        <div class="muted" style="margin-top:6px;">{meta['description']}</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+if st.session_state.mentor == "Química":
+    render_periodic_table()
+
+if st.session_state.attachment_name:
+    st.markdown(
+        f"<div class='attach-note'>Anexo ativo nesta conversa: <b>{html.escape(st.session_state.attachment_name)}</b> ({html.escape(st.session_state.attachment_type or 'arquivo')})</div>",
+        unsafe_allow_html=True,
+    )
+    if st.session_state.attachment_type == "image" and st.session_state.attachment_preview_path and os.path.exists(st.session_state.attachment_preview_path):
+        st.image(st.session_state.attachment_preview_path, caption=st.session_state.attachment_name, use_container_width=True)
+
+
+# =========================================================
+# CHAT HISTORY
+# =========================================================
+for msg in st.session_state.chat:
+    avatar = avatar_if()
+    with st.chat_message(msg["role"], avatar=avatar):
+        st.markdown(msg["content"], unsafe_allow_html=False)
+
+if st.session_state.last_generated_image and os.path.exists(st.session_state.last_generated_image):
+    st.image(st.session_state.last_generated_image, caption="Imagem gerada para apoio visual", use_container_width=True)
+
+
+# =========================================================
+# ATTACHMENT BAR + CHAT INPUT
+# =========================================================
+st.markdown('<div class="panel-card" style="margin-top:16px;">', unsafe_allow_html=True)
+st.markdown('<div style="font-weight:800; color:#5a483b; margin-bottom:8px;">Anexos perto do chat</div>', unsafe_allow_html=True)
+col_attach, col_clear = st.columns([5, 1])
+with col_attach:
+    upload = st.file_uploader(
+        "Envie PDF, imagem ou TXT",
+        type=["pdf", "png", "jpg", "jpeg", "webp", "txt"],
+        label_visibility="collapsed",
+        key="chat_attachment",
+    )
+with col_clear:
+    if st.button("Limpar", use_container_width=True):
+        update_attachment(st.session_state.current_conversation_id, None, None, None)
+        st.session_state.attachment_text = None
+        st.session_state.attachment_name = None
+        st.session_state.attachment_type = None
+        st.session_state.attachment_preview_path = None
+        st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
+
+if upload is not None:
+    err = validate_upload(upload)
+    if err:
+        st.warning(err)
+    else:
+        dest, name, ftype = save_upload(upload)
+        update_attachment(st.session_state.current_conversation_id, dest, name, ftype)
+        st.session_state.attachment_name = name
+        st.session_state.attachment_type = ftype
+        st.session_state.attachment_preview_path = dest if ftype == "image" else None
+        if ftype == "pdf":
+            st.session_state.attachment_text = extract_pdf_text(dest)
+        elif ftype == "text":
+            try:
+                with open(dest, "r", encoding="utf-8") as f:
+                    st.session_state.attachment_text = f.read()
+            except Exception:
+                st.session_state.attachment_text = None
+        else:
+            st.session_state.attachment_text = None
+        st.toast(f"Anexo ativo: {name}")
+
+user_prompt = st.chat_input("Escreva sua dúvida, peça um resumo, gráfico, diagrama ou use um anexo...")
+
+if user_prompt and user_prompt.strip():
+    if st.session_state.contador_perguntas >= MAX_PERGUNTAS_SESSAO:
+        st.warning("Você atingiu o limite de perguntas desta sessão.")
+    else:
+        question = user_prompt.strip()
+        cid = st.session_state.current_conversation_id
+        rename_first_message_title(cid, question)
+
         save_message(cid, "user", question)
         st.session_state.chat.append({"role": "user", "content": question})
         st.session_state.contador_perguntas += 1
+        st.session_state.last_generated_image = None
 
-        conv = get_conversation(cid)
-        has_pdf = bool(st.session_state.db_texto_pdf)
-        has_image = bool(conv and conv[10])
-        intent = infer_intent(question, has_pdf, has_image)
-        st.session_state.last_detected_intent = intent
+        intent = detect_intent(question)
+        st.session_state.last_intent = intent
 
-        attachment_hint = None
-        attachment_text = None
-        if conv:
-            if conv[8]:
-                attachment_hint = f"Arquivo ativo: {conv[8]}"
-            elif conv[10]:
-                attachment_hint = f"Imagem ativa: {conv[10]}"
-        if st.session_state.db_texto_pdf:
-            attachment_text = st.session_state.db_texto_pdf
-
-        system_prompt = mentor_system_prompt(intent)
-        user_prompt = build_user_prompt(question, attachment_text, attachment_hint, intent)
-        with st.spinner("Pensando..."):
-            answer = generate_response(system_prompt, user_prompt)
+        if intent == "linus":
+            image_path = build_linus_pauling_diagram()
+            st.session_state.last_generated_image = image_path
+            answer = (
+                "Gerei um diagrama de Linus Pauling para apoio visual.\n\n"
+                "Use-o para seguir a ordem de preenchimento dos subníveis. Se quiser, também posso aplicar isso a um elemento específico, "
+                "como cálcio, ferro ou cloro, e montar a distribuição eletrônica passo a passo."
+            )
+        elif intent == "tabela_periodica":
+            answer = "A tabela periódica rápida está exibida acima para consulta. Se quiser, também posso classificar elementos, famílias, períodos ou propriedades periódicas."
+        else:
+            with st.spinner("Pensando..."):
+                answer = ask_groq(question)
 
         save_message(cid, "assistant", answer)
         st.session_state.chat.append({"role": "assistant", "content": answer})
         st.rerun()
 
-
-# =========================================================
-# APP FLOW
-# =========================================================
-if not st.session_state.auth_complete:
-    render_login_screen()
-    st.stop()
-
-ensure_current_conversation()
-render_sidebar()
-render_main_header()
-render_mentor_switcher()
-render_attachment_bar()
-render_context_panels()
-render_chat()
-
-st.caption(f"{APP_NAME} • {PROJECT_NAME} • {INSTITUTION_NAME} • {COURSE_NAME}")
+st.caption(f"{APP_NAME} • {INSTITUTION_NAME} • {COURSE_NAME}")
