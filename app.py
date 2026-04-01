@@ -930,6 +930,18 @@ def generate_linus_pauling_diagram() -> str:
 # =========================================================
 # INTENÇÃO / SUMÁRIO / GERAÇÃO
 # =========================================================
+def is_visual_request(text: str) -> bool:
+    t = (text or "").lower()
+    visual_terms = [
+        "gráfico", "grafico", "plote", "plota", "plot", "curva", "curvas",
+        "plano cartesiano", "trajetória", "trajetoria", "vetor", "vetores",
+        "forças", "forcas", "lancamento", "lançamento", "desenhe", "desenha",
+        "diagrama", "esquema", "corpo", "corpos", "movimento", "mru", "mruv",
+        "seno", "cosseno", "tangente", "função", "funcao", "parábola", "parabola"
+    ]
+    return any(term in t for term in visual_terms) or extract_expression(text) is not None
+
+
 def detect_intent(text: str) -> str:
     t = (text or "").lower()
     if "linus pauling" in t or "diagrama de linus" in t:
@@ -944,12 +956,12 @@ def detect_intent(text: str) -> str:
         return "resumo"
     if any(k in t for k in ["plano de aula", "sequência didática", "sequencia didatica", "monte uma aula"]):
         return "plano_aula"
+    if is_visual_request(text):
+        return "visual"
     if any(k in t for k in ["gere questões", "gere questoes", "crie questões", "crie questoes", "lista de exercícios", "lista de exercicios", "simulado", "monte questões", "monte questoes"]):
         return "lista_exercicios"
     if any(k in t for k in ["exemplo", "exemplos", "demonstre", "demonstra", "mostre um exemplo"]):
         return "exemplos"
-    if any(k in t for k in ["gráfico", "grafico", "plote", "plota", "plano cartesiano", "trajetória", "trajetoria", "vetor", "forças", "forcas", "lancamento", "lançamento"]):
-        return "visual"
     if any(k in t for k in ["questão", "questao", "resolver", "resolva"]):
         return "resolver"
     return "explicacao"
@@ -1240,10 +1252,11 @@ def answer_user(user_text: str) -> str:
         return "Gerei um diagrama de Linus Pauling para apoio visual. Se quiser, também posso aplicá-lo a um elemento específico."
     if intent == "tabela_periodica":
         return "A tabela periódica rápida está exibida acima para consulta. Se quiser, também posso comentar famílias, períodos e propriedades."
-    if intent == "visual":
-        visual_answer = handle_visual_request(user_text)
-        if visual_answer:
-            return visual_answer
+
+    visual_answer = handle_visual_request(user_text)
+    if visual_answer:
+        return visual_answer
+
     if st.session_state.attachment_type == "image" and st.session_state.attachment_preview_path:
         return ask_vision_model(user_text, st.session_state.attachment_preview_path)
     return handle_generation_request(user_text) or ask_text_model(user_text)
