@@ -1820,6 +1820,10 @@ def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optiona
 def answer_user(user_text: str) -> str:
     intent = detect_intent(user_text)
 
+    # Demonstração/dedução tem prioridade sobre qualquer geração visual automática.
+    if intent == "demonstracao" or request_wants_derivation(user_text):
+        return ask_text_model(user_text)
+
     visual_path, visual_message = try_generate_visual_response(user_text)
     if visual_path:
         st.session_state.last_generated_image = visual_path
