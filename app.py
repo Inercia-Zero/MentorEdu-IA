@@ -1027,6 +1027,16 @@ def build_linus_pauling_diagram() -> str:
 def detect_intent(text: str) -> str:
     t = (text or "").lower()
 
+    if any(k in t for k in [
+        "demonstração", "demonstracao", "demonstre",
+        "dedução", "deducao", "deduza",
+        "derivação", "derivacao", "derive",
+        "prova", "prove", "provar",
+        "origem da fórmula", "origem da formula",
+        "mostre de onde vem", "explique a fórmula", "explique a formula"
+    ]):
+        return "demonstracao"
+
     if "linus pauling" in t or "diagrama de linus" in t:
         return "linus"
 
@@ -1070,6 +1080,7 @@ def detect_intent(text: str) -> str:
 
 def detect_mode_label(intent: str) -> str:
     mapping = {
+        "demonstracao": "Demonstração",
         "correcao": "Correção",
         "analise_resolucao": "Análise de resolução",
         "resumo": "Resumo",
@@ -1129,6 +1140,12 @@ Nunca humilhe o aluno; corrija com firmeza e acolhimento.
 
 def build_task_prompt(intent: str) -> str:
     prompts = {
+        "demonstracao": """
+Explique a origem da fórmula, identidade ou resultado pedido.
+Priorize dedução passo a passo.
+Mostre de onde cada etapa vem.
+Não gere gráfico automaticamente, a menos que o usuário peça explicitamente junto.
+""",
         "explicacao": """
 Explique como um mentor muito bom:
 - comece pela ideia central
@@ -1235,6 +1252,7 @@ Regras gerais:
 - Ao sugerir nota, deixe claro o critério usado.
 - Evite respostas genéricas.
 - Nunca use comandos como \\includegraphics nem finja que exibiu uma imagem; quando o pedido for visual, prefira explicar a imagem realmente gerada pelo app.
+- Se o usuário pedir demonstração, dedução, derivação ou origem de uma fórmula, priorize a explicação simbólica e não gere gráfico automaticamente.
 - Nunca use comandos como \includegraphics, não finja que exibiu uma imagem; quando o pedido for visual, prefira explicar a imagem realmente gerada pelo app.
 
 Prompt do mentor:
@@ -1375,8 +1393,53 @@ def save_plot_figure(fig, prefix: str) -> str:
     return path
 
 
-def request_wants_visual_generation(text: str) -> bool:
+
+
+def request_wants_derivation(text: str) -> bool:
     t = (text or "").lower()
+    terms = [
+        "demonstração", "demonstracao", "demonstre",
+        "dedução", "deducao", "deduza",
+        "derivação", "derivacao", "derive",
+        "prova", "prove", "provar",
+        "origem da fórmula", "origem da formula",
+        "mostre de onde vem", "explique a fórmula", "explique a formula"
+    ]
+    return any(term in t for term in terms)
+
+def inherit_visual_context_from_history(user_text: str) -> str:
+    t = (user_text or "").lower()
+
+    direct_terms = [
+        "gráfico", "grafico", "plote", "plot", "curva", "plano cartesiano",
+        "função", "funcao", "equação", "equacao", "afim", "linear",
+        "primeiro grau", "segundo grau", "terceiro grau", "quadrática", "quadratica",
+        "parábola", "parabola", "exponencial", "logarítmica", "logaritmica",
+        "modular", "módulo", "modulo", "seno", "cosseno", "coseno", "tangente",
+        "mru", "mruv", "trajetória", "trajetoria", "forças", "forcas"
+    ]
+    if any(term in t for term in direct_terms):
+        return t
+
+    continuation_terms = [
+        "agora", "outro", "outra", "mais um", "mais uma", "exemplo", "exemplo de",
+        "faça uma", "faca uma", "gere uma", "gera uma", "mostre uma", "quero uma"
+    ]
+    if not any(term in t for term in continuation_terms):
+        return t
+
+    recent_texts = []
+    for msg in reversed(st.session_state.chat[-6:]):
+        if msg.get("type") == "text":
+            recent_texts.append((msg.get("content") or "").lower())
+
+    history = " ".join(recent_texts)
+    if history:
+        return history + " " + t
+    return t
+
+def request_wants_visual_generation(text: str) -> bool:
+    t = inherit_visual_context_from_history(text)
     visual_terms = [
         "gráfico", "grafico", "plote", "plot", "curva", "trajetória", "trajetoria",
         "plano cartesiano", "diagrama", "desenhe", "desenha", "esquema", "vetor",
@@ -1676,7 +1739,10 @@ def generate_forces_diagram(inclined: bool = False) -> str:
 
 
 def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optional[str]]:
-    t = (user_text or "").lower()
+    t = inherit_visual_context_from_history(user_text)
+
+    if request_wants_derivation(user_text):
+        return None, None
 
     if not request_wants_visual_generation(t):
         return None, None
@@ -1726,7 +1792,7 @@ def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optiona
     if any(k in t for k in [
         "função", "funcao", "equação", "equacao", "y=", "reta", "parábola", "parabola",
         "plano cartesiano", "segundo grau", "quadrática", "quadratica",
-        "primeiro grau", "função afim", "funcao afim", "linear", "cúbica", "cubica",
+        "primeiro grau", "função afim", "funcao afim", "afim", "linear", "cúbica", "cubica",
         "terceiro grau", "exponencial", "logarítmica", "logaritmica", "logaritmo",
         "módulo", "modulo", "modular"
     ]):
