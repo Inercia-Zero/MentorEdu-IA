@@ -1213,6 +1213,7 @@ Regras gerais:
 - Se estiver corrigindo prova, trate sua saída como sugestão de correção assistida, não sentença absoluta.
 - Ao sugerir nota, deixe claro o critério usado.
 - Evite respostas genéricas.
+- Nunca use comandos como \\includegraphics nem finja que exibiu uma imagem; quando o pedido for visual, prefira explicar a imagem realmente gerada pelo app.
 - Nunca use comandos como \includegraphics, não finja que exibiu uma imagem; quando o pedido for visual, prefira explicar a imagem realmente gerada pelo app.
 
 Prompt do mentor:
@@ -1342,6 +1343,271 @@ Pedido do usuário: {user_text}
         return clean_text(text) if text else "Não consegui gerar uma análise útil da imagem."
     except Exception as e:
         return f"Ocorreu um erro ao analisar a imagem: {e}"
+
+
+
+
+def save_plot_figure(fig, prefix: str) -> str:
+    path = os.path.join(UPLOAD_DIR, f"{prefix}_{uuid.uuid4().hex}.png")
+    fig.savefig(path, bbox_inches="tight", facecolor=fig.get_facecolor(), dpi=180)
+    plt.close(fig)
+    return path
+
+
+def request_wants_visual_generation(text: str) -> bool:
+    t = (text or "").lower()
+    visual_terms = [
+        "gráfico", "grafico", "plote", "plot", "curva", "trajetória", "trajetoria",
+        "plano cartesiano", "diagrama", "desenhe", "desenha", "esquema", "vetor",
+        "vetores", "força", "forcas", "forças"
+    ]
+    return any(term in t for term in visual_terms)
+
+
+def generate_trig_plot() -> str:
+    x = np.linspace(0, 360, 1200)
+    rad = np.deg2rad(x)
+    y_sin = np.sin(rad)
+    y_cos = np.cos(rad)
+    y_tan = np.tan(rad)
+    y_tan = np.where(np.abs(y_tan) > 5, np.nan, y_tan)
+
+    fig, ax = plt.subplots(figsize=(10, 5), dpi=180)
+    fig.patch.set_facecolor("#f7f1e8")
+    ax.set_facecolor("#fffaf3")
+    ax.plot(x, y_sin, label="sen(θ)", linewidth=2.4)
+    ax.plot(x, y_cos, label="cos(θ)", linewidth=2.4)
+    ax.plot(x, y_tan, label="tan(θ)", linewidth=2.1)
+    for xv in [90, 270]:
+        ax.axvline(x=xv, linestyle="--", linewidth=1)
+    ax.axhline(0, linewidth=1)
+    ax.set_xlim(0, 360)
+    ax.set_ylim(-5, 5)
+    ax.set_xticks([0, 30, 45, 60, 90, 120, 180, 270, 360])
+    ax.set_xlabel("Ângulo θ (graus)")
+    ax.set_ylabel("Valor da razão")
+    ax.set_title("Gráfico de seno, cosseno e tangente")
+    ax.grid(True, alpha=0.25)
+    ax.legend()
+    fig.tight_layout()
+    return save_plot_figure(fig, "trig")
+
+
+def safe_math_expression_from_text(text: str) -> str:
+    lower = (text or "").lower()
+    m = re.search(r"y\s*=\s*([^\n\r]+)", lower)
+    if m:
+        expr = m.group(1).strip()
+    else:
+        expr = lower.strip()
+
+    expr = expr.replace("^", "**")
+    expr = expr.replace("sen", "sin")
+    expr = expr.replace("tg", "tan")
+    expr = re.sub(r"[^0-9x\+\-\*\/\.\(\)\s_a-z]", "", expr)
+
+    allowed = {
+        "sin": "np.sin",
+        "cos": "np.cos",
+        "tan": "np.tan",
+        "sqrt": "np.sqrt",
+        "log": "np.log",
+        "exp": "np.exp",
+        "pi": "np.pi",
+        "abs": "np.abs",
+    }
+    for k, v in allowed.items():
+        expr = re.sub(rf"\b{k}\b", v, expr)
+    expr = re.sub(r"\bx\b", "x", expr)
+    return expr.strip()
+
+
+def generate_function_plot_from_text(text: str) -> tuple[str, str]:
+    expr = safe_math_expression_from_text(text)
+    if not expr:
+        raise ValueError("Não consegui identificar a função.")
+
+    x = np.linspace(-10, 10, 800)
+    safe_globals = {"np": np, "__builtins__": {}}
+    y = eval(expr, safe_globals, {"x": x})
+
+    fig, ax = plt.subplots(figsize=(8.6, 5), dpi=180)
+    fig.patch.set_facecolor("#f7f1e8")
+    ax.set_facecolor("#fffaf3")
+    ax.plot(x, y, linewidth=2.4)
+    ax.axhline(0, linewidth=1)
+    ax.axvline(0, linewidth=1)
+    ax.set_title(f"Gráfico da função y = {expr.replace('np.', '')}")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.grid(True, alpha=0.25)
+    fig.tight_layout()
+    return save_plot_figure(fig, "funcao"), expr.replace("np.", "")
+
+
+def generate_mru_plot() -> str:
+    t = np.linspace(0, 10, 200)
+    s = 5 + 3 * t
+    v = np.full_like(t, 3.0)
+
+    fig, ax = plt.subplots(figsize=(9, 5), dpi=180)
+    fig.patch.set_facecolor("#f7f1e8")
+    ax.set_facecolor("#fffaf3")
+    ax.plot(t, s, label="s(t) = 5 + 3t", linewidth=2.5)
+    ax.plot(t, v, label="v(t) = 3", linewidth=2.2)
+    ax.set_title("Exemplo visual de MRU")
+    ax.set_xlabel("Tempo")
+    ax.set_ylabel("Valor")
+    ax.grid(True, alpha=0.25)
+    ax.legend()
+    fig.tight_layout()
+    return save_plot_figure(fig, "mru")
+
+
+def generate_mruv_plot() -> str:
+    t = np.linspace(0, 10, 200)
+    s = 2 + 4*t + 0.5*1.5*(t**2)
+    v = 4 + 1.5*t
+    a = np.full_like(t, 1.5)
+
+    fig, ax = plt.subplots(figsize=(9, 5), dpi=180)
+    fig.patch.set_facecolor("#f7f1e8")
+    ax.set_facecolor("#fffaf3")
+    ax.plot(t, s, label="s(t) = 2 + 4t + 0,75t²", linewidth=2.5)
+    ax.plot(t, v, label="v(t) = 4 + 1,5t", linewidth=2.2)
+    ax.plot(t, a, label="a(t) = 1,5", linewidth=2.0)
+    ax.set_title("Exemplo visual de MRUV")
+    ax.set_xlabel("Tempo")
+    ax.set_ylabel("Valor")
+    ax.grid(True, alpha=0.25)
+    ax.legend()
+    fig.tight_layout()
+    return save_plot_figure(fig, "mruv")
+
+
+def generate_projectile_diagram() -> str:
+    g = 9.8
+    v0 = 18
+    ang = np.deg2rad(45)
+    t_max = 2 * v0 * np.sin(ang) / g
+    t = np.linspace(0, t_max, 200)
+    x = v0 * np.cos(ang) * t
+    y = v0 * np.sin(ang) * t - 0.5 * g * t**2
+
+    fig, ax = plt.subplots(figsize=(8.8, 5), dpi=180)
+    fig.patch.set_facecolor("#f7f1e8")
+    ax.set_facecolor("#fffaf3")
+    ax.plot(x, y, linewidth=2.6)
+    ax.scatter([x[0]], [y[0]], s=70)
+    ax.annotate("v₀", (x[8], y[8]), xytext=(x[8]+2, y[8]+2),
+                arrowprops=dict(arrowstyle="->", lw=1.4))
+    ax.axhline(0, linewidth=1)
+    ax.set_title("Trajetória de lançamento oblíquo")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.grid(True, alpha=0.25)
+    fig.tight_layout()
+    return save_plot_figure(fig, "trajetoria")
+
+
+def generate_forces_diagram(inclined: bool = False) -> str:
+    fig, ax = plt.subplots(figsize=(8, 5), dpi=180)
+    fig.patch.set_facecolor("#f7f1e8")
+    ax.set_facecolor("#fffaf3")
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, 8)
+    ax.axis("off")
+
+    if inclined:
+        ax.plot([1, 8], [1, 4], linewidth=2.2)
+        block_x, block_y = 4.5, 2.65
+        ax.add_patch(plt.Rectangle((block_x, block_y), 1.3, 0.9, angle=23, fill=False, linewidth=2))
+        ax.annotate("", xy=(block_x+1.5, block_y+2.2), xytext=(block_x+0.9, block_y+1.1),
+                    arrowprops=dict(arrowstyle="->", lw=2))
+        ax.text(block_x+1.55, block_y+2.25, "N", fontsize=12)
+        ax.annotate("", xy=(block_x+0.65, block_y-1.3), xytext=(block_x+0.65, block_y+0.35),
+                    arrowprops=dict(arrowstyle="->", lw=2))
+        ax.text(block_x+0.75, block_y-1.35, "P", fontsize=12)
+        ax.annotate("", xy=(block_x-0.6, block_y+0.1), xytext=(block_x+0.25, block_y+0.55),
+                    arrowprops=dict(arrowstyle="->", lw=2))
+        ax.text(block_x-0.85, block_y, "Atrito", fontsize=11)
+        title = "Diagrama de forças em plano inclinado"
+    else:
+        ax.plot([1, 9], [2, 2], linewidth=2.2)
+        ax.add_patch(plt.Rectangle((4.2, 2), 1.6, 1.2, fill=False, linewidth=2))
+        ax.annotate("", xy=(5, 5), xytext=(5, 3.2), arrowprops=dict(arrowstyle="->", lw=2))
+        ax.text(5.1, 5.05, "N", fontsize=12)
+        ax.annotate("", xy=(5, 0.5), xytext=(5, 2), arrowprops=dict(arrowstyle="->", lw=2))
+        ax.text(5.1, 0.4, "P", fontsize=12)
+        ax.annotate("", xy=(7.6, 2.6), xytext=(5.8, 2.6), arrowprops=dict(arrowstyle="->", lw=2))
+        ax.text(7.7, 2.7, "F", fontsize=12)
+        title = "Diagrama simples de forças"
+
+    ax.set_title(title)
+    fig.tight_layout()
+    return save_plot_figure(fig, "forcas")
+
+
+def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optional[str]]:
+    t = (user_text or "").lower()
+
+    if not request_wants_visual_generation(t):
+        return None, None
+
+    if any(k in t for k in ["seno", "cosseno", "coseno", "tangente", "trigonom"]):
+        path = generate_trig_plot()
+        msg = (
+            "Gerei um gráfico real de seno, cosseno e tangente.\n\n"
+            "Nele, o seno e o cosseno oscilam entre -1 e 1, enquanto a tangente cresce muito perto de 90° e 270°, "
+            "por isso ela foi limitada visualmente para o gráfico ficar legível."
+        )
+        return path, msg
+
+    if any(k in t for k in ["mruv", "movimento uniformemente variado", "movimento uniformemente acelerado"]):
+        path = generate_mruv_plot()
+        msg = (
+            "Gerei um gráfico real de MRUV.\n\n"
+            "A posição cresce em curva, a velocidade cresce em reta e a aceleração permanece constante."
+        )
+        return path, msg
+
+    if any(k in t for k in ["mru", "movimento uniforme"]):
+        path = generate_mru_plot()
+        msg = (
+            "Gerei um gráfico real de MRU.\n\n"
+            "A posição varia linearmente com o tempo e a velocidade permanece constante."
+        )
+        return path, msg
+
+    if any(k in t for k in ["trajetória", "trajetoria", "lançamento oblíquo", "lancamento obliquo", "projétil", "projetil"]):
+        path = generate_projectile_diagram()
+        msg = (
+            "Gerei um esquema visual de lançamento oblíquo.\n\n"
+            "A trajetória é parabólica: horizontalmente o movimento é uniforme, e verticalmente ele é acelerado pela gravidade."
+        )
+        return path, msg
+
+    if any(k in t for k in ["plano inclinado", "normal", "atrito", "forças", "forcas", "diagrama de forças"]):
+        inclined = "plano inclinado" in t
+        path = generate_forces_diagram(inclined=inclined)
+        msg = (
+            "Gerei um diagrama simples de forças.\n\n"
+            "Use esse esquema para visualizar as setas físicas antes de partir para as equações."
+        )
+        return path, msg
+
+    if any(k in t for k in ["função", "funcao", "y=", "reta", "parábola", "parabola", "plano cartesiano"]):
+        try:
+            path, expr = generate_function_plot_from_text(user_text)
+            msg = (
+                f"Gerei um gráfico real da função $y={expr}$.\n\n"
+                "Se quiser, também posso interpretar crescimento, raízes, vértice, interceptações ou domínio."
+            )
+            return path, msg
+        except Exception:
+            return None, None
+
+    return None, None
 
 
 def answer_user(user_text: str) -> str:
