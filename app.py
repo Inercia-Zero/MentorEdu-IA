@@ -1609,14 +1609,22 @@ def choose_default_expression_from_constraints(text: str) -> str:
     return ""
 
 def generate_function_plot_from_text(text: str) -> tuple[str, str]:
-    raw = (text or "").lower()
+    raw = (text or "").lower().strip()
+
+    raw = raw.replace("dessa mesma função", "função")
+    raw = raw.replace("dessa mesma funcao", "função")
+    raw = raw.replace("dessa funcao", "função")
+    raw = raw.replace("dessa função", "função")
+    raw = raw.replace("da mesma função", "função")
+    raw = raw.replace("da mesma funcao", "função")
+    raw = raw.replace("dela", "função")
 
     if "y=" not in raw and "x" not in raw:
-        expr = choose_default_expression_from_constraints(text)
+        expr = choose_default_expression_from_constraints(raw)
         if not expr:
             raise ValueError("Não identifiquei qual função você quer plotar.")
     else:
-        expr = safe_math_expression_from_text(text)
+        expr = safe_math_expression_from_text(raw)
 
     if not expr:
         raise ValueError("Não consegui identificar a função.")
@@ -1802,17 +1810,21 @@ def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optiona
         "módulo", "modulo", "modular"
     ]):
         try:
-            path, expr = generate_function_plot_from_text(user_text)
+            path, expr = generate_function_plot_from_text(t)
             extra = ""
             if "x**2 + 3*x - 4" in expr:
-                extra = " Como você pediu a equação do segundo grau sem informar coeficientes, usei o exemplo $y=x^2+3x-4$."
+                extra = " Como você pediu uma função do segundo grau sem informar coeficientes, usei o exemplo $y=x^2+3x-4$."
+            elif "2*x + 1" in expr:
+                extra = " Como você pediu uma função afim sem informar coeficientes, usei o exemplo $y=2x+1$."
+            elif "-2*x + 3" in expr:
+                extra = " Como você pediu uma função afim decrescente sem informar coeficientes, usei o exemplo $y=-2x+3$."
             msg = (
                 f"Gerei um gráfico real da função $y={expr}$.{extra}\n\n"
                 "Se quiser, também posso interpretar crescimento, raízes, vértice, interceptações ou domínio."
             )
             return path, msg
-        except Exception:
-            return None, None
+        except Exception as e:
+            return None, f"Não consegui gerar o gráfico automaticamente. Detalhe técnico: {e}"
 
     return None, None
 
@@ -2203,6 +2215,7 @@ if user_prompt and user_prompt.strip():
         }
 
         with st.spinner("Pensando..."):
+            st.session_state.last_generated_image = None
             answer = answer_user(question)
 
         new_image_path = st.session_state.last_generated_image
