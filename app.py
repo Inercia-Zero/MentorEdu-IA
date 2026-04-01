@@ -1033,7 +1033,9 @@ def detect_intent(text: str) -> str:
         "derivação", "derivacao", "derive",
         "prova", "prove", "provar",
         "origem da fórmula", "origem da formula",
-        "mostre de onde vem", "explique a fórmula", "explique a formula"
+        "mostre de onde vem", "explique a fórmula", "explique a formula",
+        "desenvolva", "desenvolvimento", "mostre o desenvolvimento",
+        "dedução da fórmula", "deducao da formula", "desenvolva a fórmula", "desenvolva a formula"
     ]):
         return "demonstracao"
 
@@ -1144,6 +1146,7 @@ def build_task_prompt(intent: str) -> str:
 Explique a origem da fórmula, identidade ou resultado pedido.
 Priorize dedução passo a passo.
 Mostre de onde cada etapa vem.
+Se o usuário pedir para desenvolver a fórmula ou mostrar o desenvolvimento, trate isso como demonstração.
 Não gere gráfico automaticamente, a menos que o usuário peça explicitamente junto.
 """,
         "explicacao": """
@@ -1403,7 +1406,9 @@ def request_wants_derivation(text: str) -> bool:
         "derivação", "derivacao", "derive",
         "prova", "prove", "provar",
         "origem da fórmula", "origem da formula",
-        "mostre de onde vem", "explique a fórmula", "explique a formula"
+        "mostre de onde vem", "explique a fórmula", "explique a formula",
+        "desenvolva", "desenvolvimento", "mostre o desenvolvimento",
+        "dedução da fórmula", "deducao da formula", "desenvolva a fórmula", "desenvolva a formula"
     ]
     return any(term in t for term in terms)
 
