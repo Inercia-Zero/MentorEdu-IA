@@ -1359,7 +1359,11 @@ def request_wants_visual_generation(text: str) -> bool:
     visual_terms = [
         "gráfico", "grafico", "plote", "plot", "curva", "trajetória", "trajetoria",
         "plano cartesiano", "diagrama", "desenhe", "desenha", "esquema", "vetor",
-        "vetores", "força", "forcas", "forças"
+        "vetores", "força", "forcas", "forças", "função", "funcao", "equação",
+        "equacao", "primeiro grau", "segundo grau", "terceiro grau", "quadrática", "quadratica", "parábola", "parabola",
+        "linear", "afim", "cúbica", "cubica", "exponencial", "logarítmica", "logaritmica", "modular", "módulo", "modulo",
+        "trigonometria", "razões trigonométricas", "razoes trigonometricas",
+        "razão trigonométrica", "razao trigonometrica", "seno", "cosseno", "coseno", "tangente"
     ]
     return any(term in t for term in visual_terms)
 
@@ -1394,17 +1398,43 @@ def generate_trig_plot() -> str:
 
 
 def safe_math_expression_from_text(text: str) -> str:
-    lower = (text or "").lower()
-    m = re.search(r"y\s*=\s*([^\n\r]+)", lower)
-    if m:
-        expr = m.group(1).strip()
-    else:
-        expr = lower.strip()
+    lower = (text or "").lower().strip()
+
+    patterns = [
+        r"y\s*=\s*([^\n\r]+)",
+        r"fun[cç][aã]o\s+([^\n\r]+)",
+        r"equa[cç][aã]o\s+([^\n\r]+)",
+    ]
+    expr = ""
+    for pat in patterns:
+        m = re.search(pat, lower)
+        if m:
+            expr = m.group(1).strip()
+            break
+
+    if not expr:
+        expr = lower
 
     expr = expr.replace("^", "**")
     expr = expr.replace("sen", "sin")
     expr = expr.replace("tg", "tan")
-    expr = re.sub(r"[^0-9x\+\-\*\/\.\(\)\s_a-z]", "", expr)
+    expr = expr.replace("ln(", "log(")
+    expr = expr.replace("|x|", "abs(x)")
+
+    fillers = [
+        "gere um gráfico de", "gere um grafico de", "faça um gráfico de", "faca um grafico de",
+        "plote", "mostre", "desenhe", "gráfico de", "grafico de",
+        "função", "funcao", "equação", "equacao", "da", "do"
+    ]
+    for f in fillers:
+        expr = expr.replace(f, " ")
+
+    expr = expr.strip()
+    expr = re.sub(r"(\d)(x)", r"\1*\2", expr)
+    expr = re.sub(r"(x)(\d)", r"\1*\2", expr)
+    expr = re.sub(r"(\))(x)", r"\1*\2", expr)
+    expr = re.sub(r"(x)(\()", r"\1*\2", expr)
+    expr = re.sub(r"[^0-9x\+\-\*\/\.^\(\)\s_a-z]", "", expr)
 
     allowed = {
         "sin": "np.sin",
@@ -1423,15 +1453,41 @@ def safe_math_expression_from_text(text: str) -> str:
 
 
 def generate_function_plot_from_text(text: str) -> tuple[str, str]:
-    expr = safe_math_expression_from_text(text)
+    raw = (text or "").lower()
+
+    if "y=" not in raw and "x" not in raw:
+        if any(k in raw for k in ["segundo grau", "quadrática", "quadratica", "parábola", "parabola"]):
+            expr = "x**2 + 3*x - 4"
+        elif any(k in raw for k in ["primeiro grau", "função afim", "funcao afim", "reta", "linear"]):
+            expr = "2*x + 1"
+        elif any(k in raw for k in ["cúbica", "cubica", "terceiro grau"]):
+            expr = "x**3 - 3*x"
+        elif any(k in raw for k in ["exponencial"]):
+            expr = "2**x"
+        elif any(k in raw for k in ["logarítmica", "logaritmica", "logaritmo"]):
+            expr = "log(x)"
+        elif any(k in raw for k in ["modular", "módulo", "modulo"]):
+            expr = "abs(x)"
+        elif any(k in raw for k in ["seno", "sin"]):
+            expr = "sin(x)"
+        elif any(k in raw for k in ["cosseno", "coseno", "cos"]):
+            expr = "cos(x)"
+        elif any(k in raw for k in ["tangente", "tan"]):
+            expr = "tan(x)"
+        else:
+            raise ValueError("Não identifiquei qual função você quer plotar.")
+    else:
+        expr = safe_math_expression_from_text(text)
+
     if not expr:
         raise ValueError("Não consegui identificar a função.")
 
-    x = np.linspace(-10, 10, 800)
+    x = np.linspace(-10, 10, 1200)
     safe_globals = {"np": np, "__builtins__": {}}
     y = eval(expr, safe_globals, {"x": x})
+    y = np.where(np.abs(y) > 50, np.nan, y)
 
-    fig, ax = plt.subplots(figsize=(8.6, 5), dpi=180)
+    fig, ax = plt.subplots(figsize=(8.8, 5), dpi=180)
     fig.patch.set_facecolor("#f7f1e8")
     ax.set_facecolor("#fffaf3")
     ax.plot(x, y, linewidth=2.4)
@@ -1596,11 +1652,20 @@ def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optiona
         )
         return path, msg
 
-    if any(k in t for k in ["função", "funcao", "y=", "reta", "parábola", "parabola", "plano cartesiano"]):
+    if any(k in t for k in [
+        "função", "funcao", "equação", "equacao", "y=", "reta", "parábola", "parabola",
+        "plano cartesiano", "segundo grau", "quadrática", "quadratica",
+        "primeiro grau", "função afim", "funcao afim", "linear", "cúbica", "cubica",
+        "terceiro grau", "exponencial", "logarítmica", "logaritmica", "logaritmo",
+        "módulo", "modulo", "modular"
+    ]):
         try:
             path, expr = generate_function_plot_from_text(user_text)
+            extra = ""
+            if "x**2 + 3*x - 4" in expr:
+                extra = " Como você pediu a equação do segundo grau sem informar coeficientes, usei o exemplo $y=x^2+3x-4$."
             msg = (
-                f"Gerei um gráfico real da função $y={expr}$.\n\n"
+                f"Gerei um gráfico real da função $y={expr}$.{extra}\n\n"
                 "Se quiser, também posso interpretar crescimento, raízes, vértice, interceptações ou domínio."
             )
             return path, msg
