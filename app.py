@@ -1,6 +1,5 @@
 import os
 import re
-import io
 import html
 import uuid
 import base64
@@ -41,16 +40,13 @@ VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 MAX_PDF_MB = 15
 MAX_FILE_MB = 12
-MAX_PERGUNTAS_SESSAO = 50
+MAX_PERGUNTAS_SESSAO = 60
 PDF_CONTEXT_LIMIT = 12000
 CHAT_HISTORY_LIMIT = 8
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
-# =========================================================
-# MENTORES / PERFIS
-# =========================================================
 MENTORS = {
     "Física": {
         "emoji": "⚛️",
@@ -116,17 +112,6 @@ Priorize:
     },
 }
 
-TASK_MODES = [
-    "Livre",
-    "Explicar conteúdo",
-    "Resolver questão",
-    "Analisar resolução",
-    "Corrigir questão/prova",
-    "Resumir material",
-    "Planejar aula",
-    "Gerar lista de exercícios",
-]
-
 PERIODIC_ROWS = [
     ["H", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "He"],
     ["Li", "Be", "", "", "", "", "", "", "", "", "", "", "B", "C", "N", "O", "F", "Ne"],
@@ -158,7 +143,6 @@ def app_css() -> str:
         --accent: #8a735f;
         --accent-2: #9a846f;
         --accent-soft: #efe1d0;
-        --green-if: #1f8f4d;
         --shadow: 0 10px 26px rgba(78, 60, 44, .08);
     }
 
@@ -169,7 +153,7 @@ def app_css() -> str:
     }
 
     .main .block-container {
-        max-width: 1240px !important;
+        max-width: 1250px !important;
         padding-top: .55rem !important;
         padding-bottom: .8rem !important;
     }
@@ -188,7 +172,7 @@ def app_css() -> str:
         color: var(--text) !important;
     }
 
-    .hero-card, .panel-card, .login-card, .mentor-card, .soft-card, .periodic-card, .top-mini-card {
+    .hero-card, .panel-card, .login-card, .mentor-card, .soft-card, .periodic-card, .top-mini-card, .conversation-card {
         background: var(--card) !important;
         border: 1px solid var(--line) !important;
         border-radius: 22px !important;
@@ -197,6 +181,12 @@ def app_css() -> str:
 
     .hero-card, .panel-card, .periodic-card, .top-mini-card {
         padding: 16px 18px !important;
+    }
+
+    .conversation-card {
+        padding: 8px 10px !important;
+        margin-bottom: 8px !important;
+        border-radius: 16px !important;
     }
 
     .login-card {
@@ -307,7 +297,8 @@ def app_css() -> str:
 
     .stButton > button,
     div[data-testid="baseButton-secondary"] > button,
-    div[data-testid="baseButton-primary"] > button {
+    div[data-testid="baseButton-primary"] > button,
+    div[data-testid="stBaseButton-secondary"] > button {
         background: var(--accent) !important;
         color: #fffaf4 !important;
         border: 1px solid var(--accent) !important;
@@ -318,7 +309,8 @@ def app_css() -> str:
 
     .stButton > button:hover,
     div[data-testid="baseButton-secondary"] > button:hover,
-    div[data-testid="baseButton-primary"] > button:hover {
+    div[data-testid="baseButton-primary"] > button:hover,
+    div[data-testid="stBaseButton-secondary"] > button:hover {
         background: var(--accent-2) !important;
         border-color: var(--accent-2) !important;
     }
@@ -433,6 +425,20 @@ def app_css() -> str:
         font-size: .9rem;
     }
 
+    .conversation-title {
+        font-weight: 800;
+        font-size: .92rem;
+        line-height: 1.15;
+        margin-bottom: 2px;
+        color: #4d3d31 !important;
+    }
+
+    .conversation-meta {
+        color: var(--muted) !important;
+        font-size: .78rem;
+        line-height: 1.1;
+    }
+
     .stMarkdown p, .stCaption, label, span, div {
         color: var(--text) !important;
     }
@@ -465,7 +471,7 @@ def init_db():
             profile TEXT,
             nickname TEXT,
             mentor TEXT,
-            task_mode TEXT,
+            last_mode TEXT,
             attachment_path TEXT,
             attachment_name TEXT,
             attachment_type TEXT
@@ -493,7 +499,7 @@ def init_db():
         ("profile", "ALTER TABLE conversations ADD COLUMN profile TEXT"),
         ("nickname", "ALTER TABLE conversations ADD COLUMN nickname TEXT"),
         ("mentor", "ALTER TABLE conversations ADD COLUMN mentor TEXT"),
-        ("task_mode", "ALTER TABLE conversations ADD COLUMN task_mode TEXT"),
+        ("last_mode", "ALTER TABLE conversations ADD COLUMN last_mode TEXT"),
         ("attachment_path", "ALTER TABLE conversations ADD COLUMN attachment_path TEXT"),
         ("attachment_name", "ALTER TABLE conversations ADD COLUMN attachment_name TEXT"),
         ("attachment_type", "ALTER TABLE conversations ADD COLUMN attachment_type TEXT"),
@@ -515,7 +521,7 @@ def init_session_state():
         "profile": "Aluno",
         "nickname": "",
         "mentor": "Física",
-        "task_mode": "Livre",
+        "last_detected_mode": "Livre",
         "chat": [],
         "current_conversation_id": None,
         "loaded_conversation_id": None,
@@ -525,6 +531,9 @@ def init_session_state():
         "attachment_preview_path": None,
         "last_generated_image": None,
         "contador_perguntas": 0,
+        "rename_target_id": None,
+        "gabarito_rapido": "",
+        "criterios_correcao": "",
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -586,19 +595,12 @@ def clean_text(text: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", (text or "").strip())
 
 
-def safe_open_image(path: str) -> Optional[Image.Image]:
-    try:
-        return Image.open(path)
-    except Exception:
-        return None
-
-
 def list_conversations() -> List[tuple]:
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT id, title, updated_at, mentor, attachment_name, task_mode
+        SELECT id, title, updated_at, mentor, attachment_name, last_mode
         FROM conversations
         WHERE user_key = ?
         ORDER BY updated_at DESC, id DESC
@@ -615,7 +617,7 @@ def get_conversation(cid: int):
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT id, title, created_at, updated_at, profile, nickname, mentor, task_mode,
+        SELECT id, title, created_at, updated_at, profile, nickname, mentor, last_mode,
                attachment_path, attachment_name, attachment_type, user_key
         FROM conversations
         WHERE id = ? AND user_key = ?
@@ -627,16 +629,15 @@ def get_conversation(cid: int):
     return row
 
 
-def create_conversation(title: str = "Nova conversa", mentor: Optional[str] = None, task_mode: Optional[str] = None) -> int:
+def create_conversation(title: str = "Nova conversa", mentor: Optional[str] = None) -> int:
     conn = get_conn()
     cur = conn.cursor()
     mentor = mentor or st.session_state.mentor
-    task_mode = task_mode or st.session_state.task_mode
     now = now_iso()
     cur.execute(
         """
         INSERT INTO conversations(
-            user_key, title, created_at, updated_at, profile, nickname, mentor, task_mode
+            user_key, title, created_at, updated_at, profile, nickname, mentor, last_mode
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
@@ -648,7 +649,7 @@ def create_conversation(title: str = "Nova conversa", mentor: Optional[str] = No
             st.session_state.profile,
             st.session_state.nickname,
             mentor,
-            task_mode,
+            st.session_state.last_detected_mode,
         ),
     )
     conn.commit()
@@ -666,8 +667,8 @@ def save_message(cid: int, role: str, content: str):
         (cid, role, content, now),
     )
     cur.execute(
-        "UPDATE conversations SET updated_at = ?, mentor = ?, task_mode = ? WHERE id = ? AND user_key = ?",
-        (now, st.session_state.mentor, st.session_state.task_mode, cid, build_user_key()),
+        "UPDATE conversations SET updated_at = ?, mentor = ?, last_mode = ? WHERE id = ? AND user_key = ?",
+        (now, st.session_state.mentor, st.session_state.last_detected_mode, cid, build_user_key()),
     )
     conn.commit()
     conn.close()
@@ -705,6 +706,20 @@ def rename_first_message_title(cid: int, text: str):
     conn.close()
 
 
+def rename_conversation(cid: int, new_title: str):
+    new_title = re.sub(r"\s+", " ", (new_title or "").strip())
+    if not new_title:
+        return
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ? AND user_key = ?",
+        (new_title[:80], now_iso(), cid, build_user_key()),
+    )
+    conn.commit()
+    conn.close()
+
+
 def delete_conversation(cid: int):
     conv = get_conversation(cid)
     if conv:
@@ -738,16 +753,16 @@ def update_attachment(cid: int, path: Optional[str], name: Optional[str], ftype:
     conn.close()
 
 
-def update_conversation_meta(cid: int, mentor: str, task_mode: str):
+def update_conversation_mentor(cid: int, mentor: str):
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
         """
         UPDATE conversations
-        SET mentor = ?, task_mode = ?, updated_at = ?
+        SET mentor = ?, updated_at = ?
         WHERE id = ? AND user_key = ?
         """,
-        (mentor, task_mode, now_iso(), cid, build_user_key()),
+        (mentor, now_iso(), cid, build_user_key()),
     )
     conn.commit()
     conn.close()
@@ -758,6 +773,7 @@ def reset_visual_state(clear_file: bool = True):
     st.session_state.loaded_conversation_id = None
     st.session_state.last_generated_image = None
     st.session_state.contador_perguntas = 0
+    st.session_state.last_detected_mode = "Livre"
     if clear_file:
         st.session_state.attachment_text = None
         st.session_state.attachment_name = None
@@ -778,7 +794,7 @@ def load_conversation_into_state(cid: int):
         profile,
         nickname,
         mentor,
-        task_mode,
+        last_mode,
         attachment_path,
         attachment_name,
         attachment_type,
@@ -788,7 +804,7 @@ def load_conversation_into_state(cid: int):
     st.session_state.profile = profile or st.session_state.profile
     st.session_state.nickname = nickname or st.session_state.nickname
     st.session_state.mentor = mentor or st.session_state.mentor
-    st.session_state.task_mode = task_mode or st.session_state.task_mode
+    st.session_state.last_detected_mode = last_mode or "Livre"
     st.session_state.chat = [{"role": r, "content": c} for r, c, _ in get_messages(cid)]
     st.session_state.current_conversation_id = cid
     st.session_state.loaded_conversation_id = cid
@@ -995,22 +1011,33 @@ def detect_intent(text: str) -> str:
     if "tabela periódica" in t or "tabela periodica" in t:
         return "tabela_periodica"
 
-    if any(k in t for k in ["corrigir prova", "corrija a prova", "corrigir questão", "corrigir questao", "gabarito", "rubrica"]):
+    if any(k in t for k in [
+        "corrigir prova", "corrija a prova", "corrigir questão", "corrigir questao",
+        "gabarito", "rubrica", "corrija essa", "corrige essa", "corrija isto",
+        "avalie esta resposta", "corrija a resposta"
+    ]):
         return "correcao"
 
-    if any(k in t for k in ["analise minha resolução", "analise minha resolucao", "onde compliquei", "onde eu errei", "meu método"]):
+    if any(k in t for k in [
+        "analise minha resolução", "analise minha resolucao", "onde compliquei",
+        "onde eu errei", "meu método", "meu metodo", "veja minha resolução",
+        "veja minha resolucao"
+    ]):
         return "analise_resolucao"
 
-    if any(k in t for k in ["resuma", "resumir", "resumo"]):
+    if any(k in t for k in ["resuma", "resumir", "resumo", "resuma esse slide", "resuma esse pdf"]):
         return "resumo"
 
-    if any(k in t for k in ["plano de aula", "sequência didática", "sequencia didatica"]):
+    if any(k in t for k in ["plano de aula", "sequência didática", "sequencia didatica", "monte uma aula"]):
         return "plano_aula"
 
-    if any(k in t for k in ["lista de exercícios", "lista de exercicios", "simulado", "questões", "questoes"]):
+    if any(k in t for k in [
+        "gere questões", "gere questoes", "crie questões", "crie questoes",
+        "lista de exercícios", "lista de exercicios", "simulado", "monte questões", "monte questoes"
+    ]):
         return "lista_exercicios"
 
-    if any(k in t for k in ["gráfico", "grafico", "diagrama", "esquema visual", "imagem"]):
+    if any(k in t for k in ["gráfico", "grafico", "diagrama", "esquema visual", "imagem", "slide"]):
         return "visual"
 
     if any(k in t for k in ["questão", "questao", "resolver", "resolva"]):
@@ -1019,16 +1046,18 @@ def detect_intent(text: str) -> str:
     return "explicacao"
 
 
-def detect_task_mode_from_intent(intent: str) -> str:
+def detect_mode_label(intent: str) -> str:
     mapping = {
-        "correcao": "Corrigir questão/prova",
-        "analise_resolucao": "Analisar resolução",
-        "resumo": "Resumir material",
-        "plano_aula": "Planejar aula",
-        "lista_exercicios": "Gerar lista de exercícios",
-        "resolver": "Resolver questão",
-        "explicacao": "Explicar conteúdo",
-        "visual": "Resolver questão",
+        "correcao": "Correção",
+        "analise_resolucao": "Análise de resolução",
+        "resumo": "Resumo",
+        "plano_aula": "Plano de aula",
+        "lista_exercicios": "Geração de questões",
+        "resolver": "Resolução",
+        "explicacao": "Explicação",
+        "visual": "Interpretação visual",
+        "linus": "Diagrama",
+        "tabela_periodica": "Consulta",
     }
     return mapping.get(intent, "Livre")
 
@@ -1076,18 +1105,16 @@ Nunca humilhe o aluno; corrija com firmeza e acolhimento.
 """.strip()
 
 
-def build_task_prompt(task_mode: str, intent: str) -> str:
-    mode = task_mode or "Livre"
-
+def build_task_prompt(intent: str) -> str:
     prompts = {
-        "Explicar conteúdo": """
+        "explicacao": """
 Explique como um mentor muito bom:
 - comece pela ideia central
 - depois desenvolva
 - use exemplos concretos
 - se houver fórmula, explique o significado antes de usar
 """,
-        "Resolver questão": """
+        "resolver": """
 Resolva com foco em clareza:
 - identifique dados
 - diga o que a questão pede
@@ -1096,7 +1123,7 @@ Resolva com foco em clareza:
 - destaque o resultado
 - se houver caminho mais rápido, mostre no final
 """,
-        "Analisar resolução": """
+        "analise_resolucao": """
 Analise a resolução do aluno:
 - diga se o raciocínio está certo, parcialmente certo ou errado
 - avalie a eficiência do método
@@ -1104,18 +1131,18 @@ Analise a resolução do aluno:
 - proponha um caminho mais simples
 - explique por que o caminho mais simples funciona
 """,
-        "Corrigir questão/prova": """
+        "correcao": """
 Atue como assistente de correção.
 Não aja como avaliador arbitrário.
 Faça:
-- identificar resposta esperada (se houver gabarito explícito)
+- identificar resposta esperada, se houver
 - comparar com a resposta do aluno
 - apontar acertos e erros
 - sugerir pontuação quando fizer sentido
 - diferenciar método correto porém longo de erro real
 - gerar feedback curto útil para professor e, se couber, para aluno
 """,
-        "Resumir material": """
+        "resumo": """
 Resuma de forma útil para estudo:
 - tópicos principais
 - conceitos-chave
@@ -1123,7 +1150,7 @@ Resuma de forma útil para estudo:
 - pontos de atenção
 - mini revisão final
 """,
-        "Planejar aula": """
+        "plano_aula": """
 Monte uma resposta voltada a planejamento didático:
 - objetivo
 - conteúdo
@@ -1132,39 +1159,46 @@ Monte uma resposta voltada a planejamento didático:
 - avaliação
 - observações
 """,
-        "Gerar lista de exercícios": """
+        "lista_exercicios": """
 Gere exercícios organizados por nível:
 - fácil
 - médio
 - desafiador
 Quando útil, inclua gabarito ou sugestões de resolução.
 """,
-        "Livre": """
-Responda da forma mais útil possível, priorizando clareza, contexto e aplicabilidade.
+        "visual": """
+Analise a imagem com inteligência:
+- extraia o máximo possível
+- identifique tema, dados e pedido
+- só diga que falta informação se realmente faltar um dado essencial
 """,
+        "linus": "Gere ou explique o diagrama de Linus Pauling quando solicitado.",
+        "tabela_periodica": "Use a tabela periódica como apoio visual quando solicitado.",
     }
-
-    extra = ""
-    if intent == "correcao":
-        extra += "\nSe não houver gabarito suficiente, deixe isso claro e corrija de forma guiada, não arbitrária."
-    if intent == "analise_resolucao":
-        extra += "\nSe o aluno acertou por um caminho ruim, reconheça o acerto e depois ensine o caminho melhor."
-    if intent == "visual":
-        extra += "\nSe houver imagem, tente extrair o máximo de informação possível antes de dizer que falta algo."
-    return (prompts.get(mode, prompts["Livre"]) + "\n" + extra).strip()
+    return prompts.get(intent, prompts["explicacao"]).strip()
 
 
-def system_prompt(profile: str, mentor: str, task_mode: str, intent: str) -> str:
+def build_teacher_correction_context() -> str:
+    parts = []
+    if st.session_state.profile == "Professor":
+        if st.session_state.gabarito_rapido.strip():
+            parts.append("Gabarito/Resposta esperada fornecida pelo professor:\n" + st.session_state.gabarito_rapido.strip())
+        if st.session_state.criterios_correcao.strip():
+            parts.append("Critérios de correção/Pontuação fornecidos pelo professor:\n" + st.session_state.criterios_correcao.strip())
+    return "\n\n".join(parts).strip()
+
+
+def system_prompt(profile: str, mentor: str, intent: str) -> str:
     mentor_prompt = MENTORS[mentor]["prompt"]
     profile_prompt = build_profile_prompt(profile)
-    task_prompt = build_task_prompt(task_mode, intent)
+    task_prompt = build_task_prompt(intent)
 
     base = f"""
 Você é o {APP_NAME}, um mentor acadêmico institucional ligado ao {PROJECT_NAME} do {INSTITUTION_NAME}.
 Atenda em português do Brasil.
 Perfil atual do usuário: {profile}.
 Área atual do mentor: {mentor}.
-Modo atual: {task_mode}.
+Intenção atual detectada: {intent}.
 
 Regras gerais:
 - Seja claro, didático e confiável.
@@ -1176,7 +1210,7 @@ Regras gerais:
 - Se o aluno acertou por método muito longo, reconheça isso e depois mostre um método mais eficiente.
 - Não invente leitura de detalhes visuais que não estejam suficientemente visíveis.
 - Se estiver corrigindo prova, trate sua saída como sugestão de correção assistida, não sentença absoluta.
-- Não fique pedindo configuração manual desnecessária.
+- Ao sugerir nota, deixe claro o critério usado.
 - Evite respostas genéricas.
 
 Prompt do mentor:
@@ -1199,12 +1233,15 @@ def build_user_prompt(text: str) -> str:
         f"Usuário: {get_first_name(st.session_state.nickname)}",
         f"Perfil: {st.session_state.profile}",
         f"Mentor escolhido: {st.session_state.mentor}",
-        f"Modo atual: {st.session_state.task_mode}",
-        f"Intenção provável: {intent}",
+        f"Intenção detectada: {intent}",
     ]
 
     if history:
         parts.append("Histórico recente:\n" + history)
+
+    correction_context = build_teacher_correction_context()
+    if correction_context:
+        parts.append(correction_context)
 
     if st.session_state.attachment_text:
         parts.append("Contexto do anexo textual/PDF:\n" + st.session_state.attachment_text[:PDF_CONTEXT_LIMIT])
@@ -1220,7 +1257,7 @@ def build_user_prompt(text: str) -> str:
 
 
 # =========================================================
-# GROQ CALLS
+# MODELS
 # =========================================================
 def ask_text_model(user_text: str) -> str:
     if client is None:
@@ -1237,7 +1274,6 @@ def ask_text_model(user_text: str) -> str:
                     "content": system_prompt(
                         profile=st.session_state.profile,
                         mentor=st.session_state.mentor,
-                        task_mode=st.session_state.task_mode,
                         intent=intent,
                     ),
                 },
@@ -1247,7 +1283,7 @@ def ask_text_model(user_text: str) -> str:
                 },
             ],
             temperature=0.3,
-            max_tokens=1600,
+            max_tokens=1700,
         )
         text = (resp.choices[0].message.content or "").strip()
         return clean_text(text) if text else "Não consegui gerar uma resposta útil."
@@ -1285,7 +1321,6 @@ Pedido do usuário: {user_text}
                     "content": system_prompt(
                         profile=st.session_state.profile,
                         mentor=st.session_state.mentor,
-                        task_mode=st.session_state.task_mode,
                         intent=intent,
                     ),
                 },
@@ -1299,7 +1334,7 @@ Pedido do usuário: {user_text}
                 },
             ],
             temperature=0.2,
-            max_tokens=1800,
+            max_tokens=1900,
         )
         text = (resp.choices[0].message.content or "").strip()
         return clean_text(text) if text else "Não consegui gerar uma análise útil da imagem."
@@ -1333,7 +1368,7 @@ def answer_user(user_text: str) -> str:
 
 
 # =========================================================
-# LOGIN / ENTRADA
+# LOGIN
 # =========================================================
 def render_login_screen():
     st.markdown('<div class="login-card">', unsafe_allow_html=True)
@@ -1348,7 +1383,7 @@ def render_login_screen():
     st.markdown(f'<div class="inst-sub">{COURSE_NAME}</div>', unsafe_allow_html=True)
     st.markdown('<div style="height:6px"></div>', unsafe_allow_html=True)
     st.markdown('<div class="title-main">Escolha como quer entrar</div>', unsafe_allow_html=True)
-    st.markdown('<div class="muted">Mais compacto, mais didático e pronto para leitura de imagem.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="muted">A IA decide sozinha se vai explicar, resolver, corrigir, resumir ou gerar questões.</div>', unsafe_allow_html=True)
     st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
 
     col1, col2 = st.columns([1.4, 1])
@@ -1369,7 +1404,7 @@ def render_login_screen():
                 <div class="mini-title">Prévia</div>
                 <div class="mini-desc">Nome: <b>{html.escape(preview_name)}</b></div>
                 <div class="mini-desc">Perfil: <b>{html.escape(role)}</b></div>
-                <div class="mini-desc">A IA adapta o tom para explicação ou apoio docente.</div>
+                <div class="mini-desc">O tom muda para explicação amigável ou apoio docente mais técnico.</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1406,7 +1441,6 @@ def render_login_screen():
             st.session_state.nickname = nickname.strip()
             st.session_state.profile = role
             st.session_state.mentor = picked
-            st.session_state.task_mode = "Livre"
             st.session_state.auth_complete = True
             reset_visual_state(clear_file=True)
             st.rerun()
@@ -1424,7 +1458,7 @@ if not st.session_state.auth_complete:
 # =========================================================
 rows = list_conversations()
 if not rows:
-    cid = create_conversation(mentor=st.session_state.mentor, task_mode=st.session_state.task_mode)
+    cid = create_conversation(mentor=st.session_state.mentor)
     st.session_state.current_conversation_id = cid
     load_conversation_into_state(cid)
 elif st.session_state.current_conversation_id is None:
@@ -1459,63 +1493,76 @@ with st.sidebar:
         index=list(MENTORS.keys()).index(st.session_state.mentor),
     )
 
-    new_task_mode = st.selectbox(
-        "Modo de uso",
-        TASK_MODES,
-        index=TASK_MODES.index(st.session_state.task_mode) if st.session_state.task_mode in TASK_MODES else 0,
-    )
-
-    if new_mentor != st.session_state.mentor or new_task_mode != st.session_state.task_mode:
+    if new_mentor != st.session_state.mentor:
         st.session_state.mentor = new_mentor
-        st.session_state.task_mode = new_task_mode
-        update_conversation_meta(st.session_state.current_conversation_id, new_mentor, new_task_mode)
+        update_conversation_mentor(st.session_state.current_conversation_id, new_mentor)
+
+    if st.session_state.profile == "Professor":
+        with st.expander("Ferramentas do professor", expanded=False):
+            st.session_state.gabarito_rapido = st.text_area(
+                "Gabarito / resposta esperada (opcional)",
+                value=st.session_state.gabarito_rapido,
+                height=90,
+                placeholder="Ex.: 1) alternativa C\n2) F=ma\n3) 2,0 pontos se acertar o conceito...",
+            )
+            st.session_state.criterios_correcao = st.text_area(
+                "Critérios / pontuação (opcional)",
+                value=st.session_state.criterios_correcao,
+                height=90,
+                placeholder="Ex.: conceito 0,5 | cálculo 0,3 | unidade 0,2",
+            )
+
+    st.markdown("### Conversas")
 
     conv_rows = list_conversations()
-    labels = {
-        f"{row[1]} • {row[3]} • {row[5] or 'Livre'}": row[0]
-        for row in conv_rows
-    }
+    for row in conv_rows:
+        cid, title, _updated, mentor, _attachment_name, last_mode = row
+        c1, c2 = st.columns([6, 1], gap="small")
 
-    if labels:
-        current = st.session_state.current_conversation_id
-        keys = list(labels.keys())
-        vals = list(labels.values())
-        idx = vals.index(current) if current in vals else 0
-        chosen_key = st.selectbox("Conversas", keys, index=idx)
-        chosen_id = labels[chosen_key]
-        if chosen_id != st.session_state.current_conversation_id:
-            load_conversation_into_state(chosen_id)
-            st.rerun()
+        with c1:
+            if st.button(
+                f"{title[:32]}{'...' if len(title) > 32 else ''}\n{mentor} • {last_mode or 'Livre'}",
+                key=f"open_conv_{cid}",
+                use_container_width=True,
+            ):
+                load_conversation_into_state(cid)
+                st.rerun()
 
-    c1, c2 = st.columns(2)
-    with c1:
+        with c2:
+            with st.popover("⋯", use_container_width=True):
+                novo_nome = st.text_input("Renomear", value=title, key=f"rename_input_{cid}")
+                if st.button("Salvar nome", key=f"rename_btn_{cid}", use_container_width=True):
+                    rename_conversation(cid, novo_nome)
+                    if cid == st.session_state.current_conversation_id:
+                        load_conversation_into_state(cid)
+                    st.rerun()
+                if st.button("Excluir conversa", key=f"delete_btn_{cid}", use_container_width=True):
+                    deleting_current = cid == st.session_state.current_conversation_id
+                    delete_conversation(cid)
+                    remaining = list_conversations()
+                    if deleting_current:
+                        reset_visual_state(clear_file=True)
+                        if remaining:
+                            st.session_state.current_conversation_id = remaining[0][0]
+                            load_conversation_into_state(remaining[0][0])
+                        else:
+                            new_id = create_conversation(mentor=st.session_state.mentor)
+                            st.session_state.current_conversation_id = new_id
+                            load_conversation_into_state(new_id)
+                    st.rerun()
+
+    coln1, coln2 = st.columns(2)
+    with coln1:
         if st.button("Nova", use_container_width=True):
             reset_visual_state(clear_file=True)
-            cid = create_conversation(mentor=st.session_state.mentor, task_mode=st.session_state.task_mode)
+            cid = create_conversation(mentor=st.session_state.mentor)
             st.session_state.current_conversation_id = cid
             load_conversation_into_state(cid)
             st.rerun()
-
-    with c2:
+    with coln2:
         if st.button("Sair", use_container_width=True):
             st.session_state.auth_complete = False
             st.rerun()
-
-    if st.button("Apagar conversa atual", use_container_width=True):
-        cid = st.session_state.current_conversation_id
-        delete_conversation(cid)
-        remaining = list_conversations()
-        reset_visual_state(clear_file=True)
-
-        if remaining:
-            st.session_state.current_conversation_id = remaining[0][0]
-            load_conversation_into_state(remaining[0][0])
-        else:
-            cid = create_conversation(mentor=st.session_state.mentor, task_mode=st.session_state.task_mode)
-            st.session_state.current_conversation_id = cid
-            load_conversation_into_state(cid)
-
-        st.rerun()
 
 
 # =========================================================
@@ -1542,8 +1589,8 @@ with top2:
     st.markdown(
         f"""
         <div class="top-mini-card">
-            <div class="mini-title">Modo ativo</div>
-            <div class="mode-chip">{html.escape(st.session_state.task_mode)}</div>
+            <div class="mini-title">Ação detectada</div>
+            <div class="mode-chip">{html.escape(st.session_state.last_detected_mode)}</div>
             <div style="height:8px"></div>
             <div class="mini-desc">Perfil: <b>{html.escape(st.session_state.profile)}</b></div>
             <div class="mini-desc">Mentor: <b>{html.escape(st.session_state.mentor)}</b></div>
@@ -1590,73 +1637,63 @@ if st.session_state.last_generated_image and os.path.exists(st.session_state.las
 
 
 # =========================================================
-# ATTACHMENT BAR
+# ATTACH / CHAT BAR
 # =========================================================
-st.markdown('<div class="panel-card" style="margin-top:12px;">', unsafe_allow_html=True)
-st.markdown('<div class="mini-title">Anexos perto do chat</div>', unsafe_allow_html=True)
-st.markdown('<div class="mini-desc" style="margin-bottom:8px;">PDF, imagem ou TXT. Imagens serão analisadas pelo fluxo visual.</div>', unsafe_allow_html=True)
-
-col_attach, col_clear = st.columns([5, 1])
-
-with col_attach:
-    upload = st.file_uploader(
-        "Envie PDF, imagem ou TXT",
-        type=["pdf", "png", "jpg", "jpeg", "webp", "txt"],
-        label_visibility="collapsed",
-        key="chat_attachment",
-    )
-
-with col_clear:
-    if st.button("Limpar", use_container_width=True):
-        update_attachment(st.session_state.current_conversation_id, None, None, None)
-        st.session_state.attachment_text = None
-        st.session_state.attachment_name = None
-        st.session_state.attachment_type = None
-        st.session_state.attachment_preview_path = None
-        st.rerun()
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-if upload is not None:
-    err = validate_upload(upload)
-    if err:
-        st.warning(err)
-    else:
-        dest, name, ftype = save_upload(upload)
-        update_attachment(st.session_state.current_conversation_id, dest, name, ftype)
-        st.session_state.attachment_name = name
-        st.session_state.attachment_type = ftype
-        st.session_state.attachment_preview_path = dest if ftype == "image" else None
-
-        if ftype == "pdf":
-            st.session_state.attachment_text = extract_pdf_text(dest)
-        elif ftype == "text":
-            try:
-                with open(dest, "r", encoding="utf-8") as f:
-                    st.session_state.attachment_text = f.read()
-            except Exception:
-                st.session_state.attachment_text = None
-        else:
+bar1, bar2 = st.columns([1.2, 4.8], gap="small")
+with bar1:
+    with st.popover("📎 Anexar", use_container_width=True):
+        upload = st.file_uploader(
+            "Envie PDF, imagem ou TXT",
+            type=["pdf", "png", "jpg", "jpeg", "webp", "txt"],
+            label_visibility="collapsed",
+            key="chat_attachment",
+        )
+        if st.button("Remover anexo", use_container_width=True):
+            update_attachment(st.session_state.current_conversation_id, None, None, None)
             st.session_state.attachment_text = None
+            st.session_state.attachment_name = None
+            st.session_state.attachment_type = None
+            st.session_state.attachment_preview_path = None
+            st.rerun()
 
-        st.toast(f"Anexo ativo: {name}")
+        if upload is not None:
+            err = validate_upload(upload)
+            if err:
+                st.warning(err)
+            else:
+                dest, name, ftype = save_upload(upload)
+                update_attachment(st.session_state.current_conversation_id, dest, name, ftype)
+                st.session_state.attachment_name = name
+                st.session_state.attachment_type = ftype
+                st.session_state.attachment_preview_path = dest if ftype == "image" else None
+
+                if ftype == "pdf":
+                    st.session_state.attachment_text = extract_pdf_text(dest)
+                elif ftype == "text":
+                    try:
+                        with open(dest, "r", encoding="utf-8") as f:
+                            st.session_state.attachment_text = f.read()
+                    except Exception:
+                        st.session_state.attachment_text = None
+                else:
+                    st.session_state.attachment_text = None
+
+                st.toast(f"Anexo ativo: {name}")
+                st.rerun()
+
+with bar2:
+    st.markdown(
+        "<div class='panel-card' style='padding:10px 14px !important;'><div class='mini-desc'>Você pode pedir normalmente: explique, resolva, corrija, analise sua resolução, gere questões ou resuma um slide.</div></div>",
+        unsafe_allow_html=True,
+    )
 
 
 # =========================================================
 # CHAT INPUT
 # =========================================================
-placeholder = {
-    "Livre": "Escreva sua dúvida, mande uma questão, slide, prova ou peça uma explicação...",
-    "Explicar conteúdo": "Ex.: explique MRU como se eu fosse iniciante, mas sem perder o rigor...",
-    "Resolver questão": "Ex.: resolva esta questão passo a passo e depois mostre um bizu...",
-    "Analisar resolução": "Ex.: analise meu método, diga onde compliquei e mostre um caminho melhor...",
-    "Corrigir questão/prova": "Ex.: corrija esta questão, sugira pontuação e dê feedback curto...",
-    "Resumir material": "Ex.: resuma este PDF/slide para revisão de prova...",
-    "Planejar aula": "Ex.: monte uma aula de 50 minutos sobre leis de Newton para ensino médio...",
-    "Gerar lista de exercícios": "Ex.: gere 8 questões sobre função horária do espaço com gabarito...",
-}.get(st.session_state.task_mode, "Escreva sua dúvida...")
-
-user_prompt = st.chat_input(placeholder)
+user_prompt = st.chat_input(
+    "Pergunte normalmente: explique, resolva, corrija, gere questões, resuma um slide, analise sua resolução..."
+)
 
 if user_prompt and user_prompt.strip():
     if st.session_state.contador_perguntas >= MAX_PERGUNTAS_SESSAO:
@@ -1666,12 +1703,7 @@ if user_prompt and user_prompt.strip():
         cid = st.session_state.current_conversation_id
 
         intent = detect_intent(question)
-
-        if st.session_state.task_mode == "Livre":
-            inferred_mode = detect_task_mode_from_intent(intent)
-            if inferred_mode != "Livre":
-                st.session_state.task_mode = inferred_mode
-                update_conversation_meta(cid, st.session_state.mentor, st.session_state.task_mode)
+        st.session_state.last_detected_mode = detect_mode_label(intent)
 
         rename_first_message_title(cid, question)
 
