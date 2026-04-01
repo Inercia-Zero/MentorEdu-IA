@@ -37,13 +37,14 @@ DB_PATH = "mentoredu.db"
 UPLOAD_DIR = "uploads"
 
 TEXT_MODEL = "llama-3.3-70b-versatile"
+FALLBACK_TEXT_MODEL = "llama-3.1-8b-instant"
 VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 MAX_PDF_MB = 15
 MAX_FILE_MB = 12
 MAX_PERGUNTAS_SESSAO = 60
-PDF_CONTEXT_LIMIT = 12000
-CHAT_HISTORY_LIMIT = 8
+PDF_CONTEXT_LIMIT = 4000
+CHAT_HISTORY_LIMIT = 5
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -72,14 +73,20 @@ Se o aluno acertou por um método muito longo, reconheça que está correto, mas
         "subtitle": "álgebra, funções, trigonometria, geometria e notação matemática",
         "description": "Passo a passo, bizus com fundamento, organização algébrica e leitura de padrões.",
         "prompt": """
-Você é um mentor especialista em Matemática.
+Você é um mentor especialista em Matemática para alunos iniciantes e intermediários.
 Priorize:
+- explicação do básico antes do avançado
 - clareza algébrica
 - organização por etapas
 - leitura de padrões
-- atalhos apenas com explicação da origem
 - linguagem amigável para aluno
-- linguagem técnica para professor
+- linguagem técnica apenas quando o usuário pedir ou quando falar com professor
+- sempre que usar uma propriedade, regra ou fórmula, explique brevemente:
+  1. o nome dela
+  2. o que ela diz
+  3. por que ela pode ser aplicada naquele passo
+- não pule contas importantes quando o usuário parecer iniciante
+- quando houver um atalho, mostre primeiro o caminho didático e depois o atalho
 Se houver um método mais curto, mostre sem desmerecer o método original do aluno.
 """.strip(),
     },
@@ -1151,10 +1158,12 @@ Você está falando com um ALUNO.
 Adote tom amigável, acolhedor e didático.
 Priorize:
 - entendimento real
+- explicação do básico antes de subir o nível
 - passo a passo quando necessário
 - analogias com cotidiano
 - mostrar erros comuns
 - mostrar caminho mais simples quando existir
+- sempre explicar rapidamente a propriedade antes de usar
 - "bizu" apenas junto com a explicação da origem
 Pode usar humor leve e natural quando ajudar a fixar a ideia, sem forçar.
 Nunca humilhe o aluno; corrija com firmeza e acolhimento.
@@ -1268,16 +1277,18 @@ Regras gerais:
 - Quando houver matemática, use LaTeX válido com $...$ e $$...$$.
 - Se o material vier incompleto, tente inferir com cautela antes de dizer que faltam informações.
 - Se faltar dado essencial, diga exatamente o que faltou.
-- Quando o usuário for aluno, foque em entendimento.
+- Quando o usuário for aluno, foque em entendimento e comece do básico para cima.
 - Quando o usuário for professor, foque em análise técnica e utilidade pedagógica.
+- Se usar propriedade, regra, teorema ou fórmula, explique em uma frase o que ela diz antes ou no momento em que for aplicá-la.
+- Não assuma que o aluno já domina fatoração, produtos notáveis, Bhaskara, trigonometria ou manipulação algébrica.
 - Se o aluno acertou por método muito longo, reconheça isso e depois mostre um método mais eficiente.
+- Respeite a área atual do mentor. Não mude de disciplina sem avisar. Se o pedido estiver fora da área, diga isso com clareza e oriente a trocar de mentor.
 - Não invente leitura de detalhes visuais que não estejam suficientemente visíveis.
 - Se estiver corrigindo prova, trate sua saída como sugestão de correção assistida, não sentença absoluta.
 - Ao sugerir nota, deixe claro o critério usado.
 - Evite respostas genéricas.
-- Nunca use comandos como \\includegraphics nem finja que exibiu uma imagem; quando o pedido for visual, prefira explicar a imagem realmente gerada pelo app.
+- Nunca use comandos como \includegraphics nem finja que exibiu uma imagem; quando o pedido for visual, prefira explicar a imagem realmente gerada pelo app.
 - Se o usuário pedir demonstração, dedução, derivação ou origem de uma fórmula, priorize a explicação simbólica e não gere gráfico automaticamente.
-- Nunca use comandos como \includegraphics, não finja que exibiu uma imagem; quando o pedido for visual, prefira explicar a imagem realmente gerada pelo app.
 
 Prompt do mentor:
 {mentor_prompt}
@@ -1330,30 +1341,45 @@ def ask_text_model(user_text: str) -> str:
         return client_error or "Não foi possível iniciar a IA."
 
     intent = detect_intent(user_text)
+    messages = [
+        {
+            "role": "system",
+            "content": system_prompt(
+                profile=st.session_state.profile,
+                mentor=st.session_state.mentor,
+                intent=intent,
+            ),
+        },
+        {
+            "role": "user",
+            "content": build_user_prompt(user_text),
+        },
+    ]
 
     try:
         resp = client.chat.completions.create(
             model=TEXT_MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": system_prompt(
-                        profile=st.session_state.profile,
-                        mentor=st.session_state.mentor,
-                        intent=intent,
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": build_user_prompt(user_text),
-                },
-            ],
+            messages=messages,
             temperature=0.3,
-            max_tokens=1700,
+            max_tokens=900,
         )
         text = (resp.choices[0].message.content or "").strip()
         return clean_text(text) if text else "Não consegui gerar uma resposta útil."
     except Exception as e:
+        err = str(e).lower()
+        if "429" in err or "rate limit" in err or "rate_limit_exceeded" in err:
+            try:
+                resp = client.chat.completions.create(
+                    model=FALLBACK_TEXT_MODEL,
+                    messages=messages,
+                    temperature=0.3,
+                    max_tokens=700,
+                )
+                text = (resp.choices[0].message.content or "").strip()
+                if text:
+                    return clean_text(text)
+            except Exception:
+                pass
         return groq_error_to_user_message(e, "gerar a resposta")
 
 
@@ -1476,6 +1502,63 @@ def request_wants_visual_generation(text: str) -> bool:
         "razão trigonométrica", "razao trigonometrica", "seno", "cosseno", "coseno", "tangente"
     ]
     return any(term in t for term in visual_terms)
+
+
+def detect_subject_family(text: str) -> str:
+    t = (text or "").lower()
+
+    chemistry_terms = [
+        "química", "quimica", "átomo", "atomo", "elemento", "elementos", "mol", "mols",
+        "estequiometria", "distribuição eletrônica", "distribuicao eletronica", "ligação química",
+        "ligacao quimica", "tabela periódica", "tabela periodica", "linus pauling", "íon", "ion",
+        "próton", "proton", "nêutron", "neutron", "eletrosfera", "orbitais", "nox", "ph"
+    ]
+    math_terms = [
+        "função", "funcao", "equação", "equacao", "gráfico", "grafico", "parábola", "parabola",
+        "reta", "afim", "linear", "quadrática", "quadratica", "bhaskara", "fatoração", "fatoracao",
+        "produto notável", "produto notavel", "trigonometria", "seno", "cosseno", "tangente", "domínio",
+        "dominio", "imagem da função", "raiz da função", "polinômio", "polinomio", "inequação", "inequacao"
+    ]
+    physics_terms = [
+        "mru", "mruv", "velocidade", "aceleração", "aceleracao", "força", "forcas", "forças",
+        "trajetória", "trajetoria", "lançamento", "lancamento", "projétil", "projetil", "energia",
+        "trabalho", "potência", "potencia", "corrente elétrica", "corrente eletrica", "resistor",
+        "circuito", "movimento", "cinemática", "cinematica", "dinâmica", "dinamica", "gravidade"
+    ]
+    language_terms = [
+        "texto", "redação", "redacao", "gramática", "gramatica", "interpretação", "interpretacao",
+        "inglês", "ingles", "português", "portugues", "crase", "pontuação", "pontuacao", "concordância",
+        "concordancia", "reescreva", "traduza"
+    ]
+
+    scores = {
+        "Química": sum(1 for term in chemistry_terms if term in t),
+        "Matemática": sum(1 for term in math_terms if term in t),
+        "Física": sum(1 for term in physics_terms if term in t),
+        "Linguagens": sum(1 for term in language_terms if term in t),
+    }
+
+    best = max(scores, key=scores.get)
+    return best if scores[best] > 0 else ""
+
+
+def mentor_scope_mismatch_message(user_text: str) -> Optional[str]:
+    detected = detect_subject_family(user_text)
+    current = st.session_state.mentor
+    if not detected or detected == current:
+        return None
+
+    examples = {
+        "Matemática": "ex.: função afim, Bhaskara, gráfico, trigonometria",
+        "Física": "ex.: MRU, forças, energia, lançamento oblíquo",
+        "Química": "ex.: tabela periódica, estequiometria, distribuição eletrônica",
+        "Linguagens": "ex.: gramática, interpretação, redação, tradução",
+    }
+    return (
+        f"Seu mentor atual está em **{current}**, mas o pedido parece ser de **{detected}**. "
+        f"Para eu responder dentro da disciplina certa, troque para o mentor de **{detected}**. "
+        f"Escopo de {detected}: {examples.get(detected, '')}"
+    )
 
 
 def generate_trig_plot() -> str:
@@ -1770,10 +1853,16 @@ def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optiona
     if request_wants_derivation(user_text):
         return None, None
 
+    scope_warning = mentor_scope_mismatch_message(t)
+    if scope_warning:
+        return None, scope_warning
+
     if not request_wants_visual_generation(t):
         return None, None
 
-    if any(k in t for k in ["seno", "cosseno", "coseno", "tangente", "trigonom"]):
+    mentor = st.session_state.mentor
+
+    if mentor in ["Matemática", "Física"] and any(k in t for k in ["seno", "cosseno", "coseno", "tangente", "trigonom"]):
         path = generate_trig_plot()
         msg = (
             "Gerei um gráfico real de seno, cosseno e tangente.\n\n"
@@ -1782,7 +1871,7 @@ def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optiona
         )
         return path, msg
 
-    if any(k in t for k in ["mruv", "movimento uniformemente variado", "movimento uniformemente acelerado"]):
+    if mentor == "Física" and any(k in t for k in ["mruv", "movimento uniformemente variado", "movimento uniformemente acelerado"]):
         path = generate_mruv_plot()
         msg = (
             "Gerei um gráfico real de MRUV.\n\n"
@@ -1790,7 +1879,7 @@ def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optiona
         )
         return path, msg
 
-    if any(k in t for k in ["mru", "movimento uniforme"]):
+    if mentor == "Física" and any(k in t for k in ["mru", "movimento uniforme"]):
         path = generate_mru_plot()
         msg = (
             "Gerei um gráfico real de MRU.\n\n"
@@ -1798,7 +1887,7 @@ def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optiona
         )
         return path, msg
 
-    if any(k in t for k in ["trajetória", "trajetoria", "lançamento oblíquo", "lancamento obliquo", "projétil", "projetil"]):
+    if mentor == "Física" and any(k in t for k in ["trajetória", "trajetoria", "lançamento oblíquo", "lancamento obliquo", "projétil", "projetil"]):
         path = generate_projectile_diagram()
         msg = (
             "Gerei um esquema visual de lançamento oblíquo.\n\n"
@@ -1806,7 +1895,7 @@ def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optiona
         )
         return path, msg
 
-    if any(k in t for k in ["plano inclinado", "normal", "atrito", "forças", "forcas", "diagrama de forças"]):
+    if mentor == "Física" and any(k in t for k in ["plano inclinado", "normal", "atrito", "forças", "forcas", "diagrama de forças"]):
         inclined = "plano inclinado" in t
         path = generate_forces_diagram(inclined=inclined)
         msg = (
@@ -1815,7 +1904,7 @@ def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optiona
         )
         return path, msg
 
-    if any(k in t for k in [
+    if mentor in ["Matemática", "Física"] and any(k in t for k in [
         "função", "funcao", "equação", "equacao", "y=", "reta", "parábola", "parabola",
         "plano cartesiano", "segundo grau", "quadrática", "quadratica",
         "primeiro grau", "função afim", "funcao afim", "afim", "linear", "cúbica", "cubica",
@@ -1848,6 +1937,10 @@ def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optiona
 
 def answer_user(user_text: str) -> str:
     intent = detect_intent(user_text)
+
+    scope_warning = mentor_scope_mismatch_message(user_text)
+    if scope_warning:
+        return scope_warning
 
     # Demonstração/dedução tem prioridade sobre qualquer geração visual automática.
     if intent == "demonstracao" or request_wants_derivation(user_text):
