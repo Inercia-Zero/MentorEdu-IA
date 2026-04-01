@@ -596,6 +596,27 @@ def clean_text(text: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", (text or "").strip())
 
 
+def groq_error_to_user_message(error: Exception, action: str = "gerar a resposta") -> str:
+    raw = str(error)
+    lowered = raw.lower()
+
+    if "rate limit" in lowered or "429" in lowered or "rate_limit_exceeded" in lowered:
+        wait_match = re.search(r"try again in\s*([0-9a-zA-Z\.:]+)", raw, re.IGNORECASE)
+        wait_text = wait_match.group(1) if wait_match else None
+        if wait_text:
+            return (
+                f"O limite diário da Groq foi atingido no momento ao tentar {action}. "
+                f"Tente novamente em cerca de {wait_text}.\n\n"
+                "Observação: isso não é defeito do gráfico nem do seu app; é limite temporário da API/modelo."
+            )
+        return (
+            f"O limite diário da Groq foi atingido no momento ao tentar {action}.\n\n"
+            "Isso não é defeito do gráfico nem do seu app; é limite temporário da API/modelo."
+        )
+
+    return f"Ocorreu um erro ao {action}: {error}"
+
+
 def list_conversations() -> List[tuple]:
     conn = get_conn()
     cur = conn.cursor()
@@ -1333,7 +1354,7 @@ def ask_text_model(user_text: str) -> str:
         text = (resp.choices[0].message.content or "").strip()
         return clean_text(text) if text else "Não consegui gerar uma resposta útil."
     except Exception as e:
-        return f"Ocorreu um erro ao gerar a resposta: {e}"
+        return groq_error_to_user_message(e, "gerar a resposta")
 
 
 def ask_vision_model(user_text: str, image_path: str) -> str:
@@ -1384,7 +1405,7 @@ Pedido do usuário: {user_text}
         text = (resp.choices[0].message.content or "").strip()
         return clean_text(text) if text else "Não consegui gerar uma análise útil da imagem."
     except Exception as e:
-        return f"Ocorreu um erro ao analisar a imagem: {e}"
+        return groq_error_to_user_message(e, "analisar a imagem")
 
 
 
@@ -1609,22 +1630,14 @@ def choose_default_expression_from_constraints(text: str) -> str:
     return ""
 
 def generate_function_plot_from_text(text: str) -> tuple[str, str]:
-    raw = (text or "").lower().strip()
-
-    raw = raw.replace("dessa mesma função", "função")
-    raw = raw.replace("dessa mesma funcao", "função")
-    raw = raw.replace("dessa funcao", "função")
-    raw = raw.replace("dessa função", "função")
-    raw = raw.replace("da mesma função", "função")
-    raw = raw.replace("da mesma funcao", "função")
-    raw = raw.replace("dela", "função")
+    raw = (text or "").lower()
 
     if "y=" not in raw and "x" not in raw:
-        expr = choose_default_expression_from_constraints(raw)
+        expr = choose_default_expression_from_constraints(text)
         if not expr:
             raise ValueError("Não identifiquei qual função você quer plotar.")
     else:
-        expr = safe_math_expression_from_text(raw)
+        expr = safe_math_expression_from_text(text)
 
     if not expr:
         raise ValueError("Não consegui identificar a função.")
@@ -1824,7 +1837,11 @@ def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optiona
             )
             return path, msg
         except Exception as e:
-            return None, f"Não consegui gerar o gráfico automaticamente. Detalhe técnico: {e}"
+            return None, (
+                "Não consegui identificar automaticamente qual função deveria ser plotada nesta continuação. "
+                "Tente escrever algo como: y = x^2 + 3x - 4, função afim crescente, ou parábola com concavidade para baixo. "
+                f"Detalhe técnico: {e}"
+            )
 
     return None, None
 
@@ -1839,6 +1856,8 @@ def answer_user(user_text: str) -> str:
     visual_path, visual_message = try_generate_visual_response(user_text)
     if visual_path:
         st.session_state.last_generated_image = visual_path
+        return visual_message
+    if visual_message:
         return visual_message
 
     if intent == "linus":
