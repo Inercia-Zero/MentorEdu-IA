@@ -675,6 +675,18 @@ def save_message(cid: int, role: str, content: str):
     conn.close()
 
 
+def save_chat_item(cid: int, item: dict):
+    role = item.get("role", "assistant")
+    item_type = item.get("type", "text")
+    if item_type == "image":
+        path = item.get("content", "")
+        caption = item.get("caption", "Imagem")
+        payload = f"__IMAGE__|{path}|{caption}"
+    else:
+        payload = item.get("content", "")
+    save_message(cid, role, payload)
+
+
 def get_messages(cid: int) -> List[tuple]:
     conn = get_conn()
     cur = conn.cursor()
@@ -806,7 +818,16 @@ def load_conversation_into_state(cid: int):
     st.session_state.nickname = nickname or st.session_state.nickname
     st.session_state.mentor = mentor or st.session_state.mentor
     st.session_state.last_detected_mode = last_mode or "Livre"
-    st.session_state.chat = [{"role": r, "content": c} for r, c, _ in get_messages(cid)]
+    loaded_chat = []
+    for r, c, _ in get_messages(cid):
+        if isinstance(c, str) and c.startswith("__IMAGE__|"):
+            parts = c.split("|", 2)
+            img_path = parts[1] if len(parts) > 1 else ""
+            caption = parts[2] if len(parts) > 2 else "Imagem"
+            loaded_chat.append({"role": r, "type": "image", "content": img_path, "caption": caption})
+        else:
+            loaded_chat.append({"role": r, "type": "text", "content": c})
+    st.session_state.chat = loaded_chat
     st.session_state.current_conversation_id = cid
     st.session_state.loaded_conversation_id = cid
     st.session_state.last_generated_image = None
@@ -1452,29 +1473,79 @@ def safe_math_expression_from_text(text: str) -> str:
     return expr.strip()
 
 
+
+
+def infer_math_constraints_from_prompt(text: str) -> dict:
+    t = (text or "").lower()
+    info = {
+        "kind": None,
+        "a_sign": None,
+        "delta_sign": None,
+        "concavity": None,
+    }
+
+    if any(k in t for k in ["função afim", "funcao afim", "primeiro grau", "reta", "linear"]):
+        info["kind"] = "linear"
+    elif any(k in t for k in ["segundo grau", "quadrática", "quadratica", "parábola", "parabola"]):
+        info["kind"] = "quadratic"
+    elif any(k in t for k in ["terceiro grau", "cúbica", "cubica"]):
+        info["kind"] = "cubic"
+    elif "exponencial" in t:
+        info["kind"] = "exp"
+    elif any(k in t for k in ["logarítmica", "logaritmica", "logaritmo"]):
+        info["kind"] = "log"
+    elif any(k in t for k in ["modular", "módulo", "modulo"]):
+        info["kind"] = "abs"
+
+    if any(k in t for k in ["a < 0", "a menor que 0", "coeficiente angular negativo", "reta decrescente", "decrescente", "concavidade para baixo", "aberta para baixo"]):
+        info["a_sign"] = "negative"
+    elif any(k in t for k in ["a > 0", "a maior que 0", "coeficiente angular positivo", "reta crescente", "crescente", "concavidade para cima", "aberta para cima"]):
+        info["a_sign"] = "positive"
+
+    if any(k in t for k in ["delta > 0", "delta maior que 0", "duas raízes", "duas raizes", "duas soluções reais", "duas solucoes reais"]):
+        info["delta_sign"] = "positive"
+    elif any(k in t for k in ["delta = 0", "delta igual a 0", "uma raiz", "uma raiz real", "raiz dupla"]):
+        info["delta_sign"] = "zero"
+    elif any(k in t for k in ["delta < 0", "delta menor que 0", "nenhuma raiz real", "sem raízes reais", "sem raizes reais"]):
+        info["delta_sign"] = "negative"
+
+    return info
+
+
+def choose_default_expression_from_constraints(text: str) -> str:
+    info = infer_math_constraints_from_prompt(text)
+    kind = info["kind"]
+    a_sign = info["a_sign"]
+    delta_sign = info["delta_sign"]
+
+    if kind == "linear":
+        return "-2*x + 3" if a_sign == "negative" else "2*x + 1"
+
+    if kind == "quadratic":
+        if delta_sign == "positive":
+            return "-1*x**2 + 4*x - 3" if a_sign == "negative" else "x**2 - 5*x + 6"
+        if delta_sign == "zero":
+            return "-1*x**2 - 4*x - 4" if a_sign == "negative" else "x**2 - 4*x + 4"
+        if delta_sign == "negative":
+            return "-1*x**2 + 2*x - 5" if a_sign == "negative" else "x**2 + 2*x + 5"
+        return "-1*x**2 + 4*x - 3" if a_sign == "negative" else "x**2 + 3*x - 4"
+
+    if kind == "cubic":
+        return "x**3 - 3*x"
+    if kind == "exp":
+        return "2**x"
+    if kind == "log":
+        return "log(x)"
+    if kind == "abs":
+        return "abs(x)"
+    return ""
+
 def generate_function_plot_from_text(text: str) -> tuple[str, str]:
     raw = (text or "").lower()
 
     if "y=" not in raw and "x" not in raw:
-        if any(k in raw for k in ["segundo grau", "quadrática", "quadratica", "parábola", "parabola"]):
-            expr = "x**2 + 3*x - 4"
-        elif any(k in raw for k in ["primeiro grau", "função afim", "funcao afim", "reta", "linear"]):
-            expr = "2*x + 1"
-        elif any(k in raw for k in ["cúbica", "cubica", "terceiro grau"]):
-            expr = "x**3 - 3*x"
-        elif any(k in raw for k in ["exponencial"]):
-            expr = "2**x"
-        elif any(k in raw for k in ["logarítmica", "logaritmica", "logaritmo"]):
-            expr = "log(x)"
-        elif any(k in raw for k in ["modular", "módulo", "modulo"]):
-            expr = "abs(x)"
-        elif any(k in raw for k in ["seno", "sin"]):
-            expr = "sin(x)"
-        elif any(k in raw for k in ["cosseno", "coseno", "cos"]):
-            expr = "cos(x)"
-        elif any(k in raw for k in ["tangente", "tan"]):
-            expr = "tan(x)"
-        else:
+        expr = choose_default_expression_from_constraints(text)
+        if not expr:
             raise ValueError("Não identifiquei qual função você quer plotar.")
     else:
         expr = safe_math_expression_from_text(text)
@@ -1964,14 +2035,15 @@ if st.session_state.attachment_name:
 for msg in st.session_state.chat:
     avatar = avatar_if()
     with st.chat_message(msg["role"], avatar=avatar):
-        st.markdown(msg["content"], unsafe_allow_html=False)
-
-if st.session_state.last_generated_image and os.path.exists(st.session_state.last_generated_image):
-    st.image(
-        st.session_state.last_generated_image,
-        caption="Imagem gerada para apoio visual",
-        use_container_width=True,
-    )
+        if msg.get("type") == "image":
+            img_path = msg.get("content")
+            caption = msg.get("caption", "Imagem")
+            if img_path and os.path.exists(img_path):
+                st.image(img_path, caption=caption, use_container_width=True)
+            else:
+                st.caption("Imagem não encontrada.")
+        else:
+            st.markdown(msg["content"], unsafe_allow_html=False)
 
 
 # =========================================================
@@ -2045,16 +2117,34 @@ if user_prompt and user_prompt.strip():
 
         rename_first_message_title(cid, question)
 
-        save_message(cid, "user", question)
-        st.session_state.chat.append({"role": "user", "content": question})
+        user_item = {"role": "user", "type": "text", "content": question}
+        save_chat_item(cid, user_item)
+        st.session_state.chat.append(user_item)
         st.session_state.contador_perguntas += 1
-        st.session_state.last_generated_image = None
+
+        existing_images = {
+            m.get("content") for m in st.session_state.chat
+            if m.get("type") == "image"
+        }
 
         with st.spinner("Pensando..."):
             answer = answer_user(question)
 
-        save_message(cid, "assistant", answer)
-        st.session_state.chat.append({"role": "assistant", "content": answer})
+        new_image_path = st.session_state.last_generated_image
+        assistant_text_item = {"role": "assistant", "type": "text", "content": answer}
+        save_chat_item(cid, assistant_text_item)
+        st.session_state.chat.append(assistant_text_item)
+
+        if new_image_path and new_image_path not in existing_images and os.path.exists(new_image_path):
+            image_item = {
+                "role": "assistant",
+                "type": "image",
+                "content": new_image_path,
+                "caption": "Imagem gerada para apoio visual",
+            }
+            save_chat_item(cid, image_item)
+            st.session_state.chat.append(image_item)
+
         st.rerun()
 
 st.caption(f"{APP_NAME} • {INSTITUTION_NAME} • {COURSE_NAME}")
