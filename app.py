@@ -42,8 +42,8 @@ VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 MAX_PDF_MB = 15
 MAX_FILE_MB = 12
 MAX_PERGUNTAS_SESSAO = 60
-PDF_CONTEXT_LIMIT = 12000
-CHAT_HISTORY_LIMIT = 8
+PDF_CONTEXT_LIMIT = 4000
+CHAT_HISTORY_LIMIT = 5
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -211,9 +211,16 @@ def app_css() -> str:
     }
 
     .conversation-card {
-        padding: 8px 10px !important;
-        margin-bottom: 8px !important;
-        border-radius: 16px !important;
+        padding: 10px 12px !important;
+        margin-bottom: 6px !important;
+        border-radius: 18px !important;
+        box-shadow: none !important;
+        background: #fbf4ea !important;
+    }
+
+    .conversation-card.active {
+        background: #f1e3d1 !important;
+        border-color: #c9aa87 !important;
     }
 
     .login-card {
@@ -456,7 +463,7 @@ def app_css() -> str:
         font-weight: 800;
         font-size: .92rem;
         line-height: 1.15;
-        margin-bottom: 2px;
+        margin-bottom: 3px;
         color: #4d3d31 !important;
     }
 
@@ -464,6 +471,14 @@ def app_css() -> str:
         color: var(--muted) !important;
         font-size: .78rem;
         line-height: 1.1;
+    }
+
+
+    [data-testid="stSidebar"] .stButton > button {
+        justify-content: flex-start !important;
+        text-align: left !important;
+        padding-left: 12px !important;
+        min-height: 46px !important;
     }
 
     .stMarkdown p, .stCaption, label, span, div {
@@ -643,21 +658,66 @@ def groq_error_to_user_message(error: Exception, action: str = "gerar a resposta
     return f"Ocorreu um erro ao {action}: {error}"
 
 
-def list_conversations() -> List[tuple]:
+def list_conversations(selected_mentor: Optional[str] = None) -> List[tuple]:
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT id, title, updated_at, mentor, attachment_name, last_mode
-        FROM conversations
-        WHERE user_key = ?
-        ORDER BY updated_at DESC, id DESC
-        """,
-        (build_user_key(),),
-    )
+    if selected_mentor:
+        cur.execute(
+            """
+            SELECT id, title, updated_at, mentor, attachment_name, last_mode
+            FROM conversations
+            WHERE user_key = ? AND mentor = ?
+            ORDER BY updated_at DESC, id DESC
+            """,
+            (build_user_key(), selected_mentor),
+        )
+    else:
+        cur.execute(
+            """
+            SELECT id, title, updated_at, mentor, attachment_name, last_mode
+            FROM conversations
+            WHERE user_key = ?
+            ORDER BY updated_at DESC, id DESC
+            """,
+            (build_user_key(),),
+        )
     rows = cur.fetchall()
     conn.close()
     return rows
+
+
+def get_first_conversation_for_mentor(mentor: str) -> Optional[int]:
+    rows = list_conversations(mentor)
+    return rows[0][0] if rows else None
+
+
+def ensure_current_mentor_conversation() -> int:
+    current_mentor = st.session_state.mentor
+    cid = st.session_state.current_conversation_id
+    if cid:
+        conv = get_conversation(cid)
+        if conv and conv[6] == current_mentor:
+            return cid
+    mentor_cid = get_first_conversation_for_mentor(current_mentor)
+    if mentor_cid is not None:
+        st.session_state.current_conversation_id = mentor_cid
+        load_conversation_into_state(mentor_cid)
+        return mentor_cid
+    new_cid = create_conversation(mentor=current_mentor)
+    st.session_state.current_conversation_id = new_cid
+    load_conversation_into_state(new_cid)
+    return new_cid
+
+
+def switch_to_mentor(mentor: str):
+    st.session_state.mentor = mentor
+    st.session_state.last_detected_mode = "Livre"
+    mentor_cid = get_first_conversation_for_mentor(mentor)
+    if mentor_cid is None:
+        reset_visual_state(clear_file=True)
+        mentor_cid = create_conversation(mentor=mentor)
+    st.session_state.current_conversation_id = mentor_cid
+    load_conversation_into_state(mentor_cid)
 
 
 def get_conversation(cid: int):
@@ -1821,11 +1881,11 @@ def generate_forces_diagram(inclined: bool = False) -> str:
 def infer_subject_from_text(text: str) -> Optional[str]:
     t = (text or "").lower()
     keyword_map = {
-        "Matemática": ["função", "funcao", "equação", "equacao", "gráfico", "grafico", "parábola", "parabola", "afim", "linear", "trigonom", "raiz", "bhaskara"],
-        "Física": ["mru", "mruv", "força", "forcas", "forças", "velocidade", "aceleração", "aceleracao", "trajetória", "trajetoria", "lançamento", "lancamento", "energia", "circuito"],
-        "Química": ["tabela periódica", "tabela periodica", "linus pauling", "mol", "estequiometria", "ligação", "ligacao", "átomo", "atomo", "íons", "ions", "distribuição eletrônica", "distribuicao eletronica"],
-        "Metodologia Científica": ["projeto de pesquisa", "problema de pesquisa", "metodologia científica", "metodologia cientifica", "hipótese", "hipotese", "objetivo geral", "objetivos específicos", "objetivos especificos", "justificativa", "referencial teórico", "referencial teorico"],
-        "Documentos Acadêmicos": ["abnt", "currículo", "curriculo", "lattes", "carta de apresentação", "carta de apresentacao", "ofício", "oficio", "relatório", "relatorio", "resenha", "resumo expandido", "correção de texto", "correcao de texto"]
+        "Matemática": ["função", "funcao", "equação", "equacao", "gráfico", "grafico", "parábola", "parabola", "afim", "linear", "trigonom", "raiz", "bhaskara", "inequação", "inequacao", "geometria", "logaritmo"],
+        "Física": ["mru", "mruv", "força", "forcas", "forças", "velocidade", "aceleração", "aceleracao", "trajetória", "trajetoria", "lançamento", "lancamento", "energia", "circuito", "corrente", "tensão", "tensao", "resistor"],
+        "Química": ["tabela periódica", "tabela periodica", "linus pauling", "mol", "estequiometria", "ligação", "ligacao", "átomo", "atomo", "íons", "ions", "distribuição eletrônica", "distribuicao eletronica", "massa molar", "ph", "solução", "solucao", "balanceamento", "nox", "concentração", "concentracao"],
+        "Metodologia Científica": ["projeto de pesquisa", "problema de pesquisa", "metodologia científica", "metodologia cientifica", "hipótese", "hipotese", "objetivo geral", "objetivos específicos", "objetivos especificos", "justificativa", "referencial teórico", "referencial teorico", "cronograma", "pergunta de pesquisa", "delimitação", "delimitacao"],
+        "Documentos Acadêmicos": ["abnt", "currículo", "curriculo", "lattes", "carta de apresentação", "carta de apresentacao", "ofício", "oficio", "relatório", "relatorio", "resenha", "resumo expandido", "correção de texto", "correcao de texto", "curriculo", "referências", "referencias", "formatação", "formatacao"]
     }
     scores = {mentor: sum(1 for kw in kws if kw in t) for mentor, kws in keyword_map.items()}
     best = max(scores, key=scores.get)
@@ -1835,12 +1895,25 @@ def infer_subject_from_text(text: str) -> Optional[str]:
 def mentor_scope_warning(user_text: str) -> Optional[str]:
     inferred = infer_subject_from_text(user_text)
     current = st.session_state.mentor
-    if inferred and inferred != current:
-        return (
-            f"Seu pedido parece mais ligado ao mentor de {inferred}. "
-            f"Agora você está no mentor de {current}. Se quiser, troque o mentor na lateral para eu focar corretamente nessa área."
-        )
-    return None
+    t = (user_text or "").lower()
+
+    if not inferred or inferred == current:
+        return None
+
+    if current == "Química":
+        chemistry_math_context = ["mol", "massa molar", "estequiometria", "concentração", "concentracao", "solução", "solucao", "ph", "balanceamento", "pureza", "rendimento"]
+        if any(term in t for term in chemistry_math_context):
+            return None
+
+    if current == "Física":
+        physics_math_context = ["velocidade", "aceleração", "aceleracao", "energia", "força", "forca", "mru", "mruv", "trajetória", "trajetoria", "gráfico do movimento", "grafico do movimento"]
+        if any(term in t for term in physics_math_context):
+            return None
+
+    return (
+        f"Esse pedido parece pertencer mais ao mentor de {inferred}. "
+        f"Agora você está no mentor de {current}. Se quiser, troque o mentor na lateral para eu focar corretamente nessa área."
+    )
 
 
 def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optional[str]]:
@@ -2063,7 +2136,7 @@ if not st.session_state.auth_complete:
 # =========================================================
 # LOAD INITIAL CONVERSATION
 # =========================================================
-rows = list_conversations()
+rows = list_conversations(st.session_state.mentor)
 if not rows:
     cid = create_conversation(mentor=st.session_state.mentor)
     st.session_state.current_conversation_id = cid
@@ -2071,6 +2144,8 @@ if not rows:
 elif st.session_state.current_conversation_id is None:
     st.session_state.current_conversation_id = rows[0][0]
     load_conversation_into_state(rows[0][0])
+else:
+    ensure_current_mentor_conversation()
 
 
 # =========================================================
@@ -2101,8 +2176,8 @@ with st.sidebar:
     )
 
     if new_mentor != st.session_state.mentor:
-        st.session_state.mentor = new_mentor
-        update_conversation_mentor(st.session_state.current_conversation_id, new_mentor)
+        switch_to_mentor(new_mentor)
+        st.rerun()
 
     if st.session_state.profile == "Professor":
         with st.expander("Ferramentas do professor", expanded=False):
@@ -2120,17 +2195,24 @@ with st.sidebar:
             )
 
     st.markdown("### Conversas")
+    st.caption(f"Histórico do mentor: {st.session_state.mentor}")
 
-    conv_rows = list_conversations()
+    conv_rows = list_conversations(st.session_state.mentor)
     for row in conv_rows:
         cid, title, _updated, mentor, _attachment_name, last_mode = row
-        c1, c2 = st.columns([6, 1], gap="small")
+        active = cid == st.session_state.current_conversation_id
+        c1, c2 = st.columns([8, 1], gap="small")
 
         with c1:
+            st.markdown(
+                f"<div class='conversation-card {'active' if active else ''}'><div class='conversation-title'>{html.escape(title[:34])}{'...' if len(title) > 34 else ''}</div><div class='conversation-meta'>{html.escape(last_mode or 'Livre')}</div></div>",
+                unsafe_allow_html=True,
+            )
             if st.button(
-                f"{title[:32]}{'...' if len(title) > 32 else ''}\n{mentor} • {last_mode or 'Livre'}",
+                f"Abrir conversa",
                 key=f"open_conv_{cid}",
                 use_container_width=True,
+                type="primary" if active else "secondary",
             ):
                 load_conversation_into_state(cid)
                 st.rerun()
@@ -2146,7 +2228,7 @@ with st.sidebar:
                 if st.button("Excluir conversa", key=f"delete_btn_{cid}", use_container_width=True):
                     deleting_current = cid == st.session_state.current_conversation_id
                     delete_conversation(cid)
-                    remaining = list_conversations()
+                    remaining = list_conversations(st.session_state.mentor)
                     if deleting_current:
                         reset_visual_state(clear_file=True)
                         if remaining:
