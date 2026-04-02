@@ -36,14 +36,15 @@ IF_LOGO = "logo.png"
 DB_PATH = "mentoredu.db"
 UPLOAD_DIR = "uploads"
 
-TEXT_MODEL = "llama-3.3-70b-versatile"
+TEXT_MODEL_STRONG = "llama-3.3-70b-versatile"
+TEXT_MODEL_FAST = "llama-3.1-8b-instant"
 VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 MAX_PDF_MB = 15
 MAX_FILE_MB = 12
 MAX_PERGUNTAS_SESSAO = 60
-PDF_CONTEXT_LIMIT = 4000
-CHAT_HISTORY_LIMIT = 5
+PDF_CONTEXT_LIMIT = 3200
+CHAT_HISTORY_LIMIT = 4
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -221,6 +222,11 @@ def app_css() -> str:
     .conversation-card.active {
         background: #f1e3d1 !important;
         border-color: #c9aa87 !important;
+    }
+
+    .conversation-card:hover {
+        transform: translateY(-1px);
+        transition: .15s ease;
     }
 
     .login-card {
@@ -576,6 +582,7 @@ def init_session_state():
         "rename_target_id": None,
         "gabarito_rapido": "",
         "criterios_correcao": "",
+        "suggested_mentor": None,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -1215,6 +1222,62 @@ def detect_mode_label(intent: str) -> str:
     }
     return mapping.get(intent, "Livre")
 
+def choose_text_model(user_text: str, intent: str) -> str:
+    t = (user_text or "").lower()
+    heavy_terms = [
+        "pdf", "anexo", "resuma", "resumo", "corrija", "corrigir",
+        "projeto", "metodologia", "abnt", "demonstre", "deduza",
+        "analise", "analise minha", "professor", "justificativa"
+    ]
+    if intent in {"demonstracao", "correcao", "analise_resolucao", "resumo", "plano_aula"}:
+        return TEXT_MODEL_STRONG
+    if any(term in t for term in heavy_terms) or st.session_state.attachment_text:
+        return TEXT_MODEL_STRONG
+    return TEXT_MODEL_FAST
+
+
+def detect_best_mentor_for_prompt(text: str) -> Optional[str]:
+    t = (text or "").lower()
+    keyword_map = {
+        "Matemática": ["função", "funcao", "equação", "equacao", "gráfico", "grafico", "parábola", "parabola", "afim", "linear", "trigonom", "raiz", "bhaskara", "inequação", "inequacao", "geometria", "logaritmo", "derivada", "integral"],
+        "Física": ["mru", "mruv", "força", "forcas", "forças", "velocidade", "aceleração", "aceleracao", "trajetória", "trajetoria", "lançamento", "lancamento", "energia", "circuito", "corrente", "tensão", "tensao", "resistor", "newton", "movimento"],
+        "Química": ["tabela periódica", "tabela periodica", "linus pauling", "mol", "estequiometria", "ligação", "ligacao", "átomo", "atomo", "íons", "ions", "distribuição eletrônica", "distribuicao eletronica", "massa molar", "ph", "solução", "solucao", "balanceamento", "nox", "concentração", "concentracao", "oxidação", "oxidacao", "química orgânica", "quimica organica"],
+        "Metodologia Científica": ["projeto de pesquisa", "problema de pesquisa", "metodologia científica", "metodologia cientifica", "hipótese", "hipotese", "objetivo geral", "objetivos específicos", "objetivos especificos", "justificativa", "referencial teórico", "referencial teorico", "cronograma", "pergunta de pesquisa", "delimitação", "delimitacao", "iniciação científica", "iniciacao cientifica"],
+        "Documentos Acadêmicos": ["abnt", "currículo", "curriculo", "lattes", "carta de apresentação", "carta de apresentacao", "ofício", "oficio", "relatório", "relatorio", "resenha", "resumo expandido", "correção de texto", "correcao de texto", "referências", "referencias", "formatação", "formatacao", "curriculo", "texto acadêmico", "texto academico"],
+    }
+    scores = {mentor: sum(1 for kw in kws if kw in t) for mentor, kws in keyword_map.items()}
+    best = max(scores, key=scores.get)
+    return best if scores[best] > 0 else None
+
+
+def mentor_should_redirect(current_mentor: str, user_text: str) -> tuple[bool, Optional[str], Optional[str]]:
+    suggested = detect_best_mentor_for_prompt(user_text)
+    if not suggested or suggested == current_mentor:
+        return False, None, None
+
+    t = (user_text or "").lower()
+    if current_mentor == "Química":
+        chemistry_math_context = ["mol", "massa molar", "estequiometria", "concentração", "concentracao", "solução", "solucao", "ph", "balanceamento", "pureza", "rendimento"]
+        if any(term in t for term in chemistry_math_context):
+            return False, None, None
+    if current_mentor == "Física":
+        physics_math_context = ["velocidade", "aceleração", "aceleracao", "energia", "força", "forca", "mru", "mruv", "trajetória", "trajetoria", "gráfico do movimento", "grafico do movimento"]
+        if any(term in t for term in physics_math_context):
+            return False, None, None
+    if current_mentor == "Metodologia Científica" and suggested == "Documentos Acadêmicos":
+        if any(term in t for term in ["projeto", "objetivo", "justificativa", "metodologia"]):
+            return False, None, None
+    if current_mentor == "Documentos Acadêmicos" and suggested == "Metodologia Científica":
+        if any(term in t for term in ["abnt", "currículo", "curriculo", "resumo", "resenha", "texto", "relatório", "relatorio"]):
+            return False, None, None
+
+    message = (
+        f"Esse pedido pertence mais ao mentor de {suggested}. "
+        f"Agora você está no mentor de {current_mentor}. "
+        f"Posso responder de forma limitada aqui, mas o ideal é trocar de mentor para uma resposta realmente especializada."
+    )
+    return True, suggested, message
+
 
 def chat_history_text(chat: List[Dict[str, str]], limit: int = CHAT_HISTORY_LIMIT) -> str:
     parts = []
@@ -1432,30 +1495,46 @@ def ask_text_model(user_text: str) -> str:
         return client_error or "Não foi possível iniciar a IA."
 
     intent = detect_intent(user_text)
+    preferred_model = choose_text_model(user_text, intent)
+    messages = [
+        {
+            "role": "system",
+            "content": system_prompt(
+                profile=st.session_state.profile,
+                mentor=st.session_state.mentor,
+                intent=intent,
+            ),
+        },
+        {
+            "role": "user",
+            "content": build_user_prompt(user_text),
+        },
+    ]
 
     try:
         resp = client.chat.completions.create(
-            model=TEXT_MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": system_prompt(
-                        profile=st.session_state.profile,
-                        mentor=st.session_state.mentor,
-                        intent=intent,
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": build_user_prompt(user_text),
-                },
-            ],
-            temperature=0.3,
-            max_tokens=1700,
+            model=preferred_model,
+            messages=messages,
+            temperature=0.25,
+            max_tokens=850,
         )
         text = (resp.choices[0].message.content or "").strip()
         return clean_text(text) if text else "Não consegui gerar uma resposta útil."
     except Exception as e:
+        lowered = str(e).lower()
+        if preferred_model != TEXT_MODEL_FAST and ("429" in lowered or "rate limit" in lowered or "rate_limit_exceeded" in lowered):
+            try:
+                resp = client.chat.completions.create(
+                    model=TEXT_MODEL_FAST,
+                    messages=messages,
+                    temperature=0.25,
+                    max_tokens=650,
+                )
+                text = (resp.choices[0].message.content or "").strip()
+                if text:
+                    return clean_text(text)
+            except Exception:
+                pass
         return groq_error_to_user_message(e, "gerar a resposta")
 
 
@@ -1879,41 +1958,15 @@ def generate_forces_diagram(inclined: bool = False) -> str:
 
 
 def infer_subject_from_text(text: str) -> Optional[str]:
-    t = (text or "").lower()
-    keyword_map = {
-        "Matemática": ["função", "funcao", "equação", "equacao", "gráfico", "grafico", "parábola", "parabola", "afim", "linear", "trigonom", "raiz", "bhaskara", "inequação", "inequacao", "geometria", "logaritmo"],
-        "Física": ["mru", "mruv", "força", "forcas", "forças", "velocidade", "aceleração", "aceleracao", "trajetória", "trajetoria", "lançamento", "lancamento", "energia", "circuito", "corrente", "tensão", "tensao", "resistor"],
-        "Química": ["tabela periódica", "tabela periodica", "linus pauling", "mol", "estequiometria", "ligação", "ligacao", "átomo", "atomo", "íons", "ions", "distribuição eletrônica", "distribuicao eletronica", "massa molar", "ph", "solução", "solucao", "balanceamento", "nox", "concentração", "concentracao"],
-        "Metodologia Científica": ["projeto de pesquisa", "problema de pesquisa", "metodologia científica", "metodologia cientifica", "hipótese", "hipotese", "objetivo geral", "objetivos específicos", "objetivos especificos", "justificativa", "referencial teórico", "referencial teorico", "cronograma", "pergunta de pesquisa", "delimitação", "delimitacao"],
-        "Documentos Acadêmicos": ["abnt", "currículo", "curriculo", "lattes", "carta de apresentação", "carta de apresentacao", "ofício", "oficio", "relatório", "relatorio", "resenha", "resumo expandido", "correção de texto", "correcao de texto", "curriculo", "referências", "referencias", "formatação", "formatacao"]
-    }
-    scores = {mentor: sum(1 for kw in kws if kw in t) for mentor, kws in keyword_map.items()}
-    best = max(scores, key=scores.get)
-    return best if scores[best] > 0 else None
+    return detect_best_mentor_for_prompt(text)
 
 
 def mentor_scope_warning(user_text: str) -> Optional[str]:
-    inferred = infer_subject_from_text(user_text)
-    current = st.session_state.mentor
-    t = (user_text or "").lower()
-
-    if not inferred or inferred == current:
-        return None
-
-    if current == "Química":
-        chemistry_math_context = ["mol", "massa molar", "estequiometria", "concentração", "concentracao", "solução", "solucao", "ph", "balanceamento", "pureza", "rendimento"]
-        if any(term in t for term in chemistry_math_context):
-            return None
-
-    if current == "Física":
-        physics_math_context = ["velocidade", "aceleração", "aceleracao", "energia", "força", "forca", "mru", "mruv", "trajetória", "trajetoria", "gráfico do movimento", "grafico do movimento"]
-        if any(term in t for term in physics_math_context):
-            return None
-
-    return (
-        f"Esse pedido parece pertencer mais ao mentor de {inferred}. "
-        f"Agora você está no mentor de {current}. Se quiser, troque o mentor na lateral para eu focar corretamente nessa área."
-    )
+    should_redirect, suggested, message = mentor_should_redirect(st.session_state.mentor, user_text)
+    if should_redirect:
+        st.session_state.suggested_mentor = suggested
+        return message
+    return None
 
 
 def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optional[str]]:
@@ -2009,12 +2062,14 @@ def try_generate_visual_response(user_text: str) -> tuple[Optional[str], Optiona
 
 def answer_user(user_text: str) -> str:
     intent = detect_intent(user_text)
+    st.session_state.suggested_mentor = None
 
-    scope_warning = mentor_scope_warning(user_text)
-    if scope_warning and not request_wants_visual_generation(user_text):
-        return scope_warning
+    should_redirect, suggested, redirect_message = mentor_should_redirect(st.session_state.mentor, user_text)
+    if should_redirect:
+        st.session_state.suggested_mentor = suggested
+        if not request_wants_visual_generation(user_text):
+            return redirect_message or "Esse pedido pertence mais a outro mentor."
 
-    # Demonstração/dedução tem prioridade sobre qualquer geração visual automática.
     if intent == "demonstracao" or request_wants_derivation(user_text):
         return ask_text_model(user_text)
 
@@ -2163,7 +2218,7 @@ with st.sidebar:
         f"""
         <div class="account-box">
             <div class="account-name">{html.escape(get_first_name(st.session_state.nickname))}</div>
-            <div class="account-sub">{html.escape(st.session_state.profile)} • Mentor de {html.escape(st.session_state.mentor)}</div>
+            <div class="account-sub">{html.escape(st.session_state.profile)} • Mentor de {html.escape(st.session_state.mentor)}</div><div class="account-sub" style="margin-top:4px;">Projeto Inércia Zero</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -2177,7 +2232,15 @@ with st.sidebar:
 
     if new_mentor != st.session_state.mentor:
         switch_to_mentor(new_mentor)
+        st.session_state.suggested_mentor = None
         st.rerun()
+
+    if st.session_state.get("suggested_mentor") and st.session_state.suggested_mentor != st.session_state.mentor:
+        st.info(f"Pedido mais compatível com: {st.session_state.suggested_mentor}")
+        if st.button(f"Ir para {st.session_state.suggested_mentor}", use_container_width=True):
+            switch_to_mentor(st.session_state.suggested_mentor)
+            st.session_state.suggested_mentor = None
+            st.rerun()
 
     if st.session_state.profile == "Professor":
         with st.expander("Ferramentas do professor", expanded=False):
@@ -2205,11 +2268,11 @@ with st.sidebar:
 
         with c1:
             st.markdown(
-                f"<div class='conversation-card {'active' if active else ''}'><div class='conversation-title'>{html.escape(title[:34])}{'...' if len(title) > 34 else ''}</div><div class='conversation-meta'>{html.escape(last_mode or 'Livre')}</div></div>",
+                f"<div class='conversation-card {'active' if active else ''}'><div class='conversation-title'>{html.escape(title[:34])}{'...' if len(title) > 34 else ''}</div><div class='conversation-meta'>{html.escape(last_mode or 'Livre')} • {html.escape(mentor)}</div></div>",
                 unsafe_allow_html=True,
             )
             if st.button(
-                f"Abrir conversa",
+                f"Abrir",
                 key=f"open_conv_{cid}",
                 use_container_width=True,
                 type="primary" if active else "secondary",
@@ -2287,6 +2350,9 @@ with top2:
         """,
         unsafe_allow_html=True,
     )
+
+if st.session_state.get("suggested_mentor") and st.session_state.suggested_mentor != st.session_state.mentor:
+    st.markdown(f"<div class='attach-note'>Sugestão inteligente: este tema parece pertencer mais ao mentor <b>{html.escape(st.session_state.suggested_mentor)}</b>.</div>", unsafe_allow_html=True)
 
 if st.session_state.mentor == "Química":
     render_periodic_table()
